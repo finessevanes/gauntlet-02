@@ -1,110 +1,160 @@
-# PR-N TODO — [Feature Name]
+# PR-{N} TODO — [Feature Name]
 
-**Branch**: `feature/pr-n-[slug]`  
-**Source PRD**: [link to PRD]  
+**Branch**: `feat/pr-{n}-{feature-slug}`  
+**Source PRD**: `psst/docs/prds/pr-{n}-prd.md`  
 **Owner (Agent)**: [name]
 
 ---
 
 ## 0. Clarifying Questions & Assumptions
 
-- Questions: [unanswered items from PRD preflight]
-- Assumptions (unblock coding now; confirm in PR):
+- Questions: [unanswered items from PRD]
+- Assumptions (confirm in PR if needed):
   - [assumption 1]
   - [assumption 2]
 
 ---
 
-## 1. Repo Prep
+## 1. Setup
 
-- [ ] Create branch `feature/pr-n-[slug]`
-- [ ] Confirm env, emulators, and test runner
+- [ ] Create branch `feat/pr-{n}-{feature-slug}` from develop
+- [ ] Read PRD thoroughly
+- [ ] Read `agents/shared-standards.md` for patterns
+- [ ] Confirm environment and test runner work
 
 ---
 
-## 2. Service Layer (deterministic contracts)
+## 2. Service Layer
 
-- [ ] Implement [service method]
-  - Test Gate: unit test passes for valid/invalid cases
-- [ ] Implement [service method]
-  - Test Gate: unit test passes
+Implement deterministic service contracts from PRD.
+
+- [ ] Implement [service method name]
+  - Test Gate: Unit test passes for valid/invalid cases
+- [ ] Implement [service method name]
+  - Test Gate: Unit test passes
+- [ ] Add validation logic
+  - Test Gate: Edge cases handled correctly
 
 ---
 
 ## 3. Data Model & Rules
 
-- [ ] Update schema/docs
-  - Test Gate: reads/writes succeed with rules
+- [ ] Define new types/structs in Swift
+- [ ] Update Firestore schema (if needed)
+- [ ] Add Firebase security rules
+  - Test Gate: Reads/writes succeed with rules applied
 
 ---
 
-## 4. UI Components (SwiftUI)
+## 4. UI Components
 
-- [ ] Create/modify [View/component]
+Create/modify SwiftUI views per PRD Section 10.
+
+- [ ] Create/modify [View name]
   - Test Gate: SwiftUI Preview renders; zero console errors
-- [ ] Wire up state management (@State, @StateObject, @EnvironmentObject)
+- [ ] Wire up state management (@State, @StateObject, etc.)
   - Test Gate: Interaction updates state correctly
+- [ ] Add loading/error/empty states
+  - Test Gate: All states render correctly
 
 ---
 
-## 5. Integration & Realtime
+## 5. Integration & Real-Time
+
+Reference requirements from `agents/shared-standards.md`.
 
 - [ ] Firebase service integration
-  - Test Gate: Auth/Firestore/FCM configured and connected
+  - Test Gate: Auth/Firestore/FCM configured
 - [ ] Real-time listeners working
-  - Test Gate: Data syncs across devices/sessions
-- [ ] Offline persistence functioning
+  - Test Gate: Data syncs across devices <100ms
+- [ ] Offline persistence
   - Test Gate: App restarts work offline with cached data
-- [ ] Presence/status indicators updating
+- [ ] Presence/status indicators (if applicable)
   - Test Gate: Online/offline states reflect correctly
 
 ---
 
 ## 6. Tests
 
-- a) Unit Tests (XCTest)
-  - [ ] Service layer logic validated
-  - [ ] Edge cases and error handling covered
-- b) UI Tests (XCUITest)
-  - [ ] User interaction flows succeed
-  - [ ] Navigation and gestures work
-- c) Visual States
-  - [ ] Empty, loading, error, success states render correctly
-- d) Real-time & Offline
-  - [ ] Messages sync in real-time
-  - [ ] Offline mode persists data correctly
+Follow patterns from `agents/shared-standards.md` and `agents/test-template.md`.
+
+- [ ] Unit Tests (XCTest)
+  - Path: `PsstTests/{Feature}Tests.swift`
+  - Test Gate: Service logic validated, edge cases covered
+  
+- [ ] UI Tests (XCUITest)
+  - Path: `PsstUITests/{Feature}UITests.swift`
+  - Test Gate: User flows succeed, navigation works
+  
+- [ ] Service Tests (if applicable)
+  - Path: `PsstTests/Services/{ServiceName}Tests.swift`
+  - Test Gate: Firebase operations tested
+  
+- [ ] Multi-device sync test
+  - Test Gate: Use pattern from shared-standards.md
+  
+- [ ] Visual states verification
+  - Test Gate: Empty, loading, error, success render correctly
 
 ---
 
 ## 7. Performance
 
-- [ ] App load time: < 2-3 seconds
-  - Test Gate: Cold start to interactive UI measured
-- [ ] Network latency: < 100ms
-  - Test Gate: Firebase calls and message delivery measured
+Verify targets from `agents/shared-standards.md`.
+
+- [ ] App load time < 2-3 seconds
+  - Test Gate: Cold start to interactive measured
+- [ ] Message latency < 100ms
+  - Test Gate: Firebase calls measured
+- [ ] Smooth 60fps scrolling (100+ items)
+  - Test Gate: Use LazyVStack, verify with instruments
 
 ---
 
-## 8. Docs & PR
+## 8. Acceptance Gates
 
-- [ ] Update `PR-N-todo.md` with gates results
-- [ ] Write PR description summary (use this structure):
-  - Goal and scope (from PRD)
-  - Files changed and rationale
-  - Test steps (happy path, edge cases, multi-user, perf)
-  - Known limitations and follow-ups
-  - Links: PRD, TODO, designs
-- [ ] Keep PR description updated after each failed test until all gates pass
-- [ ] Open PR with checklist copied here
+Check every gate from PRD Section 12:
+- [ ] All happy path gates pass
+- [ ] All edge case gates pass
+- [ ] All multi-user gates pass
+- [ ] All performance gates pass
+
+---
+
+## 9. Documentation & PR
+
+- [ ] Add inline code comments for complex logic
+- [ ] Update README if needed
+- [ ] Create PR description (use format from agents/coder-agent.md)
+- [ ] Verify with user before creating PR
+- [ ] Open PR targeting develop branch
+- [ ] Link PRD and TODO in PR description
 
 ---
 
 ## Copyable Checklist (for PR description)
 
-- [ ] Branch created
+```markdown
+- [ ] Branch created from develop
+- [ ] All TODO tasks completed
 - [ ] Services implemented + unit tests (XCTest)
 - [ ] SwiftUI views implemented with state management
-- [ ] Firebase integration tested (realtime sync, offline persistence)
+- [ ] Firebase integration tested (real-time sync, offline)
 - [ ] UI tests pass (XCUITest)
-- [ ] Performance targets met (load time < 2-3s, latency < 100ms)
-- [ ] Docs updated
+- [ ] Multi-device sync verified (<100ms)
+- [ ] Performance targets met (see shared-standards.md)
+- [ ] All acceptance gates pass
+- [ ] Code follows shared-standards.md patterns
+- [ ] No console warnings
+- [ ] Documentation updated
+```
+
+---
+
+## Notes
+
+- Break tasks into <30 min chunks
+- Complete tasks sequentially
+- Check off after completion
+- Document blockers immediately
+- Reference `agents/shared-standards.md` for common patterns and solutions

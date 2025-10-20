@@ -1,245 +1,392 @@
-# PRD: [Feature Name] — End-to-End Delivery
+# Testing Guidelines
 
-**Feature**: [short name]
-
-**Version**: 1.0
-
-**Status**: Draft | Ready for Development | In Progress | Shipped
-
-**Agent**: [Phillip/Rhonda]
-
-**Target Release**: [date or sprint]
-
-**Links**: [Action Plan], [Test Plan], [Designs], [Tracking Issue], [Agent TODOs] (`docs/todo-template.md`)
+Reference this when creating tests for features. See also `agents/shared-standards.md` for testing standards.
 
 ---
 
-## 1. Summary
+## Test Types Overview
 
-One or two sentences that state the problem and the outcome. Focus on the minimum vertical slice that delivers user value independently.
+### 1. Unit Tests (XCTest)
+**Path**: `PsstTests/{Feature}Tests.swift`
 
----
+**Purpose**: Test service layer logic, validation, Firebase operations
 
-## 2. Problem & Goals
-
-- What user problem are we solving?
-- Why now? (tie to rubric/OKR if relevant)
-- Goals (ordered, measurable):
-  - [ ] G1 — [clear goal]
-  - [ ] G2 — [clear goal]
-
----
-
-## 3. Non-Goals / Out of Scope
-
-Call out anything intentionally excluded to avoid partial implementations and hidden dependencies.
-
-- [ ] Not doing X (explain why)
-- [ ] Not doing Y (explain why)
-
----
-
-## 4. Success Metrics
-
-- User-visible: [time to complete task, number of taps, flow completion]
-- System: [<100ms message delivery, <2-3s app load time, smooth 60fps scrolling]
-- Quality: [0 blocking bugs, all acceptance gates pass, crash-free rate >99%]
-
----
-
-## 5. Users & Stories
-
-- As a [role], I want [action] so that [outcome].
-- As a [collaborator], I want [real-time effect] so that [coordination].
-
----
-
-## 6. Experience Specification (UX)
-
-- Entry points and flows: [where in app navigation, how it's triggered]
-- Visual behavior: [buttons, gestures, empty states, animations]
-- Loading/disabled/error states: [what user sees/feels]
-- Performance: Smooth 60fps scrolling; tap feedback <50ms; message delivery <100ms.
-
-If designs exist, link them; otherwise provide small ASCII sketches or bullet specs.
-
----
-
-## 7. Functional Requirements (Must/Should)
-
-- MUST: [deterministic service-layer method exists for each user action]
-- MUST: [real-time message delivery to other users in <100ms]
-- MUST: [offline persistence and queue for sent messages]
-- SHOULD: [optimistic UI for message sending]
-
-Acceptance gates embedded per requirement:
-
-- [Gate] When User A sends message → User B sees it in <100ms.
-- [Gate] Offline: sent messages queue and deliver on reconnect.
-- [Gate] Error case: invalid input shows alert; no partial writes to Firebase.
-
----
-
-## 8. Data Model
-
-Describe new/changed Firestore collections, schemas, and invariants.
-
+**Pattern**:
 ```swift
-// Example: Message Document
-{
-  id: String,
-  text: String,
-  senderID: String,
-  timestamp: Timestamp,  // FieldValue.serverTimestamp()
-  readBy: [String]  // Array of user IDs
-}
+import XCTest
+@testable import Psst
 
-// Example: Chat Document
-{
-  id: String,
-  members: [String],  // Array of user IDs
-  lastMessage: String,
-  lastMessageTimestamp: Timestamp,
-  isGroupChat: Bool
+class MessageServiceTests: XCTestCase {
+    var service: MessageService!
+    
+    override func setUp() {
+        super.setUp()
+        service = MessageService()
+    }
+    
+    override func tearDown() {
+        service = nil
+        super.tearDown()
+    }
+    
+    func testSendMessage() async throws {
+        // Given
+        let testMessage = "Hello World"
+        let testChatID = "test-chat"
+        
+        // When
+        let messageID = try await service.sendMessage(
+            chatID: testChatID,
+            text: testMessage
+        )
+        
+        // Then
+        XCTAssertNotNil(messageID)
+        // Verify message saved to Firebase
+        let messages = try await service.fetchMessages(chatID: testChatID)
+        XCTAssertTrue(messages.contains { $0.id == messageID })
+    }
+    
+    func testSendEmptyMessage() async throws {
+        // Empty message should throw error
+        do {
+            _ = try await service.sendMessage(chatID: "test", text: "")
+            XCTFail("Should have thrown error")
+        } catch {
+            // Expected error
+            XCTAssertTrue(true)
+        }
+    }
 }
 ```
 
-- Validation rules: [Firebase security rules, field constraints]
-- Indexing/queries: [Firestore listeners, composite indexes]
-
 ---
 
-## 9. API / Service Contracts
+### 2. UI Tests (XCUITest)
+**Path**: `PsstUITests/{Feature}UITests.swift`
 
-Specify the concrete methods at the service layer. Include parameters, validation, return values, and error conditions.
+**Purpose**: Test user interactions, navigation, UI state changes
 
+**Pattern**:
 ```swift
-// Example signatures (Swift/Firebase)
-func sendMessage(chatID: String, text: String) async throws -> String
-func createChat(members: [String], isGroup: Bool) async throws -> String
-func observeMessages(chatID: String, completion: @escaping ([Message]) -> Void) -> ListenerRegistration
-func markMessageAsRead(messageID: String, userID: String) async throws
+import XCTest
+
+class ChatViewUITests: XCTestCase {
+    var app: XCUIApplication!
+    
+    override func setUp() {
+        super.setUp()
+        continueAfterFailure = false
+        app = XCUIApplication()
+        app.launch()
+    }
+    
+    func testUserCanSendMessage() throws {
+        // Navigate to chat view
+        app.buttons["chatButton"].tap()
+        
+        // Type message
+        let messageInput = app.textFields["messageInput"]
+        XCTAssertTrue(messageInput.exists)
+        messageInput.tap()
+        messageInput.typeText("Hello World")
+        
+        // Send message
+        app.buttons["sendButton"].tap()
+        
+        // Verify message appears
+        let messageText = app.staticTexts["Hello World"]
+        XCTAssertTrue(messageText.waitForExistence(timeout: 5))
+    }
+    
+    func testEmptyMessageDisablesSendButton() throws {
+        app.buttons["chatButton"].tap()
+        
+        let sendButton = app.buttons["sendButton"]
+        
+        // Send button should be disabled when input is empty
+        XCTAssertFalse(sendButton.isEnabled)
+        
+        // Type text
+        let messageInput = app.textFields["messageInput"]
+        messageInput.tap()
+        messageInput.typeText("Hello")
+        
+        // Now send button should be enabled
+        XCTAssertTrue(sendButton.isEnabled)
+    }
+}
 ```
 
-- Pre- and post-conditions for each method
-- Error handling strategy (surface via alerts, retries, offline queue, etc.)
+---
+
+### 3. Service Tests
+**Path**: `PsstTests/Services/{ServiceName}Tests.swift`
+
+**Purpose**: Test Firebase-specific operations, async behavior, error handling
+
+**Pattern**:
+```swift
+import XCTest
+@testable import Psst
+
+class MessageServiceFirebaseTests: XCTestCase {
+    var service: MessageService!
+    
+    override func setUp() {
+        super.setUp()
+        service = MessageService()
+        // Configure Firebase test environment
+    }
+    
+    func testFirestoreWrite() async throws {
+        let chatID = "test-chat-\(UUID().uuidString)"
+        let text = "Test message"
+        
+        let messageID = try await service.sendMessage(chatID: chatID, text: text)
+        
+        // Verify written to Firestore
+        // Query Firestore directly to confirm
+        XCTAssertNotNil(messageID)
+    }
+    
+    func testOfflineMessageQueue() async throws {
+        // Simulate offline mode
+        // Send message
+        // Verify queued locally
+        // Simulate reconnection
+        // Verify message sent
+    }
+}
+```
 
 ---
 
-## 10. UI Components to Create/Modify
+## Multi-Device Testing
 
-List SwiftUI views/files to be added/edited with a one-line purpose each.
+Use this pattern for testing real-time sync (from `agents/shared-standards.md`):
 
-- `Views/LoginView.swift` — user authentication (login)
-- `Views/SignUpView.swift` — user registration (sign up)
-- `Views/ChatListView.swift` — display all conversations
-- `Views/ChatView.swift` — main chat interface
-- `Views/MessageRow.swift` — individual message display
-- `Components/MessageInputView.swift` — text input and send button
+```swift
+func testMessageSyncAcrossDevices() async throws {
+    // Simulate 2 devices
+    let device1Service = MessageService()
+    let device2Service = MessageService()
+    
+    let chatID = "sync-test-\(UUID().uuidString)"
+    
+    // Device 1 sends message
+    let messageID = try await device1Service.sendMessage(
+        chatID: chatID,
+        text: "Hello from device 1"
+    )
+    
+    // Wait for Firebase sync (should be <100ms)
+    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+    
+    // Device 2 fetches messages
+    let messages = try await device2Service.fetchMessages(chatID: chatID)
+    
+    // Assert device 2 received the message
+    XCTAssertTrue(messages.contains { $0.id == messageID })
+    XCTAssertEqual(messages.first?.text, "Hello from device 1")
+}
 
-
----
-
-## 11. Integration Points
-
-- Firebase Authentication for user sessions
-- Firestore for message/chat storage and real-time listeners
-- Firebase Realtime Database for online/offline presence
-- Firebase Cloud Messaging (FCM) for push notifications
-- State management via SwiftUI `@StateObject`, `@ObservedObject`, `@EnvironmentObject`
-
----
-
-## 12. Test Plan & Acceptance Gates
-
-Define BEFORE implementation. Use checkboxes; each sub-task must have a gate.
-
-- Happy Path
-  - [ ] User sends message; appears immediately (optimistic UI)
-  - [ ] Gate: Other user(s) receive message in <100ms
-  - [ ] Gate: Messages persist after app restart (offline cache)
-- Edge Cases
-  - [ ] Empty message rejected with clear feedback
-  - [ ] Offline messages queue and send on reconnect
-  - [ ] Invalid user permissions handled gracefully
-- Multi-User (Group Chat)
-  - [ ] Messages delivered to all group members
-  - [ ] Read receipts update for each user independently
-- Performance
-  - [ ] App load time < 2-3 seconds
-  - [ ] Smooth 60fps scrolling with 100+ messages
-  - [ ] Message send/receive latency < 100ms
-
----
-
-## 13. Definition of Done (End-to-End)
-
-- [ ] Service methods implemented and unit-tested (XCTest)
-- [ ] SwiftUI views implemented with loading/empty/error states
-- [ ] Real-time sync verified across 2+ devices (<100ms)
-- [ ] Offline persistence and message queue tested
-- [ ] Push notifications working (foreground/background)
-- [ ] Test Plan checkboxes all pass
-- [ ] Docs updated: README, implementation notes
+func testConcurrentMessages() async throws {
+    let device1 = MessageService()
+    let device2 = MessageService()
+    let chatID = "concurrent-test-\(UUID().uuidString)"
+    
+    // Both devices send simultaneously
+    async let msg1 = device1.sendMessage(chatID: chatID, text: "From device 1")
+    async let msg2 = device2.sendMessage(chatID: chatID, text: "From device 2")
+    
+    let (id1, id2) = try await (msg1, msg2)
+    
+    // Both messages should succeed
+    XCTAssertNotNil(id1)
+    XCTAssertNotNil(id2)
+    
+    // Both should be in chat
+    let messages = try await device1.fetchMessages(chatID: chatID)
+    XCTAssertEqual(messages.count, 2)
+}
+```
 
 ---
 
-## 14. Risks & Mitigations
+## Test Coverage Checklist
 
-- Risk: [area] → Mitigation: [approach]
-- Risk: [performance/consistency] → Mitigation: [throttle, batch writes]
+For every feature, ensure you have tests for:
 
----
+### Happy Path
+- [ ] Primary user action succeeds
+- [ ] Data persists correctly
+- [ ] UI updates appropriately
 
-## 15. Rollout & Telemetry
+### Edge Cases
+- [ ] Empty/invalid input
+- [ ] Offline behavior
+- [ ] Network errors
+- [ ] Permission errors
+- [ ] Boundary conditions (0 items, 1000+ items)
 
-- Feature flag? [yes/no]
-- Metrics: [usage, errors, latency]
-- Manual validation steps post-deploy
+### Multi-User Scenarios
+- [ ] Real-time sync (<100ms)
+- [ ] Concurrent operations
+- [ ] Conflict resolution
 
----
+### Performance (see shared-standards.md)
+- [ ] Smooth scrolling (60fps)
+- [ ] Fast load times (<2-3s)
+- [ ] Low latency (<100ms)
 
-## 16. Open Questions
-
-- Q1: [decision needed]
-- Q2: [dependency/owner]
-
----
-
-## 17. Appendix: Out-of-Scope Backlog
-
-Items explicitly deferred for future work with brief rationale.
-
-- [ ] Future X
-- [ ] Future Y
-
----
-
-## Preflight Questionnaire (Complete Before Generating This PRD)
-
-Answer succinctly; these drive the vertical slice and acceptance gates.
-
-1. What is the smallest end-to-end user outcome we must deliver in this PR?
-2. Who is the primary user and what is their critical action?
-3. Must-have vs nice-to-have: what gets cut first if time tight?
-4. Real-time messaging requirements (recipients, <100ms delivery)?
-5. Performance constraints (load time, scrolling fps, message latency)?
-6. Error/edge cases we must handle (validation, offline queue, Firebase errors)?
-7. Data model changes needed (new Firestore collections/fields)?
-8. Service APIs required (sendMessage/createChat/observeMessages/etc.)?
-9. UI entry points and states (empty chat, loading, offline, error):
-11. Security/permissions implications (Firebase rules, user authentication):
-12. Dependencies or blocking integrations (Firebase services, APNs):
-13. Rollout strategy (feature flag, gradual rollout) and success metrics:
-14. What is explicitly out of scope for this iteration?
+### State Management
+- [ ] Loading states
+- [ ] Error states
+- [ ] Empty states
+- [ ] Success states
 
 ---
 
-## Authoring Notes
+## Test Organization
 
-- Write the Test Plan before coding; every sub-task needs a pass/fail gate.
-- Favor a vertical slice that ships standalone; avoid partial features depending on later PRs.
-- Keep contracts deterministic in the service layer; SwiftUI views are thin wrappers around services.
-- Test offline/online transitions thoroughly; Firebase persistence must work seamlessly.
+Structure your test files like this:
+
+```swift
+// MARK: - Setup/Teardown
+override func setUp() { }
+override func tearDown() { }
+
+// MARK: - Happy Path Tests
+func testFeatureWorksNormally() { }
+
+// MARK: - Edge Case Tests
+func testEmptyInput() { }
+func testInvalidInput() { }
+func testOfflineMode() { }
+
+// MARK: - Multi-User Tests
+func testRealTimeSync() { }
+func testConcurrentOperations() { }
+
+// MARK: - Performance Tests
+func testLoadTime() { }
+func testScrollPerformance() { }
+
+// MARK: - Error Handling Tests
+func testNetworkError() { }
+func testPermissionError() { }
+```
 
 ---
+
+## Running Tests
+
+### In Xcode
+- Run all tests: `Cmd + U`
+- Run specific test: Click diamond next to test function
+- Run specific test class: Click diamond next to class name
+
+### Command Line
+```bash
+# Run all tests
+xcodebuild test -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15'
+
+# Run specific test
+xcodebuild test -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:PsstTests/MessageServiceTests/testSendMessage
+```
+
+---
+
+## Common Test Patterns
+
+### Testing Async Operations
+```swift
+func testAsyncOperation() async throws {
+    let result = try await service.asyncMethod()
+    XCTAssertNotNil(result)
+}
+```
+
+### Testing Errors
+```swift
+func testThrowsError() async throws {
+    do {
+        _ = try await service.failingMethod()
+        XCTFail("Should have thrown error")
+    } catch {
+        // Expected error
+        XCTAssertTrue(error is ExpectedErrorType)
+    }
+}
+```
+
+### Testing UI Existence
+```swift
+func testElementExists() {
+    let element = app.buttons["buttonID"]
+    XCTAssertTrue(element.exists)
+    XCTAssertTrue(element.isHittable)
+}
+```
+
+### Testing UI State
+```swift
+func testButtonState() {
+    let button = app.buttons["submitButton"]
+    XCTAssertFalse(button.isEnabled) // Initially disabled
+    
+    app.textFields["input"].typeText("text")
+    XCTAssertTrue(button.isEnabled) // Now enabled
+}
+```
+
+---
+
+## Test Data Management
+
+### Use Unique IDs
+```swift
+let testChatID = "test-\(UUID().uuidString)"
+```
+
+### Clean Up After Tests
+```swift
+override func tearDown() {
+    // Delete test data from Firebase
+    Task {
+        try? await service.deleteTestData()
+    }
+    super.tearDown()
+}
+```
+
+---
+
+## Best Practices
+
+- ✅ Tests should be independent (don't rely on order)
+- ✅ Clean up test data after each test
+- ✅ Use meaningful test names (testUserCanSendMessage)
+- ✅ Follow Given-When-Then pattern
+- ✅ Test one thing per test function
+- ✅ Use XCTAssert for clear failure messages
+- ✅ Mock external dependencies when appropriate
+- ❌ Don't test implementation details
+- ❌ Don't write flaky tests that sometimes fail
+- ❌ Don't skip cleanup
+
+---
+
+## Visual Testing Note
+
+**Visual appearance (colors, fonts, spacing, animations) is verified manually by user during PR review.**
+
+Automated tests focus on:
+- Functional correctness
+- User interaction flows
+- Data persistence
+- Real-time sync
+- Performance targets
+
+See `agents/shared-standards.md` for more patterns and requirements.
