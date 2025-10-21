@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		2611B09A2EA82B490034CB07 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2611B0992EA82B490034CB07 /* GoogleService-Info.plist */; };
 		2615AFC62EA73C3500F56968 /* GoogleSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = 2615AFC52EA73C3500F56968 /* GoogleSignIn */; };
 		2615AFC82EA73C3500F56968 /* GoogleSignInSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 2615AFC72EA73C3500F56968 /* GoogleSignInSwift */; };
 		262226FF2EA71CD200303C16 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000001 /* FirebaseAuth */; };
@@ -45,6 +46,7 @@
 
 /* Begin PBXFileReference section */
 		2611ACB52EA765D50034CB07 /* Psst.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Psst.xctestplan; sourceTree = "<group>"; };
+		2611B0992EA82B490034CB07 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2626E7F42EA703CF00F8567B /* caleb-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "caleb-agent.md"; sourceTree = "<group>"; };
 		2626E7F52EA703CF00F8567B /* pam-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "pam-agent.md"; sourceTree = "<group>"; };
 		2626E7F62EA703CF00F8567B /* prd-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "prd-template.md"; sourceTree = "<group>"; };
@@ -151,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				2611ACB52EA765D50034CB07 /* Psst.xctestplan */,
+				2611B0992EA82B490034CB07 /* GoogleService-Info.plist */,
 				2626E7FC2EA703CF00F8567B /* agents */,
 				2626E7FF2EA703CF00F8567B /* docs */,
 				265951812EA6D27E00B5C739 /* Psst */,
@@ -301,6 +304,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2611B09A2EA82B490034CB07 /* GoogleService-Info.plist in Resources */,
 				2626E8002EA703CF00F8567B /* architecture.md in Resources */,
 				2626E8012EA703CF00F8567B /* prd-full-features.md in Resources */,
 				2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */,

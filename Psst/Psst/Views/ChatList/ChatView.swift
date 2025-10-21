@@ -164,6 +164,8 @@ struct ChatView: View {
                     await prefetchSenderNames()
                 }
             }
+            // Mark messages as read when chat opens (PR #14)
+            markMessagesAsRead()
         }
         .onDisappear {
             // Stop listening to prevent memory leaks
@@ -236,10 +238,12 @@ struct ChatView: View {
                             MessageRow(
                                 message: message,
                                 isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID),
-                                senderName: getSenderName(for: message)
+                                senderName: getSenderName(for: message),
+                                chat: chat,
+                                currentUserID: currentUserID
                             )
                             
-                            // Show status indicator for sent messages only
+                            // Show status indicator for sent messages only (offline/queued/failed states)
                             if message.isFromCurrentUser(currentUserID: currentUserID) {
                                 MessageStatusIndicator(
                                     status: message.sendStatus,
@@ -268,6 +272,9 @@ struct ChatView: View {
             .onChange(of: messages.count) { _, _ in
                 // Scroll to bottom when new messages arrive
                 scrollToBottom(proxy: proxy)
+                
+                // Mark new messages as read (for messages that arrive while chat is open)
+                markMessagesAsRead()
             }
         }
     }
@@ -546,6 +553,31 @@ struct ChatView: View {
         for senderID in uniqueSenderIDs {
             if senderNames[senderID] == nil {
                 await fetchSenderName(for: senderID)
+            }
+        }
+    }
+    
+    // MARK: - Read Receipts (PR #14)
+    
+    /// Marks all unread messages in this chat as read by the current user
+    /// Called automatically when chat view appears
+    /// Runs asynchronously to avoid blocking UI
+    private func markMessagesAsRead() {
+        Task {
+            do {
+                // Validate current user ID
+                guard !currentUserID.isEmpty else {
+                    print("⚠️ Cannot mark messages as read: no current user ID")
+                    return
+                }
+                
+                print("📖 Marking messages as read for chat: \(chat.id)")
+                try await messageService.markChatMessagesAsRead(chatID: chat.id)
+                print("✅ Messages marked as read")
+            } catch {
+                // Fail silently - read receipts are non-critical
+                // Log error for debugging but don't show alert to user
+                print("❌ Failed to mark messages as read: \(error.localizedDescription)")
             }
         }
     }
