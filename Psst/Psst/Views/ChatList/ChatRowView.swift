@@ -21,6 +21,7 @@ struct ChatRowView: View {
     @State private var isLoadingName = true
     @State private var isContactOnline: Bool = false
     @State private var otherUserID: String?
+    @State private var lastMessageSenderName: String? = nil
     
     @EnvironmentObject private var presenceService: PresenceService
     
@@ -30,16 +31,25 @@ struct ChatRowView: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Avatar placeholder
-            Circle()
-                .fill(Color.blue.opacity(0.3))
-                .frame(width: 50, height: 50)
-                .overlay(
+            // Avatar placeholder with group indicator
+            ZStack {
+                Circle()
+                    .fill(Color.blue.opacity(0.3))
+                    .frame(width: 50, height: 50)
+                
+                if chat.isGroupChat {
+                    // Group icon
+                    Image(systemName: "person.3.fill")
+                        .font(.title3)
+                        .foregroundColor(.blue)
+                } else {
+                    // Initial for 1-on-1
                     Text(displayName.prefix(1).uppercased())
                         .font(.title2)
                         .fontWeight(.semibold)
                         .foregroundColor(.blue)
-                )
+                }
+            }
             
             // Chat info
             VStack(alignment: .leading, spacing: 4) {
@@ -68,11 +78,28 @@ struct ChatRowView: View {
                         .foregroundColor(.secondary)
                 }
                 
-                // Last message
-                Text(chat.lastMessage.isEmpty ? "No messages yet" : chat.lastMessage)
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+                // Member count (for group chats)
+                if chat.isGroupChat {
+                    Text("\(chat.members.count) members")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                // Last message (with sender name for groups)
+                // Only show if there's actually a message
+                if !chat.lastMessage.isEmpty {
+                    if chat.isGroupChat, let senderName = lastMessageSenderName {
+                        Text("\(senderName): \(chat.lastMessage)")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    } else {
+                        Text(chat.lastMessage)
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                    }
+                }
             }
         }
         .padding(.vertical, 8)
@@ -93,12 +120,17 @@ struct ChatRowView: View {
     
     /// Load display name based on chat type
     /// For 1-on-1: fetch other user's name
-    /// For group: show "Group Chat (X members)"
+    /// For group: show group name
     private func loadDisplayName() async {
         // Handle group chat
         if chat.isGroupChat {
-            displayName = "Group Chat (\(chat.members.count))"
+            displayName = chat.groupName ?? "Group Chat"
             isLoadingName = false
+            
+            // Fetch last message sender name for groups (if message exists)
+            if !chat.lastMessage.isEmpty {
+                await fetchLastMessageSenderName()
+            }
             return
         }
         
@@ -159,6 +191,24 @@ struct ChatRowView: View {
     private func detachPresenceListener() {
         guard let contactID = otherUserID else { return }
         presenceService.stopObserving(userID: contactID)
+    }
+    
+    /// Fetch sender name for the last message in a group chat
+    /// This requires querying the messages sub-collection to get the last message's senderID
+    private func fetchLastMessageSenderName() async {
+        // For MVP, we can skip this feature or implement it later
+        // It would require fetching the last message document to get the senderID
+        // For now, we'll just show the message without sender name prefix in conversation list
+        // The full sender names will be visible in the ChatView
+        
+        // Future implementation:
+        // 1. Query messages sub-collection ordered by timestamp desc, limit 1
+        // 2. Get senderID from that message
+        // 3. Fetch user name using chatService.fetchUserName(userID:)
+        // 4. Update lastMessageSenderName state
+        
+        // For now, we'll leave this as a placeholder
+        // The group chat will still work, just without sender names in conversation list preview
     }
 }
 
