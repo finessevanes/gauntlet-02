@@ -28,6 +28,10 @@ struct Chat: Identifiable, Codable, Equatable {
     /// Whether this is a group chat (3+ members) or 1-on-1 chat (2 members)
     var isGroupChat: Bool
     
+    /// Group name for group chats (nil for 1-on-1 chats)
+    /// 1-50 characters, user-defined during group creation
+    var groupName: String?
+    
     /// Timestamp when this chat was created
     let createdAt: Date
     
@@ -41,16 +45,18 @@ struct Chat: Identifiable, Codable, Equatable {
     ///   - lastMessage: Text of most recent message (default: empty)
     ///   - lastMessageTimestamp: Timestamp of most recent message (default: now)
     ///   - isGroupChat: Override auto-detection (default: nil for auto-detection)
+    ///   - groupName: Name for group chats (nil for 1-on-1 chats)
     ///   - createdAt: Chat creation timestamp (default: now)
     ///   - updatedAt: Last update timestamp (default: now)
     init(id: String, members: [String], lastMessage: String = "",
          lastMessageTimestamp: Date = Date(), isGroupChat: Bool? = nil,
-         createdAt: Date = Date(), updatedAt: Date = Date()) {
+         groupName: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
         self.id = id
         self.members = members
         self.lastMessage = lastMessage
         self.lastMessageTimestamp = lastMessageTimestamp
         self.isGroupChat = isGroupChat ?? (members.count >= 3)
+        self.groupName = groupName
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -59,7 +65,7 @@ struct Chat: Identifiable, Codable, Equatable {
     /// Uses server timestamps for consistency across devices
     /// - Returns: Dictionary representation suitable for Firestore setData/updateData
     func toDictionary() -> [String: Any] {
-        return [
+        var dict: [String: Any] = [
             "id": id,
             "members": members,
             "lastMessage": lastMessage,
@@ -68,6 +74,13 @@ struct Chat: Identifiable, Codable, Equatable {
             "createdAt": FieldValue.serverTimestamp(),
             "updatedAt": FieldValue.serverTimestamp()
         ]
+        
+        // Include groupName if present
+        if let groupName = groupName {
+            dict["groupName"] = groupName
+        }
+        
+        return dict
     }
     
     /// Get the other user's ID in a 1-on-1 chat
