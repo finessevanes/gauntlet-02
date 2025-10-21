@@ -3,10 +3,13 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #7
+//  Updated by Caleb (Coder Agent) - PR #8: Real-time messaging integration
 //  Full chat view with message list, input bar, and auto-scroll
 //
 
 import SwiftUI
+import FirebaseAuth
+import FirebaseFirestore
 
 /// Main chat view displaying messages in a conversation
 /// Shows message list with sent/received styling and message input bar
@@ -16,20 +19,23 @@ struct ChatView: View {
     /// The chat being displayed
     let chat: Chat
     
-    /// Messages to display (mock data for now, real-time in PR #8)
+    /// Messages to display (real-time from Firestore)
     @State private var messages: [Message] = []
     
     /// Input text field value
     @State private var inputText = ""
     
-    /// Focus state for keyboard handling
-    @FocusState private var isInputFocused: Bool
-    
-    /// Current user ID (mock for now)
-    @State private var currentUserID = "currentUser"
+    /// Current user ID from Firebase Auth
+    @State private var currentUserID: String = ""
     
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
+    
+    /// Message service for real-time messaging
+    private let messageService = MessageService()
+    
+    /// Firestore listener registration for cleanup (wrapped in State for mutability)
+    @State private var messageListener: ListenerRegistration?
     
     // MARK: - Body
     
@@ -46,24 +52,20 @@ struct ChatView: View {
             
             // Message input bar
             MessageInputView(text: $inputText, onSend: handleSend)
-                .focused($isInputFocused)
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            loadMockMessages()
-        }
-        .onChange(of: isInputFocused) { _, isFocused in
-            // When keyboard appears, scroll to bottom to keep latest message visible
-            if isFocused, let proxy = scrollProxy {
-                // Delay to allow keyboard animation to complete (0.35s)
-                // This prevents the keyboard from blocking the latest message
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        proxy.scrollTo("bottom", anchor: .bottom)
-                    }
-                }
+            // Get current user ID from Firebase Auth
+            if let uid = Auth.auth().currentUser?.uid {
+                currentUserID = uid
             }
+            // Start listening for real-time messages
+            startListeningForMessages()
+        }
+        .onDisappear {
+            // Stop listening to prevent memory leaks
+            stopListeningForMessages()
         }
     }
     
@@ -133,21 +135,19 @@ struct ChatView: View {
         
         guard !trimmedText.isEmpty else { return }
         
-        // Create new message (optimistic UI)
-        let newMessage = Message(
-            id: UUID().uuidString,
-            text: trimmedText,
-            senderID: currentUserID,
-            timestamp: Date()
-        )
-        
-        // Add to local array (actual Firebase sending in PR #8)
-        messages.append(newMessage)
-        
-        // Clear input field but KEEP keyboard visible for quick replies
-        DispatchQueue.main.async {
-            self.inputText = ""
-            // Note: isInputFocused stays true so user can keep typing
+        // Send message via MessageService
+        Task {
+            do {
+                _ = try await messageService.sendMessage(chatID: chat.id, text: trimmedText)
+                
+                // Clear input field on success
+                await MainActor.run {
+                    self.inputText = ""
+                }
+            } catch {
+                print("❌ Error sending message: \(error.localizedDescription)")
+                // TODO: Show error alert to user in PR #24
+            }
         }
     }
     
@@ -161,52 +161,19 @@ struct ChatView: View {
         }
     }
     
-    /// Load mock messages for testing
-    private func loadMockMessages() {
-        messages = [
-            Message(
-                id: "1",
-                text: "Hey! How are you doing?",
-                senderID: currentUserID,
-                timestamp: Date().addingTimeInterval(-3600)
-            ),
-            Message(
-                id: "2",
-                text: "I'm doing great, thanks for asking! How about you?",
-                senderID: "otherUser",
-                timestamp: Date().addingTimeInterval(-3500)
-            ),
-            Message(
-                id: "3",
-                text: "Pretty good! Working on this new messaging app.",
-                senderID: currentUserID,
-                timestamp: Date().addingTimeInterval(-3400)
-            ),
-            Message(
-                id: "4",
-                text: "That sounds exciting! Tell me more about it.",
-                senderID: "otherUser",
-                timestamp: Date().addingTimeInterval(-3300)
-            ),
-            Message(
-                id: "5",
-                text: "It's a secure messaging platform with real-time sync across devices. We're building it with SwiftUI and Firebase.",
-                senderID: currentUserID,
-                timestamp: Date().addingTimeInterval(-3200)
-            ),
-            Message(
-                id: "6",
-                text: "Wow, that's really cool! I'd love to try it out when it's ready.",
-                senderID: "otherUser",
-                timestamp: Date().addingTimeInterval(-3100)
-            ),
-            Message(
-                id: "7",
-                text: "Will do! I'll let you know as soon as we have a beta version available.",
-                senderID: currentUserID,
-                timestamp: Date().addingTimeInterval(-3000)
-            )
-        ]
+    /// Start listening for real-time messages
+    private func startListeningForMessages() {
+        // Attach Firestore snapshot listener
+        messageListener = messageService.observeMessages(chatID: chat.id) { updatedMessages in
+            self.messages = updatedMessages
+        }
+    }
+    
+    /// Stop listening for messages to prevent memory leaks
+    private func stopListeningForMessages() {
+        // Remove Firestore listener
+        messageListener?.remove()
+        messageListener = nil
     }
 }
 
