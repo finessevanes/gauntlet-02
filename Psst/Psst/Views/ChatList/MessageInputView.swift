@@ -19,9 +19,6 @@ struct MessageInputView: View {
     /// Closure called when send button is tapped
     let onSend: () -> Void
     
-    /// Focus state for the text field
-    @FocusState private var isTextFieldFocused: Bool
-    
     // MARK: - Computed Properties
     
     /// Whether the send button should be enabled (text is not empty)
@@ -38,7 +35,6 @@ struct MessageInputView: View {
                 .textFieldStyle(.roundedBorder)
                 .lineLimit(1...5)
                 .padding(.leading, 4)
-                .focused($isTextFieldFocused)
             
             // Send button
             Button(action: {
