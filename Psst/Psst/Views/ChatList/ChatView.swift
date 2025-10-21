@@ -4,7 +4,8 @@
 //
 //  Created by Caleb (Coder Agent) - PR #7
 //  Updated by Caleb (Coder Agent) - PR #8: Real-time messaging integration
-//  Full chat view with message list, input bar, and auto-scroll
+//  Updated by Caleb (Coder Agent) - PR #10: Optimistic UI and offline persistence
+//  Full chat view with message list, input bar, auto-scroll, and offline support
 //
 
 import SwiftUI
@@ -12,14 +13,14 @@ import FirebaseAuth
 import FirebaseFirestore
 
 /// Main chat view displaying messages in a conversation
-/// Shows message list with sent/received styling and message input bar
+/// Shows message list with sent/received styling, message input bar, offline support, and optimistic UI
 struct ChatView: View {
     // MARK: - Properties
     
     /// The chat being displayed
     let chat: Chat
     
-    /// Messages to display (real-time from Firestore)
+    /// All messages (includes both optimistic and confirmed from Firestore)
     @State private var messages: [Message] = []
     
     /// Input text field value
@@ -31,6 +32,12 @@ struct ChatView: View {
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
+    /// Count of queued messages for this chat
+    @State private var queueCount: Int = 0
+    
+    /// Network monitor for connection state
+    @ObservedObject var networkMonitor = NetworkMonitor.shared
+    
     /// Message service for real-time messaging
     private let messageService = MessageService()
     
@@ -41,6 +48,9 @@ struct ChatView: View {
     
     var body: some View {
         VStack(spacing: 0) {
+            // Network status banner (offline/reconnecting/connected)
+            NetworkStatusBanner(networkMonitor: networkMonitor, queueCount: $queueCount)
+            
             // Message list
             if messages.isEmpty {
                 // Empty state
@@ -62,10 +72,38 @@ struct ChatView: View {
             }
             // Start listening for real-time messages
             startListeningForMessages()
+            // Update queue count for this chat
+            updateQueueCount()
         }
         .onDisappear {
             // Stop listening to prevent memory leaks
             stopListeningForMessages()
+        }
+        .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
+            // Process queue when reconnected
+            if !oldValue && newValue {
+                Task {
+                    // Get IDs of queued messages for this chat
+                    let queuedMessageIDs = MessageQueue.shared.getQueuedMessages(for: chat.id).map { $0.id }
+                    
+                    // Update their status from .queued to .sending
+                    await MainActor.run {
+                        for id in queuedMessageIDs {
+                            if let index = self.messages.firstIndex(where: { $0.id == id }) {
+                                self.messages[index].sendStatus = .sending
+                            }
+                        }
+                    }
+                    
+                    // Process the queue (sends messages to Firestore)
+                    await MessageQueue.shared.processQueue()
+                    
+                    // Update queue count
+                    await MainActor.run {
+                        self.updateQueueCount()
+                    }
+                }
+            }
         }
     }
     
@@ -100,10 +138,22 @@ struct ChatView: View {
             ScrollView {
                 LazyVStack(spacing: 12) {
                     ForEach(messages) { message in
-                        MessageRow(
-                            message: message,
-                            isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID)
-                        )
+                        VStack(alignment: message.isFromCurrentUser(currentUserID: currentUserID) ? .trailing : .leading, spacing: 4) {
+                            MessageRow(
+                                message: message,
+                                isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID)
+                            )
+                            
+                            // Show status indicator for sent messages only
+                            if message.isFromCurrentUser(currentUserID: currentUserID) {
+                                MessageStatusIndicator(
+                                    status: message.sendStatus,
+                                    onRetry: {
+                                        retryMessage(message)
+                                    }
+                                )
+                            }
+                        }
                     }
                     
                     // Invisible anchor for auto-scroll
@@ -129,26 +179,87 @@ struct ChatView: View {
     
     // MARK: - Actions
     
-    /// Handle send button tap
+    /// Handle send button tap with optimistic UI
     private func handleSend() {
         let trimmedText = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         
         guard !trimmedText.isEmpty else { return }
         
-        // Send message via MessageService
+        // Clear input field immediately
+        inputText = ""
+        
+        // Send message via MessageService with optimistic completion
         Task {
+            var messageID: String?
+            
             do {
-                _ = try await messageService.sendMessage(chatID: chat.id, text: trimmedText)
+                messageID = try await messageService.sendMessage(
+                    chatID: chat.id,
+                    text: trimmedText,
+                    optimisticCompletion: { optimisticMessage in
+                        // Add message to UI immediately (before Firestore confirms)
+                        DispatchQueue.main.async {
+                            self.messages.append(optimisticMessage)
+                        }
+                    }
+                )
                 
-                // Clear input field on success
+                // Success! Message will be updated when Firestore listener confirms
+                
+            } catch MessageError.offline {
+                // Message queued for offline send - update status to .queued
                 await MainActor.run {
-                    self.inputText = ""
+                    if let index = self.messages.firstIndex(where: { $0.sendStatus == .sending }) {
+                        self.messages[index].sendStatus = .queued
+                    }
+                    // Update queue count
+                    self.updateQueueCount()
                 }
+                
             } catch {
+                // Send failed - update status to .failed
                 print("❌ Error sending message: \(error.localizedDescription)")
-                // TODO: Show error alert to user in PR #24
+                await MainActor.run {
+                    if let index = self.messages.firstIndex(where: { $0.sendStatus == .sending }) {
+                        self.messages[index].sendStatus = .failed
+                    }
+                }
             }
         }
+    }
+    
+    /// Retry sending a failed message
+    private func retryMessage(_ message: Message) {
+        // Update failed message to sending status
+        if let index = messages.firstIndex(where: { $0.id == message.id }) {
+            messages[index].sendStatus = .sending
+        }
+        
+        // Retry send
+        Task {
+            do {
+                _ = try await messageService.sendMessage(
+                    chatID: chat.id,
+                    text: message.text
+                )
+                
+                // Success! Message status will be updated when Firestore confirms
+                
+            } catch {
+                // Failed again - update to failed status
+                print("❌ Retry failed: \(error.localizedDescription)")
+                await MainActor.run {
+                    if let index = self.messages.firstIndex(where: { $0.id == message.id }) {
+                        self.messages[index].sendStatus = .failed
+                    }
+                }
+            }
+        }
+    }
+    
+    /// Update queue count for this chat
+    private func updateQueueCount() {
+        queueCount = MessageQueue.shared.getQueueCount(for: chat.id)
     }
     
     /// Scroll to bottom of message list
@@ -164,7 +275,32 @@ struct ChatView: View {
     /// Start listening for real-time messages
     private func startListeningForMessages() {
         // Attach Firestore snapshot listener
-        messageListener = messageService.observeMessages(chatID: chat.id) { updatedMessages in
+        messageListener = messageService.observeMessages(chatID: chat.id) { firestoreMessages in
+            // Merge Firestore messages with optimistic messages
+            // Strategy: Update existing messages, add new ones
+            var updatedMessages = self.messages
+            
+            for firestoreMessage in firestoreMessages {
+                if let index = updatedMessages.firstIndex(where: { $0.id == firestoreMessage.id }) {
+                    // Message exists (was optimistic) - update it and remove status
+                    var updated = firestoreMessage
+                    updated.sendStatus = nil  // Confirmed, no status indicator needed
+                    updatedMessages[index] = updated
+                } else {
+                    // New message from Firestore - add it
+                    updatedMessages.append(firestoreMessage)
+                }
+            }
+            
+            // Remove messages that no longer exist in Firestore
+            // (Keep optimistic messages with status != nil for retry)
+            updatedMessages = updatedMessages.filter { message in
+                message.sendStatus != nil || firestoreMessages.contains(where: { $0.id == message.id })
+            }
+            
+            // Sort by timestamp
+            updatedMessages.sort { $0.timestamp < $1.timestamp }
+            
             self.messages = updatedMessages
         }
     }
