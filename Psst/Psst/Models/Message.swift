@@ -9,8 +9,17 @@
 import Foundation
 import FirebaseFirestore
 
+/// Message send status for optimistic UI
+/// Tracks the delivery state of a message from client to server
+enum MessageSendStatus: String, Codable {
+    case sending    // Message being sent to Firestore
+    case queued     // Message queued for offline sync
+    case delivered  // Message confirmed by Firestore
+    case failed     // Message send failed
+}
+
 /// Message model representing individual messages within a chat
-/// Supports read receipts and sender identification
+/// Supports read receipts, sender identification, and optimistic UI status
 struct Message: Identifiable, Codable, Equatable {
     /// Unique message identifier
     let id: String
@@ -27,6 +36,14 @@ struct Message: Identifiable, Codable, Equatable {
     /// Array of user IDs who have read this message
     var readBy: [String]
     
+    /// Send status for optimistic UI (client-side only, not persisted to Firestore)
+    var sendStatus: MessageSendStatus?
+    
+    /// CodingKeys to exclude sendStatus from Firestore serialization
+    enum CodingKeys: String, CodingKey {
+        case id, text, senderID, timestamp, readBy
+    }
+    
     /// Initialize Message with default values
     /// - Parameters:
     ///   - id: Unique message identifier
@@ -34,13 +51,16 @@ struct Message: Identifiable, Codable, Equatable {
     ///   - senderID: User ID of the sender
     ///   - timestamp: Message timestamp (default: now)
     ///   - readBy: Array of user IDs who read the message (default: empty)
+    ///   - sendStatus: Send status for optimistic UI (default: nil)
     init(id: String, text: String, senderID: String,
-         timestamp: Date = Date(), readBy: [String] = []) {
+         timestamp: Date = Date(), readBy: [String] = [],
+         sendStatus: MessageSendStatus? = nil) {
         self.id = id
         self.text = text
         self.senderID = senderID
         self.timestamp = timestamp
         self.readBy = readBy
+        self.sendStatus = sendStatus
     }
     
     /// Convert Message model to dictionary for Firestore writes
@@ -68,5 +88,11 @@ struct Message: Identifiable, Codable, Equatable {
     /// - Returns: True if the current user sent this message, false otherwise
     func isFromCurrentUser(currentUserID: String) -> Bool {
         return senderID == currentUserID
+    }
+    
+    /// Check if this message has been delivered successfully
+    /// - Returns: True if the message is delivered or has no status (Firestore messages)
+    func isDelivered() -> Bool {
+        return sendStatus == .delivered || sendStatus == nil
     }
 }
