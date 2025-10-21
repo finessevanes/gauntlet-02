@@ -43,6 +43,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		2611ACB52EA765D50034CB07 /* Psst.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = Psst.xctestplan; sourceTree = "<group>"; };
 		2626E7F42EA703CF00F8567B /* caleb-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "caleb-agent.md"; sourceTree = "<group>"; };
 		2626E7F52EA703CF00F8567B /* pam-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "pam-agent.md"; sourceTree = "<group>"; };
 		2626E7F62EA703CF00F8567B /* prd-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "prd-template.md"; sourceTree = "<group>"; };
@@ -147,6 +148,7 @@
 		265951762EA6D27E00B5C739 = {
 			isa = PBXGroup;
 			children = (
+				2611ACB52EA765D50034CB07 /* Psst.xctestplan */,
 				2626E7FC2EA703CF00F8567B /* agents */,
 				2626E7FF2EA703CF00F8567B /* docs */,
 				265951812EA6D27E00B5C739 /* Psst */,
@@ -554,7 +556,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4CLVCQ7N3P;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gauntlet.PsstTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -573,7 +575,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 4CLVCQ7N3P;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = gauntlet.PsstTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
