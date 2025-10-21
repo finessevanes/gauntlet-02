@@ -33,6 +33,19 @@ Full integration tests that span multiple services and Firebase integrations. Th
   - Verify unauthorized users cannot access restricted data
   - Test edge cases (deleted users, malformed data, etc.)
 
+- [ ] **UserService Integration Tests with Firebase Emulator** (PR #3)
+  - Current tests only validate error types, model encoding, and input validation
+  - Need real Firestore integration tests with emulator:
+    - createUser() actually writes to Firestore and returns correct data
+    - getUser() fetches from Firestore and caches correctly
+    - updateUser() persists changes and invalidates cache
+    - observeUser() real-time listener receives updates
+    - getUsers() batch fetch handles partial failures
+    - Offline persistence returns cached data
+    - Performance metrics (< 300ms create, < 200ms fetch, < 50ms cache hit)
+  - Setup: Configure Firebase emulator suite
+  - Use Swift Testing framework with emulator connection
+
 **Notes:**
 - These tests require Firebase emulator setup or dedicated test Firebase project
 - Should use XCTest for UI-driven integration tests
