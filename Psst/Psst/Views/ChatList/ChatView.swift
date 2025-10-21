@@ -51,6 +51,14 @@ struct ChatView: View {
     /// Presence service for online/offline status
     @EnvironmentObject private var presenceService: PresenceService
     
+    /// Typing indicator service for real-time typing status
+    @StateObject private var typingIndicatorService = TypingIndicatorService()
+    
+    /// User IDs currently typing in this chat
+    @State private var typingUserIDs: [String] = []
+    
+    /// Display names of users currently typing
+    @State private var typingUserNames: [String] = []
     /// Chat service for fetching user names
     private let chatService = ChatService()
     
@@ -73,8 +81,17 @@ struct ChatView: View {
                 messageListView
             }
             
+            // Typing indicator (appears below messages, above input)
+            TypingIndicatorView(typingUserNames: typingUserNames)
+            
             // Message input bar
-            MessageInputView(text: $inputText, onSend: handleSend)
+            MessageInputView(
+                text: $inputText,
+                onSend: handleSend,
+                chatID: chat.id,
+                userID: currentUserID,
+                typingIndicatorService: typingIndicatorService
+            )
         }
         .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
         .navigationBarTitleDisplayMode(.inline)
@@ -114,6 +131,8 @@ struct ChatView: View {
             updateQueueCount()
             // Attach presence listener
             attachPresenceListener()
+            // Attach typing listener
+            attachTypingListener()
             // Prefetch sender names for group chats
             if chat.isGroupChat {
                 Task {
@@ -126,6 +145,8 @@ struct ChatView: View {
             stopListeningForMessages()
             // Detach presence listener
             detachPresenceListener()
+            // Detach typing listener and clear own typing status
+            detachTypingListener()
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected
@@ -387,6 +408,40 @@ struct ChatView: View {
         presenceService.stopObserving(userID: contactID)
     }
     
+    /// Attach typing listener for this chat
+    private func attachTypingListener() {
+        _ = typingIndicatorService.observeTypingUsers(chatID: chat.id) { userIDs in
+            DispatchQueue.main.async {
+                // Filter out current user (don't show own typing status)
+                let filteredIDs = userIDs.filter { $0 != self.currentUserID }
+                self.typingUserIDs = filteredIDs
+                self.fetchDisplayNames(for: filteredIDs)
+            }
+        }
+    }
+    
+    /// Detach typing listener and clear own typing status
+    private func detachTypingListener() {
+        // Stop observing typing users
+        typingIndicatorService.stopObserving(chatID: chat.id)
+        
+        // Clear own typing status when leaving chat
+        Task {
+            try? await typingIndicatorService.stopTyping(chatID: chat.id, userID: currentUserID)
+        }
+    }
+    
+    /// Fetch display names for typing users
+    private func fetchDisplayNames(for userIDs: [String]) {
+        Task {
+            var names: [String] = []
+            for userID in userIDs {
+                if let user = try? await UserService.shared.getUser(id: userID) {
+                    names.append(user.displayName)
+                }
+            }
+            await MainActor.run {
+                self.typingUserNames = names
     /// Get sender name for a message (for group chats only)
     /// - Parameter message: The message to get sender name for
     /// - Returns: Sender name or nil if not needed (1-on-1 chat or current user)
