@@ -138,6 +138,54 @@ The current login and signup forms are cluttered and need a UI/UX refresh to imp
 
 ---
 
+## 🤔 Open Questions / Design Decisions
+
+### Presence Indicator in Airplane Mode
+**Added**: October 21, 2025  
+**Priority**: Medium  
+**Relates to**: PR #7 (User Presence System)
+
+**Question:**
+Should a user see a green presence indicator (online status) for other users in their chat when they themselves are in airplane mode?
+
+**Context:**
+- User is offline (airplane mode, no network)
+- They open a chat with another user
+- Should they see that other user's last known presence state (e.g., green = online)?
+- Or should all presence indicators be hidden/grayed out when the local user is offline?
+
+**Considerations:**
+- **Show Last Known State (Pros):**
+  - Provides context even when offline
+  - User can see who was recently online
+  - Less jarring when connectivity restored
+  
+- **Show Last Known State (Cons):**
+  - May be misleading (stale data, other user may have gone offline)
+  - Could cause confusion about message delivery expectations
+  
+- **Hide/Gray Out All Indicators (Pros):**
+  - Clearly communicates that presence data is not current
+  - Avoids misleading users about delivery expectations
+  - Aligns with network unavailability
+  
+- **Hide/Gray Out All Indicators (Cons):**
+  - Loses context of who was recently online
+  - More work to implement distinct "offline mode" UI state
+
+**Decision Needed:**
+- [ ] Determine desired behavior for presence indicators when user is offline
+- [ ] Consider if this should be different for "last seen" vs "active now" states
+- [ ] Update PresenceService and PresenceIndicator accordingly
+- [ ] Document decision in PR #7 or follow-up PR
+
+**Notes:**
+- Consider how other messaging apps handle this (WhatsApp, iMessage, Signal)
+- May want user feedback/testing to inform decision
+- Could start with simpler approach and iterate based on user behavior
+
+---
+
 ## 🎯 How to Use This Backlog
 
 ### Adding Items
