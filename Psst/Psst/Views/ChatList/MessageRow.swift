@@ -10,6 +10,7 @@ import SwiftUI
 
 /// Message row component that displays individual message bubbles
 /// Supports both sent (right-aligned, blue) and received (left-aligned, gray) styling
+/// Shows sender names for group chat messages
 struct MessageRow: View {
     // MARK: - Properties
     
@@ -18,6 +19,9 @@ struct MessageRow: View {
     
     /// Whether this message is from the current user
     let isFromCurrentUser: Bool
+    
+    /// Sender name to display (for group chats, nil for 1-on-1 or current user)
+    var senderName: String? = nil
     
     // MARK: - Body
     
@@ -28,8 +32,17 @@ struct MessageRow: View {
                 Spacer(minLength: 60)
             }
             
-            // Message bubble
+            // Message bubble with optional sender name
             VStack(alignment: isFromCurrentUser ? .trailing : .leading, spacing: 4) {
+                // Sender name label (only for group messages from others)
+                if let senderName = senderName, !isFromCurrentUser {
+                    Text(senderName)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.leading, 4)
+                }
+                
+                // Message bubble
                 Text(message.text)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 10)
