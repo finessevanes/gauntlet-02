@@ -20,7 +20,7 @@ struct PsstApp: App {
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
                 .onOpenURL { url in
                     // Handle Google Sign-In callback URL
                     GIDSignIn.sharedInstance.handle(url)

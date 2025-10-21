@@ -54,6 +54,88 @@ Full integration tests that span multiple services and Firebase integrations. Th
 
 ---
 
+### Unit Tests - Navigation Structure (PR #4)
+**Deferred from**: PR #4 (App Navigation Structure)
+**Priority**: Medium
+**Target**: Phase 4 (PR #25 - Testing & QA) or dedicated testing sprint
+
+**Description:**
+Unit and integration tests for core navigation infrastructure including RootView, MainTabView, and authentication-based navigation flows. Deferred to focus on feature delivery and allow navigation patterns to stabilize before writing tests.
+
+**Specific Items:**
+
+- [ ] **RootView Auth State Tests**
+  - Test RootView displays LoginView when `isAuthenticated = false`
+  - Test RootView displays MainTabView when `isAuthenticated = true`
+  - Test navigation updates when auth state changes dynamically
+  - Mock AuthViewModel to verify conditional rendering logic
+
+- [ ] **MainTabView State Tests**
+  - Test tab selection state changes correctly
+  - Test all 3 tabs are properly configured
+  - Test tab state persistence (if implemented)
+  - Verify TabView initialization and lifecycle
+
+- [ ] **Placeholder View Tests**
+  - Test each placeholder view renders correctly (ConversationListView, ProfileView, SettingsView)
+  - Verify SF Symbols and text display
+  - Test logout button functionality in SettingsView
+
+- [ ] **End-to-End Navigation Flow Tests (Integration)**
+  - Test complete login → main app → logout → login cycle
+  - Test tab navigation with actual FirebaseAuth integration
+  - Test navigation state persistence across app lifecycle
+  - Test memory management across multiple navigation cycles
+
+- [ ] **UI Tests (SwiftUI Testing)**
+  - Automated UI testing of navigation flows
+  - Accessibility testing for navigation components
+  - Screenshot testing for visual regression
+
+**Rationale for Deferral:**
+- Focus on delivering working navigation infrastructure first
+- Manual testing is sufficient for foundational UI work that requires human UX validation
+- Automated tests more valuable once navigation patterns are stable and features are built on top
+- Avoid test rework as navigation patterns may evolve in Phase 2-3
+
+**Manual Testing:**
+- Comprehensive manual testing scenarios documented in PR #4 PRD Section 12
+- All acceptance gates validated through manual testing
+
+**Notes:**
+- Use Swift Testing framework for unit tests
+- Consider SwiftUI Preview testing for quick view validation
+- Set up proper mocking infrastructure for AuthViewModel before writing tests
+
+---
+
+## 🎨 UI/UX Improvements
+
+### Login & Signup Form Redesign
+**Deferred from**: Current implementation
+**Priority**: Medium
+**Target**: Phase 2 or dedicated UI polish sprint
+
+**Description:**
+The current login and signup forms are cluttered and need a UI/UX refresh to improve usability and visual design. Forms should be streamlined, with better spacing, clearer visual hierarchy, and improved user experience.
+
+**Specific Items:**
+- [ ] Simplify form layout and reduce visual clutter
+- [ ] Improve spacing and alignment between form elements
+- [ ] Enhance input field styling and labels
+- [ ] Review and improve error message display
+- [ ] Consider separating login/signup into distinct flows if combined
+- [ ] Add proper form validation feedback
+- [ ] Improve button styling and placement
+- [ ] Review accessibility (VoiceOver, Dynamic Type support)
+
+**Notes:**
+- Consider conducting user testing before finalizing redesign
+- Review iOS Human Interface Guidelines for form best practices
+- Ensure consistency with overall app design system
+
+---
+
 ## 🎯 How to Use This Backlog
 
 ### Adding Items
