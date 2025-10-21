@@ -6,7 +6,7 @@
 
 **Status**: Draft | Ready for Development | In Progress | Shipped
 
-**Agent**: [Phillip/Rhonda]
+**Agent**: [Phillip/Caleb]
 
 **Target Release**: [date or sprint]
 
@@ -41,7 +41,7 @@ Call out what's intentionally excluded to avoid scope creep.
 
 ## 4. Success Metrics
 
-Reference `agents/shared-standards.md` for metric templates:
+Reference `Psst/agents/shared-standards.md` for metric templates:
 - User-visible: [time to complete, taps, flow completion]
 - System: [See performance requirements in shared-standards.md]
 - Quality: [0 blocking bugs, all gates pass, crash-free >99%]
@@ -60,7 +60,7 @@ Reference `agents/shared-standards.md` for metric templates:
 - Entry points and flows: [where in app, how triggered]
 - Visual behavior: [buttons, gestures, empty states, animations]
 - Loading/disabled/error states: [what user sees]
-- Performance: See targets in `agents/shared-standards.md`
+- Performance: See targets in `Psst/agents/shared-standards.md`
 
 ---
 
@@ -82,7 +82,7 @@ Acceptance gates per requirement:
 
 Describe new/changed Firestore collections, schemas, invariants.
 
-Reference examples in `agents/shared-standards.md` for common patterns.
+Reference examples in `Psst/agents/shared-standards.md` for common patterns.
 
 ```swift
 // Define your specific data model here
@@ -95,7 +95,7 @@ Reference examples in `agents/shared-standards.md` for common patterns.
 
 ## 9. API / Service Contracts
 
-Specify concrete service layer methods. Reference examples in `agents/shared-standards.md`.
+Specify concrete service layer methods. Reference examples in `Psst/agents/shared-standards.md`.
 
 ```swift
 // Example:
@@ -133,7 +133,7 @@ List SwiftUI views/files with one-line purpose each.
 
 Define BEFORE implementation. Use checkboxes.
 
-Reference testing standards from `agents/shared-standards.md`.
+Reference testing standards from `Psst/agents/shared-standards.md`.
 
 - Happy Path
   - [ ] User action succeeds
@@ -156,7 +156,7 @@ Reference testing standards from `agents/shared-standards.md`.
 
 ## 13. Definition of Done
 
-See standards in `agents/shared-standards.md`:
+See standards in `Psst/agents/shared-standards.md`:
 - [ ] Service methods implemented + unit tests (XCTest)
 - [ ] SwiftUI views with all states
 - [ ] Real-time sync verified across 2+ devices
@@ -223,4 +223,4 @@ Answer these to drive vertical slice and acceptance gates:
 - Keep service layer deterministic
 - SwiftUI views are thin wrappers
 - Test offline/online thoroughly
-- Reference `agents/shared-standards.md` throughout
+- Reference `Psst/agents/shared-standards.md` throughout

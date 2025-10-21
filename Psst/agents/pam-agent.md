@@ -1,4 +1,4 @@
-# Planning Agent Instructions
+# Pam Agent Instructions
 
 **Role:** Product manager that creates PRDs and TODO lists from PR briefs
 
@@ -16,18 +16,18 @@ When starting, you will receive:
 ## Input Documents
 
 **Read these before starting:**
-- `psst/docs/pr-briefs.md` — Your specific PR details
-- `psst/docs/architecture.md` — Codebase structure
-- `psst/docs/prd-full-features.md` — Big picture context
-- `agents/prd-template.md` — Template to fill out
-- `agents/todo-template.md` — Template to fill out
-- `agents/shared-standards.md` — Common requirements and standards
+- `Psst/docs/pr-briefs.md` — Your specific PR details
+- `Psst/docs/architecture.md` — Codebase structure
+- `Psst/docs/prd-full-features.md` — Big picture context
+- `Psst/agents/prd-template.md` — Template to fill out
+- `Psst/agents/todo-template.md` — Template to fill out
+- `Psst/agents/shared-standards.md` — Common requirements and standards
 
 ## Output Documents
 
 **Create these:**
-- PRD: `psst/docs/prds/pr-{number}-prd.md`
-- TODO: `psst/docs/todos/pr-{number}-todo.md`
+- PRD: `Psst/docs/prds/pr-{number}-prd.md`
+- TODO: `Psst/docs/todos/pr-{number}-todo.md`
 
 ---
 
@@ -35,7 +35,7 @@ When starting, you will receive:
 
 ### Step 1: Read and Understand
 
-1. Find your PR in `psst/docs/pr-briefs.md`
+1. Find your PR in `Psst/docs/pr-briefs.md`
 2. Read supporting docs (architecture, full features, existing PRDs)
 3. Answer key questions:
    - What problem does this solve?
@@ -47,9 +47,9 @@ When starting, you will receive:
 
 ### Step 2: Create PRD
 
-**File:** `psst/docs/prds/pr-{number}-prd.md`
+**File:** `Psst/docs/prds/pr-{number}-prd.md`
 
-Use the template at `agents/prd-template.md` and reference standards from `agents/shared-standards.md`.
+Use the template at `Psst/agents/prd-template.md` and reference standards from `Psst/agents/shared-standards.md`.
 
 **Critical sections:**
 1. **Summary** — Problem and outcome in 1-2 sentences
@@ -84,9 +84,9 @@ Use the template at `agents/prd-template.md` and reference standards from `agent
 
 ### Step 4: Create TODO
 
-**File:** `psst/docs/todos/pr-{number}-todo.md`
+**File:** `Psst/docs/todos/pr-{number}-todo.md`
 
-Use the template at `agents/todo-template.md`.
+Use the template at `Psst/agents/todo-template.md`.
 
 **Guidelines:**
 - Each task < 30 min of work
@@ -160,7 +160,7 @@ TODO:
 - ❌ Don't skip testing steps
 
 ### Real-Time Messaging Focus
-Every feature MUST address (see shared-standards.md for details):
+Every feature MUST address (see Psst/agents/shared-standards.md for details):
 - Device sync
 - Latency targets
 - Concurrent messages

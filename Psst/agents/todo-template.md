@@ -1,7 +1,7 @@
 # PR-{N} TODO — [Feature Name]
 
 **Branch**: `feat/pr-{n}-{feature-slug}`  
-**Source PRD**: `psst/docs/prds/pr-{n}-prd.md`  
+**Source PRD**: `Psst/docs/prds/pr-{n}-prd.md`  
 **Owner (Agent)**: [name]
 
 ---
@@ -19,7 +19,7 @@
 
 - [ ] Create branch `feat/pr-{n}-{feature-slug}` from develop
 - [ ] Read PRD thoroughly
-- [ ] Read `agents/shared-standards.md` for patterns
+- [ ] Read `Psst/agents/shared-standards.md` for patterns
 - [ ] Confirm environment and test runner work
 
 ---
@@ -61,7 +61,7 @@ Create/modify SwiftUI views per PRD Section 10.
 
 ## 5. Integration & Real-Time
 
-Reference requirements from `agents/shared-standards.md`.
+Reference requirements from `Psst/agents/shared-standards.md`.
 
 - [ ] Firebase service integration
   - Test Gate: Auth/Firestore/FCM configured
@@ -76,7 +76,7 @@ Reference requirements from `agents/shared-standards.md`.
 
 ## 6. Tests
 
-Follow patterns from `agents/shared-standards.md` and `agents/test-template.md`.
+Follow patterns from `Psst/agents/shared-standards.md` and `Psst/agents/test-template.md`.
 
 - [ ] Unit Tests (XCTest)
   - Path: `PsstTests/{Feature}Tests.swift`
@@ -91,7 +91,7 @@ Follow patterns from `agents/shared-standards.md` and `agents/test-template.md`.
   - Test Gate: Firebase operations tested
   
 - [ ] Multi-device sync test
-  - Test Gate: Use pattern from shared-standards.md
+  - Test Gate: Use pattern from Psst/agents/shared-standards.md
   
 - [ ] Visual states verification
   - Test Gate: Empty, loading, error, success render correctly
@@ -100,7 +100,7 @@ Follow patterns from `agents/shared-standards.md` and `agents/test-template.md`.
 
 ## 7. Performance
 
-Verify targets from `agents/shared-standards.md`.
+Verify targets from `Psst/agents/shared-standards.md`.
 
 - [ ] App load time < 2-3 seconds
   - Test Gate: Cold start to interactive measured
@@ -125,7 +125,7 @@ Check every gate from PRD Section 12:
 
 - [ ] Add inline code comments for complex logic
 - [ ] Update README if needed
-- [ ] Create PR description (use format from agents/coder-agent.md)
+- [ ] Create PR description (use format from Psst/agents/caleb-agent.md)
 - [ ] Verify with user before creating PR
 - [ ] Open PR targeting develop branch
 - [ ] Link PRD and TODO in PR description
@@ -142,9 +142,9 @@ Check every gate from PRD Section 12:
 - [ ] Firebase integration tested (real-time sync, offline)
 - [ ] UI tests pass (XCUITest)
 - [ ] Multi-device sync verified (<100ms)
-- [ ] Performance targets met (see shared-standards.md)
+- [ ] Performance targets met (see Psst/agents/shared-standards.md)
 - [ ] All acceptance gates pass
-- [ ] Code follows shared-standards.md patterns
+- [ ] Code follows Psst/agents/shared-standards.md patterns
 - [ ] No console warnings
 - [ ] Documentation updated
 ```
@@ -157,4 +157,4 @@ Check every gate from PRD Section 12:
 - Complete tasks sequentially
 - Check off after completion
 - Document blockers immediately
-- Reference `agents/shared-standards.md` for common patterns and solutions
+- Reference `Psst/agents/shared-standards.md` for common patterns and solutions

@@ -1,4 +1,4 @@
-# Building Agent (Coder) Instructions
+# Caleb Agent Coder Instructions
 
 **Role:** Implementation agent that builds features from PRD and TODO list
 
@@ -16,11 +16,11 @@ When starting, you will receive:
 ## Input Documents
 
 **READ these first:**
-- `psst/docs/prds/pr-{number}-prd.md` — Requirements
-- `psst/docs/todos/pr-{number}-todo.md` — Step-by-step guide
-- `psst/docs/pr-briefs.md` — Context
-- `psst/docs/architecture.md` — Codebase structure
-- `agents/shared-standards.md` — Common requirements and patterns
+- `Psst/docs/prds/pr-{number}-prd.md` — Requirements
+- `Psst/docs/todos/pr-{number}-todo.md` — Step-by-step guide
+- `Psst/docs/pr-briefs.md` — Context
+- `Psst/docs/architecture.md` — Codebase structure
+- `Psst/agents/shared-standards.md` — Common requirements and patterns
 
 ---
 
@@ -56,24 +56,24 @@ git checkout -b feat/pr-{number}-{feature-name}
 - Keep PRD open as reference
 
 **Code quality:**
-- Follow patterns in `agents/shared-standards.md`
+- Follow patterns in `Psst/agents/shared-standards.md`
 - Use proper Swift types
 - Include comments for complex logic
 - Keep functions small and focused
 
 **Performance & messaging:**
-- See requirements in `agents/shared-standards.md`
+- See requirements in `Psst/agents/shared-standards.md`
 
 ### Step 4: Write Tests
 
-**Create test files following `agents/test-template.md`**
+**Create test files following `Psst/agents/test-template.md`**
 
 Required test files:
 1. **Unit tests** (mandatory): `PsstTests/{Feature}Tests.swift`
 2. **UI tests** (mandatory for UI): `PsstUITests/{Feature}UITests.swift`
 3. **Service tests** (if applicable): `PsstTests/Services/{ServiceName}Tests.swift`
 
-See `agents/shared-standards.md` for:
+See `Psst/agents/shared-standards.md` for:
 - Test patterns
 - Multi-device testing template
 - Coverage requirements
@@ -204,7 +204,7 @@ Any gotchas, trade-offs, or future improvements
 
 ## Code Review Self-Checklist
 
-Before submitting PR, review using checklist in `agents/shared-standards.md`:
+Before submitting PR, review using checklist in `Psst/agents/shared-standards.md`:
 - Architecture
 - Code Quality
 - Swift/SwiftUI Best Practices
@@ -300,5 +300,5 @@ git push origin feat/pr-1-message-send
 
 **Remember:** Quality over speed. Better to ship solid feature late than buggy feature on time.
 
-**See common issues and solutions in `agents/shared-standards.md`**
+**See common issues and solutions in `Psst/agents/shared-standards.md`**
 
