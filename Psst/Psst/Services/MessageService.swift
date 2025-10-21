@@ -161,6 +161,120 @@ class MessageService {
         return listener
     }
     
+    // MARK: - Read Receipts (PR #14)
+    
+    /// Marks specific messages as read by the current user
+    /// Uses atomic arrayUnion for idempotent updates (safe to call multiple times)
+    /// - Parameters:
+    ///   - chatID: The chat containing the messages
+    ///   - messageIDs: Array of message IDs to mark as read
+    /// - Throws: MessageError if validation fails or Firestore write fails
+    func markMessagesAsRead(chatID: String, messageIDs: [String]) async throws {
+        // Validate user is authenticated
+        let currentUserID = try getCurrentUserID()
+        
+        // Validate chatID is not empty
+        guard !chatID.isEmpty else {
+            throw MessageError.invalidChatID
+        }
+        
+        // Validate messageIDs array is not empty
+        guard !messageIDs.isEmpty else {
+            print("📖 No messages to mark as read")
+            return
+        }
+        
+        print("📖 Marking \(messageIDs.count) messages as read")
+        
+        do {
+            // Create batch write for efficient updates (max 500 operations per batch)
+            let batch = db.batch()
+            
+            for messageID in messageIDs {
+                let messageRef = db.collection("chats").document(chatID)
+                                   .collection("messages").document(messageID)
+                
+                // Use arrayUnion for atomic, idempotent update (prevents duplicates)
+                batch.updateData([
+                    "readBy": FieldValue.arrayUnion([currentUserID])
+                ], forDocument: messageRef)
+            }
+            
+            // Commit batch write
+            try await batch.commit()
+            
+            print("✅ Marked \(messageIDs.count) messages as read")
+        } catch {
+            print("❌ Failed to mark messages as read: \(error.localizedDescription)")
+            throw MessageError.firestoreError(error)
+        }
+    }
+    
+    /// Marks all unread messages in a chat as read by the current user
+    /// Automatically filters to only mark messages from others (not own messages)
+    /// - Parameter chatID: The chat to mark messages in
+    /// - Throws: MessageError if validation fails or Firestore write fails
+    func markChatMessagesAsRead(chatID: String) async throws {
+        // Validate user is authenticated
+        let currentUserID = try getCurrentUserID()
+        
+        // Validate chatID is not empty
+        guard !chatID.isEmpty else {
+            throw MessageError.invalidChatID
+        }
+        
+        print("📖 Fetching unread messages for chat: \(chatID)")
+        
+        do {
+            // Fetch all messages in chat
+            let messagesSnapshot = try await db.collection("chats")
+                .document(chatID)
+                .collection("messages")
+                .getDocuments()
+            
+            // Filter messages that need marking
+            let messagesToMark = messagesSnapshot.documents.compactMap { doc -> String? in
+                guard let message = try? doc.data(as: Message.self) else { return nil }
+                
+                // Skip messages sent by current user (can't read own messages)
+                if message.senderID == currentUserID { return nil }
+                
+                // Skip messages already read by current user
+                if message.readBy.contains(currentUserID) { return nil }
+                
+                return message.id
+            }
+            
+            // Return early if no messages to mark
+            if messagesToMark.isEmpty {
+                print("📖 No unread messages to mark")
+                return
+            }
+            
+            print("📖 Marking \(messagesToMark.count) unread messages as read")
+            
+            // Handle large message counts with chunking (Firestore batch limit: 500 operations)
+            let chunkSize = 500
+            let chunks = stride(from: 0, to: messagesToMark.count, by: chunkSize).map {
+                Array(messagesToMark[$0..<min($0 + chunkSize, messagesToMark.count)])
+            }
+            
+            if chunks.count > 1 {
+                print("📖 Processing \(chunks.count) batches")
+            }
+            
+            // Mark messages in chunks
+            for chunk in chunks {
+                try await markMessagesAsRead(chatID: chatID, messageIDs: chunk)
+            }
+            
+            print("✅ All unread messages marked as read")
+        } catch {
+            print("❌ Failed to mark chat messages as read: \(error.localizedDescription)")
+            throw MessageError.firestoreError(error)
+        }
+    }
+    
     // MARK: - Helper Methods
     
     /// Validates message text
