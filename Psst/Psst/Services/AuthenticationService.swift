@@ -87,7 +87,25 @@ class AuthenticationService: ObservableObject {
     func signUp(email: String, password: String) async throws -> User {
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
-            return User(from: result.user)
+            let firebaseUser = result.user
+
+            // Create user profile in Firestore
+            do {
+                let displayName = firebaseUser.email?.components(separatedBy: "@").first ?? "User"
+                let user = try await UserService.shared.createUser(
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email ?? email,
+                    displayName: displayName,
+                    photoURL: firebaseUser.photoURL?.absoluteString
+                )
+                print("[AuthenticationService] ✅ User profile created in Firestore for \(firebaseUser.uid)")
+                return user
+            } catch {
+                print("[AuthenticationService] ❌ Failed to create Firestore profile for \(firebaseUser.uid): \(error.localizedDescription)")
+                // Return User from Firebase Auth even if Firestore creation fails
+                // This prevents user from being locked out if Firestore is temporarily unavailable
+                return User(from: firebaseUser)
+            }
         } catch let error as NSError {
             throw mapFirebaseError(error)
         }
@@ -156,23 +174,44 @@ class AuthenticationService: ObservableObject {
         do {
             // Start Google Sign-In flow (this presents UI)
             let result = try await GIDSignIn.sharedInstance.signIn(withPresenting: viewController)
-            
+
             guard let idToken = result.user.idToken?.tokenString else {
                 throw AuthenticationError.googleSignInFailed
             }
-            
+
             let accessToken = result.user.accessToken.tokenString
-            
+
             // Create Firebase credential from Google tokens
             let credential = GoogleAuthProvider.credential(
                 withIDToken: idToken,
                 accessToken: accessToken
             )
-            
+
             // Sign in to Firebase with Google credential
             let authResult = try await Auth.auth().signIn(with: credential)
-            return User(from: authResult.user)
-            
+            let firebaseUser = authResult.user
+
+            // Check if this is a new user and create Firestore profile if needed
+            if authResult.additionalUserInfo?.isNewUser == true {
+                do {
+                    let displayName = firebaseUser.displayName ?? firebaseUser.email?.components(separatedBy: "@").first ?? "User"
+                    let user = try await UserService.shared.createUser(
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email ?? "",
+                        displayName: displayName,
+                        photoURL: firebaseUser.photoURL?.absoluteString
+                    )
+                    print("[AuthenticationService] ✅ User profile created in Firestore for Google user \(firebaseUser.uid)")
+                    return user
+                } catch {
+                    print("[AuthenticationService] ❌ Failed to create Firestore profile for Google user \(firebaseUser.uid): \(error.localizedDescription)")
+                    // Return User from Firebase Auth even if Firestore creation fails
+                    return User(from: firebaseUser)
+                }
+            } else {
+                return User(from: firebaseUser)
+            }
+
         } catch let error as NSError {
             // Handle Google Sign-In cancellation
             if error.domain == "com.google.GIDSignIn" && error.code == -5 {
