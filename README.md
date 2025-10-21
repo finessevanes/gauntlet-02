@@ -66,6 +66,23 @@ The following Firebase services must be enabled in the Firebase Console:
 
 ## Development
 
+### Quick Start - Build & Run
+
+Run the app on iOS Simulator **without opening Xcode**:
+
+```bash
+# Run on iPhone 17 Pro
+./run iphone17
+
+# Run on default simulator (iPhone 15 Pro)
+./run
+
+# List all available simulators
+./run list
+```
+
+See [`scripts/README.md`](scripts/README.md) for more options and troubleshooting.
+
 ### Branch Strategy
 
 - **Base Branch**: `develop`
@@ -77,6 +94,7 @@ The following Firebase services must be enabled in the Firebase Console:
 - Xcode 15.0+
 - iOS 16.0+
 - Swift 5.9+
+- Xcode Command Line Tools (for running via `./run` scripts)
 
 ## Project Structure
 
@@ -98,9 +116,35 @@ gauntlet-02/
 
 ## Testing
 
+### Test Framework Strategy
+
+This project uses a **hybrid testing approach** combining modern and traditional frameworks:
+
+**Unit Tests → Swift Testing Framework**
+- Modern `@Test` syntax with custom display names
+- Tests appear with readable names in test navigator (e.g., "Sign Up With Valid Credentials Creates User")
+- Uses `#expect` for assertions
+- Located in `PsstTests/`
+
+**UI Tests → XCTest Framework**
+- Traditional `XCTestCase` with `XCUIApplication`
+- Function-based naming (e.g., `testLoginView_DisplaysCorrectly()`)
+- Uses `XCTAssert` for assertions
+- Located in `PsstUITests/`
+
+### Why Different Frameworks?
+
+- **Swift Testing** provides better readability and modern syntax for unit tests
+- **XCTest** remains the industry standard for UI tests due to `XCUIApplication` lifecycle requirements
+
+### Running Tests
+
 Run tests using Xcode:
-- **Unit Tests**: Cmd+U
-- **UI Tests**: Product → Test
+- **All Tests**: Cmd+U
+- **Specific Test**: Click diamond icon next to test name
+- **Performance Tests**: Included in test suite
+
+See `Psst/agents/test-template.md` for detailed testing patterns.
 
 ## License
 
