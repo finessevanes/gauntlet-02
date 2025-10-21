@@ -8,6 +8,9 @@
 
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
+import FirebaseStorage
+import UIKit
 
 /// Service for managing user profile data in Firestore
 /// Handles CRUD operations, caching, and real-time listeners for the users collection
@@ -251,6 +254,165 @@ class UserService {
     func clearCache() {
         userCache.removeAll()
         print("[UserService] Cache cleared")
+    }
+    
+    // MARK: - Profile Editing Methods (PR #17)
+    
+    /// Updates user profile information (display name and/or profile photo URL)
+    /// - Parameters:
+    ///   - uid: User's unique identifier
+    ///   - displayName: New display name (optional, validates 2-50 characters)
+    ///   - profilePhotoURL: New profile photo URL from Firebase Storage (optional)
+    /// - Throws: UserServiceError if validation fails or update fails
+    func updateUserProfile(uid: String, displayName: String?, profilePhotoURL: String?) async throws {
+        let start = Date()
+        
+        // Validate uid
+        guard !uid.isEmpty else {
+            throw UserServiceError.invalidUserID
+        }
+        
+        // Validate displayName if provided
+        if let displayName = displayName {
+            guard displayName.count >= 2 && displayName.count <= 50 else {
+                throw UserServiceError.validationFailed("Display name must be 2-50 characters")
+            }
+        }
+        
+        // Build update data dictionary
+        var updateData: [String: Any] = [:]
+        
+        if let displayName = displayName {
+            updateData["displayName"] = displayName
+        }
+        
+        if let profilePhotoURL = profilePhotoURL {
+            updateData["photoURL"] = profilePhotoURL
+        }
+        
+        // Add server timestamp for updatedAt
+        updateData["updatedAt"] = FieldValue.serverTimestamp()
+        
+        // Ensure we have at least one field to update
+        guard updateData.count > 1 else { // >1 because updatedAt is always included
+            print("[UserService] ⚠️ No fields to update for user \(uid)")
+            return
+        }
+        
+        // Update in Firestore
+        do {
+            try await db.collection(usersCollection).document(uid).updateData(updateData)
+            
+            // Log performance
+            let duration = Date().timeIntervalSince(start) * 1000
+            print("[UserService] Updated profile for user \(uid) in \(Int(duration))ms")
+            
+            // Invalidate cache
+            userCache.removeValue(forKey: uid)
+            
+        } catch {
+            print("[UserService] ❌ Failed to update profile for user \(uid): \(error.localizedDescription)")
+            throw UserServiceError.updateFailed(error)
+        }
+    }
+    
+    /// Uploads a profile photo to Firebase Storage with compression
+    /// - Parameters:
+    ///   - uid: User's unique identifier
+    ///   - imageData: Image data to upload (will be compressed if >1MB)
+    /// - Returns: Download URL string for the uploaded photo
+    /// - Throws: UserServiceError if upload fails or compression fails
+    func uploadProfilePhoto(uid: String, imageData: Data) async throws -> String {
+        let start = Date()
+        
+        // Validate uid
+        guard !uid.isEmpty else {
+            throw UserServiceError.invalidUserID
+        }
+        
+        print("[UserService] Starting profile photo upload for user \(uid), original size: \(imageData.count) bytes")
+        
+        // Compress image if needed (target: <1MB)
+        let maxSizeBytes = 1_048_576 // 1MB
+        var compressedData = imageData
+        var compressionQuality: CGFloat = 0.7
+        
+        if imageData.count > maxSizeBytes {
+            print("[UserService] Image too large, compressing...")
+            
+            guard let image = UIImage(data: imageData) else {
+                throw UserServiceError.validationFailed("Invalid image data")
+            }
+            
+            // Compress in a loop until size is acceptable or quality is too low
+            while compressedData.count > maxSizeBytes && compressionQuality >= 0.3 {
+                if let compressed = image.jpegData(compressionQuality: compressionQuality) {
+                    compressedData = compressed
+                    print("[UserService] Compressed to \(compressedData.count) bytes at quality \(compressionQuality)")
+                }
+                compressionQuality -= 0.1
+            }
+            
+            print("[UserService] Final compressed size: \(compressedData.count) bytes")
+        }
+        
+        // Upload to Firebase Storage
+        let storage = Storage.storage()
+        let storageRef = storage.reference()
+        let filePath = "profile_photos/\(uid)/profile.jpg"
+        let fileRef = storageRef.child(filePath)
+        
+        // Set metadata
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        
+        do {
+            // Upload the image
+            print("[UserService] Uploading to path: \(filePath)")
+            print("[UserService] Upload size: \(compressedData.count) bytes")
+            
+            let uploadMetadata = try await fileRef.putData(compressedData, metadata: metadata)
+            
+            print("[UserService] ✅ Upload completed successfully")
+            print("[UserService] Upload metadata: \(uploadMetadata)")
+            
+            // Get download URL after successful upload
+            print("[UserService] Fetching download URL...")
+            let downloadURL = try await fileRef.downloadURL()
+            
+            // Log performance
+            let duration = Date().timeIntervalSince(start) * 1000
+            print("[UserService] ✅ Uploaded profile photo for user \(uid) in \(Int(duration))ms")
+            print("[UserService] Download URL: \(downloadURL.absoluteString)")
+            
+            return downloadURL.absoluteString
+            
+        } catch let error as NSError {
+            print("[UserService] ❌ Failed to upload profile photo for user \(uid)")
+            print("[UserService] Error domain: \(error.domain)")
+            print("[UserService] Error code: \(error.code)")
+            print("[UserService] Error description: \(error.localizedDescription)")
+            print("[UserService] Error details: \(error)")
+            print("[UserService] User info: \(error.userInfo)")
+            
+            // Check if it's a storage error
+            if error.domain == "FIRStorageErrorDomain" {
+                print("[UserService] Firebase Storage Error Code: \(error.code)")
+            }
+            
+            throw UserServiceError.updateFailed(error)
+        }
+    }
+    
+    /// Gets the current authenticated user's profile
+    /// - Returns: Current User object
+    /// - Throws: UserServiceError.userNotFound if not authenticated
+    func getCurrentUserProfile() async throws -> User {
+        guard let currentUser = Auth.auth().currentUser else {
+            throw UserServiceError.userNotFound
+        }
+        
+        return try await getUser(id: currentUser.uid)
     }
 }
 

@@ -1,0 +1,82 @@
+//
+//  ProfilePhotoPicker.swift
+//  Psst
+//
+//  Created by Caleb (Coder Agent) - PR #17
+//  Photo picker component for selecting profile photos from device library
+//
+
+import SwiftUI
+import PhotosUI
+
+/// UIKit-based photo picker for selecting profile photos
+/// Wraps PHPickerViewController for use in SwiftUI
+struct ProfilePhotoPicker: UIViewControllerRepresentable {
+    // MARK: - Properties
+    
+    /// Binding to store the selected image
+    @Binding var selectedImage: UIImage?
+    
+    /// Environment dismiss action
+    @Environment(\.dismiss) var dismiss
+    
+    // MARK: - UIViewControllerRepresentable
+    
+    func makeUIViewController(context: Context) -> PHPickerViewController {
+        // Configure picker to only show images
+        var configuration = PHPickerConfiguration()
+        configuration.filter = .images
+        configuration.selectionLimit = 1
+        
+        // Create picker
+        let picker = PHPickerViewController(configuration: configuration)
+        picker.delegate = context.coordinator
+        
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: PHPickerViewController, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        return Coordinator(self)
+    }
+    
+    // MARK: - Coordinator
+    
+    /// Coordinator to handle PHPickerViewController delegate callbacks
+    class Coordinator: NSObject, PHPickerViewControllerDelegate {
+        let parent: ProfilePhotoPicker
+        
+        init(_ parent: ProfilePhotoPicker) {
+            self.parent = parent
+        }
+        
+        func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+            // Dismiss picker
+            picker.dismiss(animated: true)
+            
+            // Get first result (we only allow single selection)
+            guard let result = results.first else {
+                return
+            }
+            
+            // Load image from result
+            if result.itemProvider.canLoadObject(ofClass: UIImage.self) {
+                result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
+                    if let error = error {
+                        print("[ProfilePhotoPicker] ❌ Failed to load image: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    // Update binding on main thread
+                    DispatchQueue.main.async {
+                        self?.parent.selectedImage = image as? UIImage
+                    }
+                }
+            }
+        }
+    }
+}
+
