@@ -15,12 +15,9 @@ struct ChatListView: View {
     // MARK: - State Management
     
     @StateObject private var viewModel = ChatListViewModel()
-    
-    // DEBUG: Mock data controls
-    #if DEBUG
-    @State private var showMockDataAlert = false
-    @State private var mockDataMessage = ""
-    #endif
+    @State private var showingNewChatView = false
+    @State private var selectedChat: Chat?
+    @State private var navigateToChat = false
     
     // MARK: - Body
     
@@ -41,25 +38,41 @@ struct ChatListView: View {
             }
             .navigationTitle("Messages")
             .toolbar {
-                #if DEBUG
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    debugToolbarButton
+                    Button {
+                        showingNewChatView = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .foregroundColor(.blue)
+                    }
                 }
-                #endif
             }
+            .sheet(isPresented: $showingNewChatView) {
+                UserSelectionView(onChatCreated: { chat in
+                    // Store the chat and dismiss sheet
+                    selectedChat = chat
+                    showingNewChatView = false
+                    // Trigger navigation after sheet dismissal
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        navigateToChat = true
+                    }
+                })
+            }
+            .background(
+                NavigationLink(
+                    destination: selectedChat.map { ChatView(chat: $0) },
+                    isActive: $navigateToChat
+                ) {
+                    EmptyView()
+                }
+                .hidden()
+            )
             .onAppear {
                 viewModel.observeChats()
             }
             .onDisappear {
                 viewModel.stopObserving()
             }
-            #if DEBUG
-            .alert("Mock Data", isPresented: $showMockDataAlert) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(mockDataMessage)
-            }
-            #endif
         }
     }
     
@@ -76,18 +89,11 @@ struct ChatListView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("Tap the + button to start chatting")
+            Text("Tap the compose button above to start chatting")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal)
-            
-            #if DEBUG
-            Text("💡 Tap the hammer icon above to seed test data")
-                .font(.caption)
-                .foregroundColor(.blue)
-                .padding(.top, 20)
-            #endif
         }
     }
     
@@ -105,68 +111,6 @@ struct ChatListView: View {
             viewModel.observeChats()
         }
     }
-    
-    // MARK: - DEBUG Toolbar
-    
-    #if DEBUG
-    /// Debug toolbar button for seeding/clearing test data
-    private var debugToolbarButton: some View {
-        Menu {
-            Button {
-                Task {
-                    await seedMockData()
-                }
-            } label: {
-                Label("Seed Mock Data", systemImage: "plus.circle")
-            }
-            
-            Button(role: .destructive) {
-                Task {
-                    await clearMockData()
-                }
-            } label: {
-                Label("Clear Mock Data", systemImage: "trash")
-            }
-        } label: {
-            Image(systemName: "hammer.fill")
-                .foregroundColor(.blue)
-        }
-    }
-    
-    /// Seed mock data using MockDataService
-    private func seedMockData() async {
-        guard let userID = Auth.auth().currentUser?.uid else {
-            mockDataMessage = "❌ Error: User not authenticated"
-            showMockDataAlert = true
-            return
-        }
-        
-        do {
-            try await MockDataService().seedMockData(currentUserID: userID)
-            mockDataMessage = "✅ Mock data seeded successfully!\n\n3 chats created:\n• Bob Smith (5m ago)\n• Group Chat (1h ago)\n• Alice Johnson (2h ago)"
-            showMockDataAlert = true
-            print("✅ Mock data seeded successfully")
-        } catch {
-            mockDataMessage = "❌ Error seeding data:\n\(error.localizedDescription)"
-            showMockDataAlert = true
-            print("❌ Error seeding mock data: \(error)")
-        }
-    }
-    
-    /// Clear all mock data
-    private func clearMockData() async {
-        do {
-            try await MockDataService().clearMockData()
-            mockDataMessage = "✅ Mock data cleared successfully!"
-            showMockDataAlert = true
-            print("✅ Mock data cleared")
-        } catch {
-            mockDataMessage = "❌ Error clearing data:\n\(error.localizedDescription)"
-            showMockDataAlert = true
-            print("❌ Error clearing mock data: \(error)")
-        }
-    }
-    #endif
 }
 
 // MARK: - Preview
