@@ -23,12 +23,15 @@ struct PsstApp: App {
     
     @Environment(\.scenePhase) private var scenePhase
 
+    // Initialize Firebase and NetworkMonitor on app launch
     // MARK: - Initialization
     
     init() {
         // Configure Firebase with GoogleService-Info.plist
         FirebaseService.shared.configure()
         
+        // Initialize NetworkMonitor to start monitoring network state
+        _ = NetworkMonitor.shared
         // Enable Firebase Realtime Database offline persistence for presence caching
         Database.database().isPersistenceEnabled = true
     }
