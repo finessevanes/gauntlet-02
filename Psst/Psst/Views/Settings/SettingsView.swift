@@ -36,6 +36,24 @@ struct SettingsView: View {
                     .font(.largeTitle)
                     .fontWeight(.bold)
 
+                // Logged-in user info
+                if let currentUser = authViewModel.currentUser {
+                    VStack(spacing: 8) {
+                        Text("Logged in as:")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        Text(currentUser.email)
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(8)
+                    }
+                    .padding(.bottom, 16)
+                }
+
                 // Coming soon message
                 Text("Coming Soon in Phase 4")
                     .font(.title3)
