@@ -1,441 +1,259 @@
 # Testing Guidelines
 
-Reference this when creating tests for features. See also `agents/shared-standards.md` for testing standards.
+**Current**: Manual testing validation (see `agents/shared-standards.md`)  
+**Future**: Comprehensive testing strategy in `../docs/testing-strategy.md`
+
+Reference this when validating features through manual testing.
 
 ---
 
-## Testing Framework Strategy
+## Manual Testing Strategy
 
-This project uses a **hybrid testing approach**:
+This project uses **manual testing validation** to ensure features work correctly:
 
-### Unit Tests → Swift Testing Framework ⭐ NEW
-- **Path**: `PsstTests/{Feature}Tests.swift`
-- **Framework**: Swift Testing (modern)
-- **Syntax**: `@Test("Display Name")` with `#expect`
-- **Benefits**: Readable test names in navigator, modern async/await support
-- **Use for**: Service layer, business logic, data models, error handling
+### Configuration Testing
+- **Purpose**: Verify all Firebase services are properly connected
+- **What to test**: Authentication, Firestore, FCM, environment variables
+- **Success criteria**: All services respond correctly, no connection errors
 
-### UI Tests → XCTest Framework
-- **Path**: `PsstUITests/{Feature}UITests.swift`
-- **Framework**: XCTest (traditional)
-- **Syntax**: `XCTestCase` with `func test...()`
-- **Benefits**: Full `XCUIApplication` support, performance metrics
-- **Use for**: User flows, navigation, UI interactions, app lifecycle
+### User Flow Testing
+- **Purpose**: Verify complete user journeys work end-to-end
+- **What to test**: Happy path scenarios, edge cases, error handling
+- **Success criteria**: Users can complete intended actions successfully
 
----
+### Multi-Device Testing
+- **Purpose**: Verify real-time sync works across devices
+- **What to test**: Message sync, presence indicators, concurrent actions
+- **Success criteria**: Changes appear on all devices within 100ms
 
-## Test Types Overview
-
-### 1. Unit Tests (Swift Testing) ⭐ RECOMMENDED
-
-**Path**: `PsstTests/{Feature}Tests.swift`
-
-**Purpose**: Test service layer logic, validation, Firebase operations
-
-**Pattern**:
-```swift
-import Testing
-@testable import Psst
-
-@Suite("Message Service Tests")
-struct MessageServiceTests {
-    
-    /// Verifies that messages are sent successfully to Firebase
-    @Test("Send Message With Valid Data Creates Message")
-    func sendMessageWithValidDataCreatesMessage() async throws {
-        // Given
-        let service = MessageService()
-        let testMessage = "Hello World"
-        let testChatID = "test-chat"
-        
-        // When
-        let messageID = try await service.sendMessage(
-            chatID: testChatID,
-            text: testMessage
-        )
-        
-        // Then
-        #expect(messageID != nil)
-        
-        // Verify message saved to Firebase
-        let messages = try await service.fetchMessages(chatID: testChatID)
-        #expect(messages.contains { $0.id == messageID })
-    }
-    
-    /// Verifies that empty messages throw validation error
-    @Test("Send Empty Message Throws Validation Error")
-    func sendEmptyMessageThrowsValidationError() async throws {
-        // Given
-        let service = MessageService()
-        
-        // When/Then
-        await #expect(throws: ValidationError.self) {
-            try await service.sendMessage(chatID: "test", text: "")
-        }
-    }
-}
-```
-
-**Key Points:**
-- Use `@Suite("Suite Name")` for test grouping
-- Use `@Test("Display Name")` for readable test names in navigator
-- Use `#expect` instead of `XCTAssert`
-- No `setUp/tearDown` - use instance properties or init if needed
-- Tests show as "Send Message With Valid Data Creates Message" in Xcode
+### Offline Behavior Testing
+- **Purpose**: Verify app functions without internet connection
+- **What to test**: Message queuing, offline functionality, reconnection
+- **Success criteria**: App remains functional offline, syncs when reconnected
 
 ---
 
-### 2. UI Tests (XCUITest)
-**Path**: `PsstUITests/{Feature}UITests.swift`
+## Manual Testing Checklist
 
-**Purpose**: Test user interactions, navigation, UI state changes
+### 1. Configuration Testing ⭐ REQUIRED
 
-**Pattern**:
-```swift
-import XCTest
+**Purpose**: Verify Firebase services and environment setup
 
-class ChatViewUITests: XCTestCase {
-    var app: XCUIApplication!
-    
-    override func setUp() {
-        super.setUp()
-        continueAfterFailure = false
-        app = XCUIApplication()
-        app.launch()
-    }
-    
-    func testUserCanSendMessage() throws {
-        // Navigate to chat view
-        app.buttons["chatButton"].tap()
-        
-        // Type message
-        let messageInput = app.textFields["messageInput"]
-        XCTAssertTrue(messageInput.exists)
-        messageInput.tap()
-        messageInput.typeText("Hello World")
-        
-        // Send message
-        app.buttons["sendButton"].tap()
-        
-        // Verify message appears
-        let messageText = app.staticTexts["Hello World"]
-        XCTAssertTrue(messageText.waitForExistence(timeout: 5))
-    }
-    
-    func testEmptyMessageDisablesSendButton() throws {
-        app.buttons["chatButton"].tap()
-        
-        let sendButton = app.buttons["sendButton"]
-        
-        // Send button should be disabled when input is empty
-        XCTAssertFalse(sendButton.isEnabled)
-        
-        // Type text
-        let messageInput = app.textFields["messageInput"]
-        messageInput.tap()
-        messageInput.typeText("Hello")
-        
-        // Now send button should be enabled
-        XCTAssertTrue(sendButton.isEnabled)
-    }
-}
-```
+**What to test**:
+- Firebase Authentication login/logout works
+- Firestore database reads/writes succeed
+- FCM push notifications configured
+- All API keys and environment variables set correctly
+
+**Success criteria**: No connection errors, all services respond properly
+
+**Testing steps**:
+1. Open app and attempt to sign in
+2. Verify authentication succeeds without errors
+3. Try to read/write data to Firestore
+4. Check console for any Firebase connection errors
+5. Verify all environment variables are loaded
 
 ---
 
-### 3. Service Tests (Swift Testing)
-**Path**: `PsstTests/Services/{ServiceName}Tests.swift`
+### 2. User Flow Testing ⭐ REQUIRED
 
-**Purpose**: Test Firebase-specific operations, async behavior, error handling
+**Purpose**: Verify complete user journeys work end-to-end
 
-**Pattern**:
-```swift
-import Testing
-@testable import Psst
+**What to test**:
+- Happy path: Complete main user journey from start to finish
+- Edge cases: Invalid inputs, empty states, network issues
+- Error handling: Network failures, permission errors, validation errors
 
-@Suite("Message Service Firebase Tests")
-struct MessageServiceFirebaseTests {
-    
-    /// Verifies that messages are written to Firestore successfully
-    @Test("Firestore Write Creates Document")
-    func firestoreWriteCreatesDocument() async throws {
-        // Given
-        let service = MessageService()
-        let chatID = "test-chat-\(UUID().uuidString)"
-        let text = "Test message"
-        
-        // When
-        let messageID = try await service.sendMessage(chatID: chatID, text: text)
-        
-        // Then
-        #expect(messageID != nil)
-        // Query Firestore directly to confirm
-    }
-    
-    /// Verifies that offline messages are queued and sent when online
-    @Test("Offline Message Queue Syncs When Online")
-    func offlineMessageQueueSyncsWhenOnline() async throws {
-        // Given: Offline mode
-        // When: Send message
-        // Then: Verify queued locally
-        // When: Reconnection
-        // Then: Verify message sent
-    }
-}
-```
+**Success criteria**: Users can complete intended actions successfully
+
+**Testing steps**:
+1. **Happy Path**: Complete the main user flow without any issues
+2. **Edge Cases**: 
+   - Try submitting empty forms
+   - Test with invalid data formats
+   - Test with very long inputs
+3. **Error Scenarios**:
+   - Disconnect internet and try operations
+   - Test with invalid permissions
+   - Test with malformed data
 
 ---
 
-## Multi-Device Testing (Swift Testing)
+### 3. Multi-Device Testing ⭐ REQUIRED
 
-Use this pattern for testing real-time sync (from `agents/shared-standards.md`):
+**Purpose**: Verify real-time sync works across devices
 
-```swift
-@Suite("Multi-Device Sync Tests")
-struct MultiDeviceSyncTests {
-    
-    /// Verifies that messages sync across devices within 100ms
-    @Test("Message Sync Across Devices Completes Within 100ms")
-    func messageSyncAcrossDevicesCompletesWithin100ms() async throws {
-        // Given: 2 devices
-        let device1Service = MessageService()
-        let device2Service = MessageService()
-        let chatID = "sync-test-\(UUID().uuidString)"
-        
-        // When: Device 1 sends message
-        let messageID = try await device1Service.sendMessage(
-            chatID: chatID,
-            text: "Hello from device 1"
-        )
-        
-        // Wait for Firebase sync (should be <100ms)
-        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-        
-        // Then: Device 2 receives the message
-        let messages = try await device2Service.fetchMessages(chatID: chatID)
-        
-        #expect(messages.contains { $0.id == messageID })
-        #expect(messages.first?.text == "Hello from device 1")
-    }
-    
-    /// Verifies that concurrent messages from multiple devices succeed
-    @Test("Concurrent Messages From Multiple Devices Succeed")
-    func concurrentMessagesFromMultipleDevicesSucceed() async throws {
-        // Given: 2 devices
-        let device1 = MessageService()
-        let device2 = MessageService()
-        let chatID = "concurrent-test-\(UUID().uuidString)"
-        
-        // When: Both devices send simultaneously
-        async let msg1 = device1.sendMessage(chatID: chatID, text: "From device 1")
-        async let msg2 = device2.sendMessage(chatID: chatID, text: "From device 2")
-        
-        let (id1, id2) = try await (msg1, msg2)
-        
-        // Then: Both messages should succeed
-        #expect(id1 != nil)
-        #expect(id2 != nil)
-        
-        // And: Both should be in chat
-        let messages = try await device1.fetchMessages(chatID: chatID)
-        #expect(messages.count == 2)
-    }
-}
-```
+**What to test**:
+- Message sync between devices
+- Presence indicators (online/offline status)
+- Concurrent actions from multiple devices
+- Real-time updates
+
+**Success criteria**: Changes appear on all devices within 100ms
+
+**Testing steps**:
+1. **Setup**: Open app on Device 1 (iPhone/Simulator)
+2. **Setup**: Open app on Device 2 (different iPhone/Simulator)
+3. **Test Sync**: Send message from Device 1, verify it appears on Device 2
+4. **Test Reverse**: Send message from Device 2, verify it appears on Device 1
+5. **Test Timing**: Use stopwatch to verify sync happens within 100ms
+6. **Test Concurrent**: Send messages from both devices simultaneously
+7. **Test Presence**: Verify online/offline indicators work correctly
 
 ---
 
-## Test Coverage Checklist
+### 4. Offline Behavior Testing ⭐ REQUIRED
 
-For every feature, ensure you have tests for:
+**Purpose**: Verify app functions without internet connection
 
-### Happy Path
-- [ ] Primary user action succeeds
-- [ ] Data persists correctly
-- [ ] UI updates appropriately
-
-### Edge Cases
-- [ ] Empty/invalid input
-- [ ] Offline behavior
-- [ ] Network errors
-- [ ] Permission errors
-- [ ] Boundary conditions (0 items, 1000+ items)
-
-### Multi-User Scenarios
-- [ ] Real-time sync (<100ms)
-- [ ] Concurrent operations
-- [ ] Conflict resolution
-
-### Performance (see shared-standards.md)
-- [ ] Smooth scrolling (60fps)
-- [ ] Fast load times (<2-3s)
-- [ ] Low latency (<100ms)
-
-### State Management
-- [ ] Loading states
-- [ ] Error states
-- [ ] Empty states
-- [ ] Success states
-
----
-
-## Test Organization
-
-Structure your test files like this:
-
-```swift
-// MARK: - Setup/Teardown
-override func setUp() { }
-override func tearDown() { }
-
-// MARK: - Happy Path Tests
-func testFeatureWorksNormally() { }
-
-// MARK: - Edge Case Tests
-func testEmptyInput() { }
-func testInvalidInput() { }
-func testOfflineMode() { }
-
-// MARK: - Multi-User Tests
-func testRealTimeSync() { }
-func testConcurrentOperations() { }
-
-// MARK: - Performance Tests
-func testLoadTime() { }
-func testScrollPerformance() { }
-
-// MARK: - Error Handling Tests
-func testNetworkError() { }
-func testPermissionError() { }
-```
-
----
-
-## Running Tests
-
-### In Xcode
-- Run all tests: `Cmd + U`
-- Run specific test: Click diamond next to test function
-- Run specific test class: Click diamond next to class name
-
-### Command Line
-```bash
-# Run all tests
-xcodebuild test -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15'
-
-# Run specific test
-xcodebuild test -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15' -only-testing:PsstTests/MessageServiceTests/testSendMessage
-```
-
----
-
-## Common Test Patterns
-
-### Swift Testing Patterns
-
-#### Testing Async Operations
-```swift
-@Test("Async Operation Returns Valid Result")
-func asyncOperationReturnsValidResult() async throws {
-    let result = try await service.asyncMethod()
-    #expect(result != nil)
-}
-```
-
-#### Testing Errors
-```swift
-@Test("Failing Method Throws Expected Error")
-func failingMethodThrowsExpectedError() async throws {
-    await #expect(throws: ExpectedErrorType.self) {
-        try await service.failingMethod()
-    }
-}
-```
-
-#### Testing Boolean Conditions
-```swift
-@Test("User Is Authenticated After Login")
-func userIsAuthenticatedAfterLogin() async throws {
-    try await service.login(email: "test@example.com", password: "password")
-    #expect(service.isAuthenticated == true)
-}
-```
-
-### XCTest Patterns (for UI Tests)
-
-### Testing UI Existence
-```swift
-func testElementExists() {
-    let element = app.buttons["buttonID"]
-    XCTAssertTrue(element.exists)
-    XCTAssertTrue(element.isHittable)
-}
-```
-
-### Testing UI State
-```swift
-func testButtonState() {
-    let button = app.buttons["submitButton"]
-    XCTAssertFalse(button.isEnabled) // Initially disabled
-    
-    app.textFields["input"].typeText("text")
-    XCTAssertTrue(button.isEnabled) // Now enabled
-}
-```
-
----
-
-## Test Data Management
-
-### Use Unique IDs
-```swift
-let testChatID = "test-\(UUID().uuidString)"
-```
-
-### Clean Up After Tests
-```swift
-override func tearDown() {
-    // Delete test data from Firebase
-    Task {
-        try? await service.deleteTestData()
-    }
-    super.tearDown()
-}
-```
-
----
-
-## Best Practices
-
-### Framework Selection
-- ✅ **Use Swift Testing** for all unit/service tests (readable names, modern syntax)
-- ✅ **Use XCTest** for all UI tests (XCUIApplication support)
-- ✅ Use `@Test("Display Name")` for unit tests (shows in navigator)
-- ✅ Use `#expect` for Swift Testing, `XCTAssert` for XCTest
-
-### General Best Practices
-- ✅ Tests should be independent (don't rely on order)
-- ✅ Clean up test data after each test
-- ✅ Use meaningful test names
-- ✅ Follow Given-When-Then pattern
-- ✅ Test one thing per test function
-- ✅ Mock external dependencies when appropriate
-- ❌ Don't test implementation details
-- ❌ Don't write flaky tests that sometimes fail
-- ❌ Don't skip cleanup
-
----
-
-## Visual Testing Note
-
-**Visual appearance (colors, fonts, spacing, animations) is verified manually by user during PR review.**
-
-Automated tests focus on:
-- Functional correctness
-- User interaction flows
+**What to test**:
+- Message queuing when offline
+- Offline functionality
+- Reconnection and sync
 - Data persistence
-- Real-time sync
-- Performance targets
 
-See `agents/shared-standards.md` for more patterns and requirements.
+**Success criteria**: App remains functional offline, syncs when reconnected
 
+**Testing steps**:
+1. **Go Offline**: Disable internet connection (WiFi off, cellular off)
+2. **Test Queuing**: Try to send messages (should queue locally)
+3. **Test Offline Features**: Use any offline functionality
+4. **Go Online**: Re-enable internet connection
+5. **Verify Sync**: Check that queued messages send automatically
+6. **Verify Real-time**: Test that real-time sync resumes
+
+---
+
+### 5. Visual States Verification ⭐ REQUIRED
+
+**Purpose**: Verify all UI states render correctly
+
+**What to test**:
+- Empty states (no data)
+- Loading states (data fetching)
+- Error states (network errors, validation errors)
+- Success states (completed actions)
+
+**Success criteria**: All states display appropriate content and styling
+
+**Testing steps**:
+1. **Empty State**: Clear all data and verify empty state displays
+2. **Loading State**: Trigger data loading and verify loading indicators
+3. **Error State**: Trigger errors and verify error messages display
+4. **Success State**: Complete actions and verify success feedback
+5. **Visual Quality**: Check colors, fonts, spacing, animations look correct
+
+---
+
+### 6. Performance Testing ⭐ REQUIRED
+
+**Purpose**: Verify performance targets are met
+
+**What to test**:
+- App load time
+- Message delivery latency
+- Scrolling performance
+- UI responsiveness
+
+**Success criteria**: Performance meets targets in shared-standards.md
+
+**Testing steps**:
+1. **Load Time**: Measure cold start to interactive UI (< 2-3 seconds)
+2. **Message Latency**: Send message and measure delivery time (< 100ms)
+3. **Scrolling**: Test with 100+ messages, verify smooth 60fps
+4. **UI Response**: Test tap feedback (< 50ms response time)
+
+---
+
+## Testing Environment Setup
+
+### Required Devices
+- **Primary Device**: iPhone/Simulator for main testing
+- **Secondary Device**: Different iPhone/Simulator for multi-device testing
+- **Network Control**: Ability to disable/enable internet connection
+
+### Testing Tools
+- **Stopwatch**: For timing measurements (100ms sync, 2-3s load time)
+- **Console**: For monitoring errors and Firebase connection status
+- **Network Inspector**: For verifying Firebase connections
+
+### Test Data
+- **Clean State**: Start with fresh app installation
+- **Test Accounts**: Use dedicated test user accounts
+- **Test Content**: Use consistent test messages and data
+
+---
+
+## Manual Testing Best Practices
+
+### Before Testing
+- [ ] Ensure Firebase services are properly configured
+- [ ] Clear app data for clean testing
+- [ ] Have multiple devices ready for multi-device testing
+- [ ] Prepare test data and scenarios
+
+### During Testing
+- [ ] Test systematically through each category
+- [ ] Document any issues or unexpected behavior
+- [ ] Take screenshots of visual issues
+- [ ] Note timing measurements for performance tests
+
+### After Testing
+- [ ] Verify all acceptance gates pass
+- [ ] Document any configuration issues found
+- [ ] Clean up test data
+- [ ] Report any bugs or issues discovered
+
+---
+
+## Common Issues & Solutions
+
+### Issue: Firebase connection errors
+**Check**: 
+- GoogleService-Info.plist is properly configured
+- Firebase project settings match app bundle ID
+- Network connectivity is working
+
+### Issue: Real-time sync slow
+**Check**:
+- Firebase project is in same region as users
+- Firestore indexes are properly configured
+- Network latency between devices
+
+### Issue: App crashes during testing
+**Check**:
+- Console logs for error details
+- Firebase service configuration
+- Memory usage during testing
+
+### Issue: Visual elements not displaying
+**Check**:
+- SwiftUI preview rendering
+- Asset catalog configuration
+- Font and color resources
+
+---
+
+## Testing Completion Criteria
+
+**Feature is ready when ALL of the following pass:**
+
+- [ ] **Configuration**: All Firebase services connected and working
+- [ ] **Happy Path**: Main user flow works from start to finish
+- [ ] **Edge Cases**: Invalid inputs handled gracefully
+- [ ] **Multi-Device**: Real-time sync works across 2+ devices
+- [ ] **Offline**: App functions properly without internet
+- [ ] **Performance**: App loads quickly, smooth scrolling, fast sync
+- [ ] **Visual States**: All UI states (empty, loading, error, success) display correctly
+- [ ] **No Console Errors**: Clean console output during testing
+
+---
+
+## Notes
+
+- **Visual appearance** (colors, spacing, fonts, animations) is verified manually by user
+- **Performance measurements** should be done with realistic data loads
+- **Multi-device testing** requires physical devices or multiple simulators
+- **Offline testing** requires ability to control network connectivity
+- All testing is done manually by the user to verify functionality works correctly

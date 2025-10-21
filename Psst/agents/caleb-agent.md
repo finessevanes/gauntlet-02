@@ -64,21 +64,24 @@ git checkout -b feat/pr-{number}-{feature-name}
 **Performance & messaging:**
 - See requirements in `Psst/agents/shared-standards.md`
 
-### Step 4: Write Tests
+### Step 4: Testing Validation
 
-**Create test files following `Psst/agents/test-template.md`**
+**Current**: Manual testing validation (see `Psst/agents/shared-standards.md`)  
+**Future**: Automated testing recommendations in `Psst/docs/testing-strategy.md`
 
-Required test files:
-1. **Unit tests** (mandatory): `PsstTests/{Feature}Tests.swift`
-2. **UI tests** (mandatory for UI): `PsstUITests/{Feature}UITests.swift`
-3. **Service tests** (if applicable): `PsstTests/Services/{ServiceName}Tests.swift`
+Required manual testing:
+1. **Configuration Testing**: Verify Firebase services connected and working
+2. **User Flow Testing**: Complete main user journey end-to-end
+3. **Multi-Device Testing**: Test real-time sync across 2+ devices
+4. **Offline Behavior**: Test app functionality without internet
+5. **Visual States**: Verify all UI states render correctly
 
 See `Psst/agents/shared-standards.md` for:
-- Test patterns
-- Multi-device testing template
-- Coverage requirements
+- Manual testing checklist
+- Multi-device testing instructions
+- Performance validation requirements
 
-**Note:** Visual appearance (colors, spacing, fonts) verified manually by user.
+**Note:** All testing is currently done manually by the user. See `Psst/docs/testing-strategy.md` for future automated testing recommendations.
 
 ### Step 5: Verify Acceptance Gates
 

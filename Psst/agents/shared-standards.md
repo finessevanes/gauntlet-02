@@ -58,75 +58,70 @@ Every feature involving messaging MUST address:
 
 ## Testing Standards
 
-### Testing Framework Strategy
+### Current Testing Approach
 
-This project uses a **hybrid testing approach**:
+This project uses **manual testing validation** to ensure features work correctly before deployment.
 
-**Unit/Service Tests → Swift Testing Framework ⭐ REQUIRED**
-- Modern `@Test("Display Name")` syntax with custom names
-- Tests appear with readable names in test navigator
-- Use `#expect` for assertions
-- Best for service layer, business logic, data models
+**📋 For comprehensive testing strategy and future automated testing recommendations, see [Testing Strategy & Recommendations](../docs/testing-strategy.md)**
 
-**UI Tests → XCTest Framework**
-- Traditional `XCTestCase` with `XCUIApplication`
-- Descriptive function names (e.g., `testLoginView_DisplaysCorrectly()`)
-- Use `XCTAssert` for assertions
-- Required for UI automation and app lifecycle
+### Manual Testing Requirements
 
-### Test Types Required
+**For each feature, the user must verify:**
 
-**1. Unit Tests (Swift Testing)** — Mandatory for all features
-- Path: `PsstTests/{Feature}Tests.swift`
-- Framework: Swift Testing
-- Pattern: `@Test("Display Name")` with `#expect`
-- Tests: Service method behavior, validation, Firebase operations
-- Example: `PsstTests/AuthenticationServiceTests.swift`
+**1. Configuration Testing**
+- Firebase Authentication setup works
+- Firestore database connection established
+- FCM push notifications configured
+- All environment variables and API keys properly set
 
-**2. UI Tests (XCTest)** — Mandatory for user-facing features
-- Path: `PsstUITests/{Feature}UITests.swift`
-- Framework: XCTest
-- Pattern: `class XCTestCase` with `func test...()`
-- Tests: User interactions, navigation, state changes
-- Example: `PsstUITests/AuthenticationUITests.swift`
+**2. User Flow Testing**
+- Happy path: Complete the main user journey end-to-end
+- Edge cases: Test with invalid inputs, empty states, network issues
+- Multi-user scenarios: Test real-time sync across 2+ devices
+- Offline behavior: Test app functionality without internet connection
 
-**3. Service Tests (Swift Testing)** — If you created/modified service methods
-- Path: `PsstTests/Services/{ServiceName}Tests.swift`
-- Framework: Swift Testing
-- Pattern: `@Test("Display Name")` with `#expect`
-- Tests: Firebase interactions, async operations, error handling
+**3. Performance Validation**
+- App loads in < 2-3 seconds (cold start to interactive UI)
+- Messages sync across devices in < 100ms
+- Smooth 60fps scrolling with 100+ messages
+- No UI blocking or freezing during operations
 
-### Test Coverage Requirements
-- ✅ Happy path scenarios
-- ✅ Edge cases (empty input, offline, errors)
-- ✅ Multi-user scenarios
-- ✅ Performance targets
-- ✅ Real-time sync (<100ms)
-- ✅ Offline persistence
+**4. Visual State Verification**
+- Empty states display correctly
+- Loading states show appropriate indicators
+- Error states provide clear feedback
+- Success states confirm completed actions
 
-### Multi-Device Testing Pattern (Swift Testing)
-```swift
-// Automated test simulating multiple devices
-@Test("Message Sync Across Devices Completes Within 100ms")
-func messageSyncAcrossDevicesCompletesWithin100ms() async throws {
-    // Given: Two devices
-    let device1Service = MessageService()
-    let device2Service = MessageService()
-    
-    // When: Device 1 sends message
-    let messageID = try await device1Service.sendMessage(
-        chatID: "test-chat",
-        text: "Hello from device 1"
-    )
-    
-    // Wait for Firebase sync (should be <100ms)
-    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-    
-    // Then: Device 2 receives the message
-    let messages = try await device2Service.fetchMessages(chatID: "test-chat")
-    #expect(messages.contains { $0.id == messageID })
-}
-```
+### Manual Testing Checklist Template
+
+**Before marking feature complete, verify:**
+
+- [ ] **Configuration**: All Firebase services connected and working
+- [ ] **Happy Path**: Main user flow works from start to finish
+- [ ] **Edge Cases**: Invalid inputs handled gracefully
+- [ ] **Multi-Device**: Real-time sync works across 2+ devices
+- [ ] **Offline**: App functions properly without internet
+- [ ] **Performance**: App loads quickly, smooth scrolling, fast sync
+- [ ] **Visual States**: All UI states (empty, loading, error, success) display correctly
+- [ ] **No Console Errors**: Clean console output during testing
+
+### Multi-Device Testing Instructions
+
+**To test real-time sync:**
+1. Open app on Device 1 (iPhone/Simulator)
+2. Open app on Device 2 (different iPhone/Simulator)
+3. Send message from Device 1
+4. Verify message appears on Device 2 within 100ms
+5. Send message from Device 2
+6. Verify message appears on Device 1 within 100ms
+7. Test with 3+ devices if available
+
+**To test offline behavior:**
+1. Disable internet connection
+2. Attempt to send messages (should queue locally)
+3. Re-enable internet connection
+4. Verify queued messages send automatically
+5. Verify real-time sync resumes
 
 ---
 

@@ -129,25 +129,34 @@ List SwiftUI views/files with one-line purpose each.
 
 ---
 
-## 12. Test Plan & Acceptance Gates
+## 12. Testing Plan & Acceptance Gates
 
 Define BEFORE implementation. Use checkboxes.
 
-Reference testing standards from `Psst/agents/shared-standards.md`.
+**Current**: Manual testing validation (see `Psst/agents/shared-standards.md`)  
+**Future**: Automated testing recommendations in `Psst/docs/testing-strategy.md`
 
-- Happy Path
+- Configuration Testing
+  - [ ] Firebase Authentication setup works
+  - [ ] Firestore database connection established
+  - [ ] FCM push notifications configured
+  - [ ] All environment variables and API keys properly set
+  
+- Happy Path Testing
   - [ ] User action succeeds
   - [ ] Gate: [specific measurable outcome]
   
-- Edge Cases
-  - [ ] Empty/invalid input handled
+- Edge Cases Testing
+  - [ ] Empty/invalid input handled gracefully
   - [ ] Offline behavior correct
+  - [ ] Network issues handled properly
   
-- Multi-User
-  - [ ] Real-time sync <100ms
-  - [ ] Concurrent actions handled
+- Multi-User Testing
+  - [ ] Real-time sync <100ms across devices
+  - [ ] Concurrent actions handled correctly
+  - [ ] Messages appear on all connected devices
   
-- Performance (see shared-standards.md)
+- Performance Testing (see shared-standards.md)
   - [ ] App load < 2-3s
   - [ ] Smooth 60fps scrolling
   - [ ] Message latency < 100ms
@@ -157,11 +166,12 @@ Reference testing standards from `Psst/agents/shared-standards.md`.
 ## 13. Definition of Done
 
 See standards in `Psst/agents/shared-standards.md`:
-- [ ] Service methods implemented + unit tests (XCTest)
-- [ ] SwiftUI views with all states
+- [ ] Service methods implemented with proper error handling
+- [ ] SwiftUI views with all states (empty, loading, error, success)
 - [ ] Real-time sync verified across 2+ devices
-- [ ] Offline persistence tested
+- [ ] Offline persistence tested manually
 - [ ] All acceptance gates pass
+- [ ] Manual testing completed (configuration, user flows, multi-device, offline)
 - [ ] Docs updated
 
 ---

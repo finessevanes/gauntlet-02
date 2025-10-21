@@ -74,27 +74,30 @@ Reference requirements from `Psst/agents/shared-standards.md`.
 
 ---
 
-## 6. Tests
+## 6. Testing Validation
 
-Follow patterns from `Psst/agents/shared-standards.md` and `Psst/agents/test-template.md`.
+**Current**: Manual testing validation (see `Psst/agents/shared-standards.md`)  
+**Future**: Automated testing recommendations in `Psst/docs/testing-strategy.md`
 
-- [ ] Unit Tests (XCTest)
-  - Path: `PsstTests/{Feature}Tests.swift`
-  - Test Gate: Service logic validated, edge cases covered
+- [ ] Configuration Testing
+  - Test Gate: Firebase Authentication, Firestore, FCM all connected and working
+  - Test Gate: All environment variables and API keys properly configured
   
-- [ ] UI Tests (XCUITest)
-  - Path: `PsstUITests/{Feature}UITests.swift`
-  - Test Gate: User flows succeed, navigation works
+- [ ] User Flow Testing
+  - Test Gate: Complete main user journey end-to-end successfully
+  - Test Gate: Edge cases (invalid inputs, empty states, network issues) handled gracefully
   
-- [ ] Service Tests (if applicable)
-  - Path: `PsstTests/Services/{ServiceName}Tests.swift`
-  - Test Gate: Firebase operations tested
+- [ ] Multi-Device Testing
+  - Test Gate: Real-time sync works across 2+ devices within 100ms
+  - Test Gate: Messages appear on all connected devices simultaneously
   
-- [ ] Multi-device sync test
-  - Test Gate: Use pattern from Psst/agents/shared-standards.md
+- [ ] Offline Behavior Testing
+  - Test Gate: App functions properly without internet connection
+  - Test Gate: Messages queue locally and send when connection restored
   
-- [ ] Visual states verification
-  - Test Gate: Empty, loading, error, success render correctly
+- [ ] Visual States Verification
+  - Test Gate: Empty, loading, error, success states all render correctly
+  - Test Gate: No console errors during testing
 
 ---
 
@@ -137,10 +140,10 @@ Check every gate from PRD Section 12:
 ```markdown
 - [ ] Branch created from develop
 - [ ] All TODO tasks completed
-- [ ] Services implemented + unit tests (XCTest)
+- [ ] Services implemented with proper error handling
 - [ ] SwiftUI views implemented with state management
-- [ ] Firebase integration tested (real-time sync, offline)
-- [ ] UI tests pass (XCUITest)
+- [ ] Firebase integration verified (real-time sync, offline)
+- [ ] Manual testing completed (configuration, user flows, multi-device, offline)
 - [ ] Multi-device sync verified (<100ms)
 - [ ] Performance targets met (see Psst/agents/shared-standards.md)
 - [ ] All acceptance gates pass

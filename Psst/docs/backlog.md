@@ -8,6 +8,8 @@ This document tracks deferred items and "we'll get back to this" tasks that are 
 
 ## 🧪 Deferred Testing
 
+**📋 Testing Strategy**: See [Testing Strategy & Recommendations](testing-strategy.md) for comprehensive testing approach, current manual testing standards, and future automated testing roadmap.
+
 ### Integration Testing (End-to-End)
 **Deferred from**: PR #3  
 **Priority**: High  
