@@ -20,9 +20,8 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Conversations (TEMPORARY: Using ConversationListView for PR #8 testing)
-            // TODO: Switch back to ChatListView after PR #8 is complete
-            ConversationListView()
+            // Tab 1: Conversations (PR #6)
+            ChatListView()
                 .tabItem {
                     Label("Conversations", systemImage: "message.fill")
                 }
