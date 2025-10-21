@@ -30,8 +30,7 @@ class FirebaseService {
         // Enable Firestore offline persistence for offline-first architecture
         // This allows users to read cached data and queue writes when offline
         let settings = FirestoreSettings()
-        settings.isPersistenceEnabled = true
-        settings.cacheSizeBytes = FirestoreCacheSizeUnlimited
+        settings.cacheSettings = PersistentCacheSettings()
         Firestore.firestore().settings = settings
         
         // Log successful configuration

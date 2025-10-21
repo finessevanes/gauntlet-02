@@ -276,6 +276,16 @@ gauntlet-02/
 
 ---
 
+## Development Guidelines
+
+### Key Concepts for New Developers
+- Everything goes through the database - GRDB transactions are central
+- Dependency injection is preferred - Avoid global singletons when possible
+- Protocol-oriented - Heavy use of Swift protocols
+- Async/await everywhere - Modern Swift concurrency
+- Thread safety - Always consider which queue/thread you're on
+- Modular architecture - Clear layer separation (UI → SignalUI → SignalServiceKit)
+
 ## Notes
 
 - All PRs target `develop` branch (not `main`)
