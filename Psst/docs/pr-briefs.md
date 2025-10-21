@@ -16,6 +16,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 1
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #2: user-authentication-flow
@@ -27,6 +29,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 **Complexity:** Medium
 
 **Phase:** 1
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -40,6 +44,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 1
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #4: app-navigation-structure
@@ -51,6 +57,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 **Complexity:** Simple
 
 **Phase:** 1
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -66,6 +74,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 2
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #6: conversation-list-screen
@@ -77,6 +87,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 **Complexity:** Medium
 
 **Phase:** 2
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -90,6 +102,8 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 2
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #8: real-time-messaging-service
@@ -102,49 +116,52 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 2
 
+**Status:** ✅ COMPLETED
+
 ---
 
-### PR #9: optimistic-ui-updates
+## 🔄 Direction Change After PR #8
 
-**Brief:** Implement optimistic UI pattern for message sending to provide instant feedback to users. When a user sends a message, immediately add it to the local SwiftUI state with a "sending" status before the Firestore write completes. Update the message status to "delivered" once Firestore confirms the write. Handle error cases where message sending fails and allow retry functionality.
+After completing PR #8, we identified a critical dependency issue in the original build order:
 
-**Dependencies:** PR #8
+**The Problem:** PRs 6, 7, and 8 built screens to display and message in chats, but PR #12 (the ability to CREATE chats) wasn't scheduled until later. This meant we couldn't properly test PRs 6-8 without either:
+- Manually creating chat documents in Firestore Console
+- Using MockDataService (DEBUG-only fake data)
+
+**The Solution:** Restructure remaining PRs to:
+1. Prioritize chat creation (move PR #12 logic to NEW PR #9)
+2. Consolidate related features to reduce context switching
+3. Build features in dependency order (create → display → enhance)
+
+**Changes Made:**
+- Original PRs 9-25 (17 PRs) → Consolidated to NEW PRs 9-18 (10 PRs)
+- Chat creation moved from old PR #12 to NEW PR #9 (next immediate task)
+- Related features bundled (e.g., optimistic UI + offline persistence)
+- Server timestamps already implemented in PR #8, so old PR #10 is effectively done
+
+**Result:** More logical build order with fewer, more complete PRs.
+
+---
+
+### PR #9: chat-creation-and-contact-selection
+
+**Brief:** Build the complete "Start New Chat" flow with user selection, search, and chat creation. Add createChat() method to ChatService that checks for existing chats before creating duplicates. Create a user selection screen displaying all available users from the `users` collection with real-time search functionality to filter by display name or email. Implement chat creation logic for 1-on-1 conversations and navigate to the new chat. Remove MockDataService after completion since users can now create real chats.
+
+**Dependencies:** PRs 1-8 (completed)
 
 **Complexity:** Medium
 
 **Phase:** 2
 
+**Status:** 🎯 NEXT UP
+
 ---
 
-### PR #10: server-timestamps-and-sync
+### PR #10: optimistic-ui-and-offline-persistence
 
-**Brief:** Implement Firestore server timestamps for all messages using FieldValue.serverTimestamp() to ensure accurate, synchronized timestamps across all devices. Update the message model to handle server timestamp conversion. Display timestamps in the UI with proper formatting (relative time for recent messages, absolute time for older ones). Ensure timestamps are timezone-aware and display correctly.
+**Brief:** Implement optimistic UI pattern for instant message feedback and enable full offline support. When users send messages, immediately add them to local SwiftUI state with "sending" status before Firestore confirms. Update status to "delivered" once confirmed. Enable Firestore offline persistence (isPersistenceEnabled = true) so users can view previously loaded messages without internet. Implement message queueing for offline sends with automatic sync on reconnection. Add offline mode indicators and handle network state transitions gracefully.
 
 **Dependencies:** PR #8
-
-**Complexity:** Simple
-
-**Phase:** 2
-
----
-
-### PR #11: offline-persistence-and-caching
-
-**Brief:** Enable Firestore offline persistence by setting isPersistenceEnabled = true in the Firebase configuration. Implement logic to handle offline scenarios gracefully, allowing users to view previously loaded messages without internet. Implement message queueing for messages sent while offline, ensuring they're sent automatically when connectivity is restored. Add UI indicators for offline mode.
-
-**Dependencies:** PR #8
-
-**Complexity:** Medium
-
-**Phase:** 2
-
----
-
-### PR #12: start-new-chat-flow
-
-**Brief:** Build the "Start New Chat" flow that allows users to select another user from their contacts to begin a 1-on-1 conversation. Create a user selection screen that displays all available users from the `users` collection. Implement chat creation logic that checks if a chat already exists between two users, and if not, creates a new chat document in Firestore. Navigate to the new chat after creation.
-
-**Dependencies:** PR #6, PR #7
 
 **Complexity:** Medium
 
@@ -154,23 +171,11 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ## Phase 3: Group Chats & Presence
 
-### PR #13: group-chat-creation-flow
+### PR #11: group-chat-support
 
-**Brief:** Extend the "Start New Chat" flow to support group chat creation with 3+ users. Build a multi-select user picker interface that allows selecting multiple contacts. Implement group chat creation logic that creates a chat document with multiple members in the members array and sets isGroupChat to true. Add group chat naming functionality and display group member avatars in the conversation list.
+**Brief:** Extend chat functionality to support group conversations with 3+ users. Update the user selection screen from PR #9 to support multi-select mode for choosing multiple contacts. Implement group chat creation logic in ChatService that sets isGroupChat to true and supports multiple members in the members array. Add group chat naming functionality. Update ChatView UI to display sender names with each message in group conversations (instead of just sent/received styling). Update MessageService to properly handle sending to and receiving from multiple group members with real-time synchronization for all participants. Display group member avatars in the conversation list.
 
-**Dependencies:** PR #12
-
-**Complexity:** Medium
-
-**Phase:** 3
-
----
-
-### PR #14: group-chat-messaging
-
-**Brief:** Ensure messaging functionality works correctly for group chats with 3+ members. Update MessageService to handle sending messages to all group members and receiving messages from multiple senders. Update the Chat View UI to clearly distinguish between different senders in group conversations (display sender names with each message). Implement proper real-time synchronization for all group members.
-
-**Dependencies:** PR #13, PR #8
+**Dependencies:** PR #9 (chat creation)
 
 **Complexity:** Medium
 
@@ -178,9 +183,9 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-### PR #15: online-offline-presence-system
+### PR #12: online-offline-presence-system
 
-**Brief:** Integrate Firebase Realtime Database to implement online/offline presence indicators for users. Create a PresenceService that writes a user's online status when they open the app and uses Firebase's onDisconnect() hook to automatically set offline status when the app disconnects. Display presence indicators (green dot for online, gray for offline) next to user names in the conversation list and chat view.
+**Brief:** Integrate Firebase Realtime Database to implement online/offline presence indicators for users. Create a PresenceService that writes a user's online status when they open the app and uses Firebase's onDisconnect() hook to automatically set offline status when the app disconnects or crashes. Update presence on app lifecycle events (foreground, background, terminate). Display presence indicators (green dot for online, gray dot for offline) next to user names in the conversation list and chat view header. Handle presence updates in real-time across all users.
 
 **Dependencies:** PR #1, PR #6
 
@@ -190,11 +195,11 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-### PR #16: typing-indicators
+### PR #13: typing-indicators
 
-**Brief:** Implement "is typing..." indicators to show when other users are composing messages in a conversation. Use Firebase Realtime Database to broadcast typing status with automatic timeout. Display typing indicator in the chat view when one or more users are typing. Ensure typing status is cleared when messages are sent or after inactivity timeout. Handle multiple simultaneous typers in group chats.
+**Brief:** Implement "is typing..." indicators to show when other users are composing messages in a conversation. Use Firebase Realtime Database to broadcast typing status with automatic 3-second timeout. Display typing indicator in the chat view below the message list when one or more users are typing. Ensure typing status is automatically cleared when messages are sent or after inactivity timeout. Handle multiple simultaneous typers in group chats (e.g., "Alice and 2 others are typing...").
 
-**Dependencies:** PR #15
+**Dependencies:** PR #12 (presence system)
 
 **Complexity:** Medium
 
@@ -204,23 +209,11 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ## Phase 4: Polish & Notifications
 
-### PR #17: message-read-receipts
+### PR #14: message-read-receipts
 
-**Brief:** Implement read receipts to show when messages have been seen by recipients. Update message documents in Firestore with a readBy array when users view messages. Create logic to mark messages as read when the chat view is opened and messages are visible. Display "Read" or "Seen" indicators under sent messages in the UI. Handle read receipts for both 1-on-1 and group chats.
+**Brief:** Implement read receipts to show when messages have been seen by recipients. Update message documents in Firestore with a readBy array when users view messages in the chat view. Create logic to automatically mark messages as read when the chat view is opened and messages become visible on screen. Display "Read", "Delivered", or "Seen" indicators under sent messages in the UI with appropriate visual styling. Handle read receipts correctly for both 1-on-1 and group chats (showing individual read status per recipient in groups).
 
-**Dependencies:** PR #8
-
-**Complexity:** Medium
-
-**Phase:** 4
-
----
-
-### PR #18: push-notifications-setup
-
-**Brief:** Configure Apple Push Notification service (APNs) and Firebase Cloud Messaging (FCM) for the iOS app. Register the app with APNs to receive device tokens and upload them to Firebase. Configure push notification capabilities in Xcode and add the necessary entitlements. Create NotificationService to handle device token registration and notification permission requests. Test basic notification reception.
-
-**Dependencies:** PR #1
+**Dependencies:** PR #8 (messaging service)
 
 **Complexity:** Medium
 
@@ -228,11 +221,23 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-### PR #19: cloud-functions-for-notifications
+### PR #15: push-notifications-setup
 
-**Brief:** Write and deploy Firebase Cloud Functions that trigger when new messages are written to Firestore. The function should identify all recipients in a chat (excluding the sender), fetch their FCM device tokens, and send push notifications with the message content and sender information. Handle both 1-on-1 and group chat scenarios. Implement notification prioritization and ensure foreground notifications work correctly.
+**Brief:** Configure Apple Push Notification service (APNs) and Firebase Cloud Messaging (FCM) for the iOS app. Register the app with APNs to receive device tokens and upload them to Firebase. Configure push notification capabilities in Xcode, add necessary entitlements, and update provisioning profiles. Create NotificationService to handle device token registration, notification permission requests, and token refresh. Store device tokens in user documents in Firestore. Test basic notification reception from Firebase Console.
 
-**Dependencies:** PR #18, PR #8
+**Dependencies:** PR #1 (Firebase setup)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
+### PR #16: cloud-functions-and-notification-handling
+
+**Brief:** Write and deploy Firebase Cloud Functions that trigger when new messages are written to Firestore. Functions should identify all chat recipients (excluding sender), fetch their FCM device tokens, and send push notifications with message content and sender information. Implement notification handling on iOS to process received notifications in foreground, background, and terminated app states. Create deep linking logic to navigate users directly to the relevant chat when tapping a notification. Display foreground notifications as in-app banners. Implement notification badge count management and clear notifications when messages are read. Handle both 1-on-1 and group chat notification scenarios.
+
+**Dependencies:** PR #15 (push setup), PR #8 (messaging)
 
 **Complexity:** Complex
 
@@ -240,23 +245,11 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-### PR #20: notification-handling-and-deep-linking
+### PR #17: user-profile-editing
 
-**Brief:** Implement notification handling to properly process received push notifications when the app is in foreground, background, or terminated states. Create deep linking logic to navigate users directly to the relevant chat when they tap a notification. Display foreground notifications as in-app banners. Update notification badge counts and clear notifications when messages are read.
+**Brief:** Build a profile editing screen where users can update their display name and profile picture. Implement PHPicker integration to allow users to select photos from their device photo library. Upload profile photos to Firebase Storage with proper compression and store the download URL in the user's Firestore document. Add form validation for display name (character limits, empty checks). Implement real-time profile updates across all app screens (conversation list, chat view, settings). Add loading states during image upload and save operations.
 
-**Dependencies:** PR #19
-
-**Complexity:** Medium
-
-**Phase:** 4
-
----
-
-### PR #21: user-profile-editing
-
-**Brief:** Build a profile editing screen where users can update their display name and profile picture. Implement image picker integration to allow users to select photos from their device. Upload profile photos to Firebase Storage and store the download URL in the user's Firestore document. Add form validation for display name and implement real-time profile updates across all screens.
-
-**Dependencies:** PR #3, PR #4
+**Dependencies:** PR #3 (user profiles), PR #4 (navigation)
 
 **Complexity:** Medium
 
@@ -264,47 +257,11 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-### PR #22: contact-search-functionality
+### PR #18: final-polish-and-testing
 
-**Brief:** Add search functionality to the user selection screens (new chat and new group chat flows). Implement a search bar that filters the user list by display name or email in real-time as users type. Optimize search performance for large user lists and add debouncing to reduce unnecessary queries. Display search results with highlighting of matched terms.
+**Brief:** Complete all remaining polish, error handling, accessibility, and testing tasks. Polish the entire app UI with consistent styling, smooth animations, and iOS Human Interface Guidelines compliance. Implement comprehensive accessibility features (VoiceOver support, Dynamic Type, color contrast, accessible labels). Add haptic feedback for key interactions. Implement thorough error handling for network errors, Firebase errors, authentication failures, and permission denials with user-friendly error messages and retry mechanisms. Handle edge cases (deleted users, deleted chats, malformed data, concurrent modifications). Create comprehensive test coverage including unit tests for all services (AuthenticationService, MessageService, UserService, PresenceService, ChatService), UI tests for critical user flows (auth, messaging, chat creation), and integration tests for Firebase interactions. Test offline scenarios and edge conditions. Perform end-to-end testing of all 10 core MVP requirements. Document test results and fix all discovered bugs.
 
-**Dependencies:** PR #12
-
-**Complexity:** Simple
-
-**Phase:** 4
-
----
-
-### PR #23: ui-polish-and-accessibility
-
-**Brief:** Polish the entire app UI with consistent styling, animations, and transitions. Implement proper accessibility features including VoiceOver support, Dynamic Type, sufficient color contrast, and accessible labels. Add haptic feedback for key interactions. Refine animations for message sending, screen transitions, and loading states. Ensure the app follows iOS Human Interface Guidelines.
-
-**Dependencies:** PR #6, PR #7
-
-**Complexity:** Medium
-
-**Phase:** 4
-
----
-
-### PR #24: error-handling-and-edge-cases
-
-**Brief:** Implement comprehensive error handling throughout the app including network errors, Firebase errors, authentication errors, and permission denials. Add user-friendly error messages and retry mechanisms where appropriate. Handle edge cases such as deleted users, deleted chats, malformed data, and concurrent modifications. Add error logging for debugging and analytics.
-
-**Dependencies:** PR #2, PR #8, PR #15
-
-**Complexity:** Medium
-
-**Phase:** 4
-
----
-
-### PR #25: testing-and-qa
-
-**Brief:** Create comprehensive test coverage including unit tests for services (AuthenticationService, MessageService, UserService, PresenceService), UI tests for critical user flows (authentication, sending messages, creating chats), and integration tests for Firebase interactions. Test offline scenarios, error cases, and edge conditions. Perform end-to-end testing of all 10 core requirements. Document test results and fix any discovered bugs.
-
-**Dependencies:** All previous PRs
+**Dependencies:** All previous PRs (1-17)
 
 **Complexity:** Complex
 
@@ -314,11 +271,26 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ## Summary
 
+### Original Plan
 - **Total PRs:** 25
 - **Phase 1 (Foundation):** 4 PRs
 - **Phase 2 (1-on-1 Chat):** 8 PRs
 - **Phase 3 (Group Chats & Presence):** 4 PRs
 - **Phase 4 (Polish & Notifications):** 9 PRs
+
+### Revised Plan (After PR #8)
+- **Total PRs:** 18 (consolidated from 25)
+- **Phase 1 (Foundation):** 4 PRs - ✅ **COMPLETED** (PRs 1-4)
+- **Phase 2 (Core Chat):** 6 PRs - ✅ **5 COMPLETED** (PRs 5-8), 🎯 **2 TODO** (PRs 9-10)
+- **Phase 3 (Group Chats & Presence):** 3 PRs (PRs 11-13)
+- **Phase 4 (Polish & Notifications):** 5 PRs (PRs 14-18)
+
+### Why the Change?
+After completing PR #8, we realized the original order had us building display/messaging features before the ability to create chats. The revised plan:
+- **Prioritizes chat creation** (moved to PR #9)
+- **Consolidates related features** (e.g., optimistic UI + offline persistence)
+- **Reduces context switching** (10 focused PRs instead of 17 scattered ones)
+- **Maintains momentum** (each PR delivers complete, testable functionality)
 
 Each PR is designed to deliver a complete, testable piece of functionality that builds incrementally toward the full MVP as defined in the Product Requirements Document.
 
