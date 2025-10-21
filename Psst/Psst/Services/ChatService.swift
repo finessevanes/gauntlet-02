@@ -17,6 +17,8 @@ enum ChatError: LocalizedError {
     case notAuthenticated
     case cannotChatWithSelf
     case invalidUserID
+    case invalidGroupName
+    case insufficientMembers
     case firestoreError(Error)
     
     var errorDescription: String? {
@@ -27,6 +29,10 @@ enum ChatError: LocalizedError {
             return "Cannot create a chat with yourself"
         case .invalidUserID:
             return "Invalid user ID provided"
+        case .invalidGroupName:
+            return "Group name must be 1-50 characters"
+        case .insufficientMembers:
+            return "Groups require at least 3 members"
         case .firestoreError(let error):
             return "Firestore error: \(error.localizedDescription)"
         }
@@ -203,6 +209,97 @@ class ChatService {
             return newChatID
         } catch {
             print("❌ Error creating chat: \(error.localizedDescription)")
+            throw ChatError.firestoreError(error)
+        }
+    }
+    
+    // MARK: - Create Group Chat
+    
+    /// Creates a new group chat with 3+ members and a custom name
+    /// - Parameters:
+    ///   - memberUserIDs: Array of user IDs to include in the group (must be 3+)
+    ///   - groupName: Name for the group chat (1-50 characters)
+    /// - Returns: The ID of the created group chat
+    /// - Throws: ChatError if validation fails or Firestore operations fail
+    func createGroupChat(withMembers memberUserIDs: [String], groupName: String) async throws -> String {
+        // Validate current user is authenticated
+        guard let currentUserID = Auth.auth().currentUser?.uid else {
+            print("❌ Cannot create group chat: user not authenticated")
+            throw ChatError.notAuthenticated
+        }
+        
+        // Validate group name
+        let trimmedName = groupName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty, trimmedName.count <= 50 else {
+            print("❌ Cannot create group chat: invalid group name")
+            throw ChatError.invalidGroupName
+        }
+        
+        // Ensure current user is in members array
+        var allMembers = memberUserIDs
+        if !allMembers.contains(currentUserID) {
+            allMembers.append(currentUserID)
+        }
+        
+        // Validate minimum 3 total members (current user + 2 others)
+        guard allMembers.count >= 3 else {
+            print("❌ Cannot create group chat: need at least 3 total members (you + 2 others), got \(allMembers.count)")
+            throw ChatError.insufficientMembers
+        }
+        
+        // Check for duplicate group (same name case-insensitive + same members)
+        print("🔍 Checking for duplicate group with name '\(trimmedName)' and \(allMembers.count) members")
+        do {
+            let snapshot = try await db.collection("chats")
+                .whereField("members", arrayContains: currentUserID)
+                .whereField("isGroupChat", isEqualTo: true)
+                .getDocuments()
+            
+            let sortedMembers = allMembers.sorted()
+            
+            for document in snapshot.documents {
+                let data = document.data()
+                
+                // Check if group name matches (case-insensitive) and members match
+                if let existingGroupName = data["groupName"] as? String,
+                   existingGroupName.lowercased() == trimmedName.lowercased(),
+                   let existingMembers = data["members"] as? [String] {
+                    
+                    let sortedExistingMembers = existingMembers.sorted()
+                    
+                    // If same members and same name (case-insensitive), it's a duplicate
+                    if sortedMembers == sortedExistingMembers {
+                        print("✅ Found existing group '\(existingGroupName)' with matching members: \(document.documentID)")
+                        return document.documentID
+                    }
+                }
+            }
+        } catch {
+            print("⚠️ Error checking for duplicate groups: \(error.localizedDescription)")
+            // Continue with creation if check fails
+        }
+        
+        // Create new group chat
+        let newChatID = UUID().uuidString
+        print("➕ Creating new group chat '\(trimmedName)' with \(allMembers.count) members")
+        
+        let newChat: [String: Any] = [
+            "id": newChatID,
+            "members": allMembers,
+            "lastMessage": "",
+            "lastMessageTimestamp": FieldValue.serverTimestamp(),
+            "isGroupChat": true,
+            "groupName": trimmedName,
+            "createdAt": FieldValue.serverTimestamp(),
+            "updatedAt": FieldValue.serverTimestamp()
+        ]
+        
+        do {
+            try await db.collection("chats").document(newChatID).setData(newChat)
+            print("✅ Created new group chat: \(newChatID)")
+            return newChatID
+        } catch {
+            print("❌ Error creating group chat: \(error.localizedDescription)")
             throw ChatError.firestoreError(error)
         }
     }
