@@ -10,10 +10,17 @@ import SwiftUI
 
 /// Reusable row component displaying user information
 /// Shows user avatar (initials), display name, and email
+/// Supports multi-select mode with checkbox
 struct UserRow: View {
     // MARK: - Properties
     
     let user: User
+    
+    /// Whether to show checkbox (for group mode)
+    var showCheckbox: Bool = false
+    
+    /// Whether this user is selected (for group mode)
+    var isSelected: Bool = false
     
     // MARK: - Body
     
@@ -41,8 +48,16 @@ struct UserRow: View {
             }
             
             Spacer()
+            
+            // Checkbox for multi-select mode
+            if showCheckbox {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundColor(isSelected ? .blue : .gray)
+            }
         }
         .padding(.vertical, 8)
+        .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
     }
     
     // MARK: - Helper Methods

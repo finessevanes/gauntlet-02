@@ -52,8 +52,15 @@ class ChatListViewModel: ObservableObject {
         listener = chatService.observeUserChats(userID: userID) { [weak self] chats in
             DispatchQueue.main.async {
                 self?.isLoading = false
-                self?.chats = chats
-                print("✅ Chats updated: \(chats.count) chats loaded")
+                
+                // Filter out ALL chats with no messages (only show after first message sent)
+                let filteredChats = chats.filter { chat in
+                    // Only show chats (1-on-1 or group) if they have at least one message
+                    return !chat.lastMessage.isEmpty
+                }
+                
+                self?.chats = filteredChats
+                print("✅ Chats updated: \(filteredChats.count) chats loaded (\(chats.count - filteredChats.count) empty groups filtered)")
             }
         }
     }

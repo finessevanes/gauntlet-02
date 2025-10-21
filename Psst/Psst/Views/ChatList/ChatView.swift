@@ -36,6 +36,9 @@ struct ChatView: View {
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
+    /// Cache for sender names (userID -> displayName) for group chats
+    @State private var senderNames: [String: String] = [:]
+    
     /// Count of queued messages for this chat
     @State private var queueCount: Int = 0
     
@@ -56,6 +59,8 @@ struct ChatView: View {
     
     /// Display names of users currently typing
     @State private var typingUserNames: [String] = []
+    /// Chat service for fetching user names
+    private let chatService = ChatService()
     
     /// Firestore listener registration for cleanup (wrapped in State for mutability)
     @State private var messageListener: ListenerRegistration?
@@ -88,7 +93,7 @@ struct ChatView: View {
                 typingIndicatorService: typingIndicatorService
             )
         }
-        .navigationTitle("Chat")
+        .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             // Show presence indicator in header for 1-on-1 chats
@@ -98,6 +103,17 @@ struct ChatView: View {
                         PresenceIndicator(isOnline: isContactOnline)
                         Text("Chat")
                             .font(.headline)
+                    }
+                }
+            } else {
+                // Show member count for group chats
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 0) {
+                        Text(chat.groupName ?? "Group Chat")
+                            .font(.headline)
+                        Text("\(chat.members.count) members")
+                            .font(.caption2)
+                            .foregroundColor(.secondary)
                     }
                 }
             }
@@ -117,6 +133,12 @@ struct ChatView: View {
             attachPresenceListener()
             // Attach typing listener
             attachTypingListener()
+            // Prefetch sender names for group chats
+            if chat.isGroupChat {
+                Task {
+                    await prefetchSenderNames()
+                }
+            }
         }
         .onDisappear {
             // Stop listening to prevent memory leaks
@@ -188,7 +210,8 @@ struct ChatView: View {
                         VStack(alignment: message.isFromCurrentUser(currentUserID: currentUserID) ? .trailing : .leading, spacing: 4) {
                             MessageRow(
                                 message: message,
-                                isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID)
+                                isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID),
+                                senderName: getSenderName(for: message)
                             )
                             
                             // Show status indicator for sent messages only
@@ -419,6 +442,58 @@ struct ChatView: View {
             }
             await MainActor.run {
                 self.typingUserNames = names
+    /// Get sender name for a message (for group chats only)
+    /// - Parameter message: The message to get sender name for
+    /// - Returns: Sender name or nil if not needed (1-on-1 chat or current user)
+    private func getSenderName(for message: Message) -> String? {
+        // Only show sender names in group chats
+        guard chat.isGroupChat else { return nil }
+        
+        // Don't show sender name for current user's messages
+        guard !message.isFromCurrentUser(currentUserID: currentUserID) else { return nil }
+        
+        // Check cache first
+        if let cachedName = senderNames[message.senderID] {
+            return cachedName
+        }
+        
+        // If not cached, fetch asynchronously
+        Task {
+            await fetchSenderName(for: message.senderID)
+        }
+        
+        // Return placeholder while fetching
+        return "..."
+    }
+    
+    /// Fetch sender name for a specific user ID and cache it
+    /// - Parameter senderID: The user ID to fetch name for
+    private func fetchSenderName(for senderID: String) async {
+        // Don't fetch if already cached
+        guard senderNames[senderID] == nil else { return }
+        
+        do {
+            let name = try await chatService.fetchUserName(userID: senderID)
+            await MainActor.run {
+                senderNames[senderID] = name
+            }
+        } catch {
+            print("⚠️ Failed to fetch sender name for \(senderID): \(error.localizedDescription)")
+            await MainActor.run {
+                senderNames[senderID] = "Unknown User"
+            }
+        }
+    }
+    
+    /// Prefetch sender names for all unique senders in the chat
+    private func prefetchSenderNames() async {
+        // Get unique sender IDs from messages
+        let uniqueSenderIDs = Set(messages.map { $0.senderID })
+        
+        // Fetch names for senders not yet cached
+        for senderID in uniqueSenderIDs {
+            if senderNames[senderID] == nil {
+                await fetchSenderName(for: senderID)
             }
         }
     }

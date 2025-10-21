@@ -49,13 +49,10 @@ struct ChatListView: View {
             }
             .sheet(isPresented: $showingNewChatView) {
                 UserSelectionView(onChatCreated: { chat in
-                    // Store the chat and dismiss sheet
+                    // Store the chat and trigger immediate navigation
                     selectedChat = chat
+                    navigateToChat = true
                     showingNewChatView = false
-                    // Trigger navigation after sheet dismissal
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        navigateToChat = true
-                    }
                 })
             }
             .background(
