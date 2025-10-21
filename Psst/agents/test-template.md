@@ -4,33 +4,47 @@ Reference this when creating tests for features. See also `agents/shared-standar
 
 ---
 
+## Testing Framework Strategy
+
+This project uses a **hybrid testing approach**:
+
+### Unit Tests → Swift Testing Framework ⭐ NEW
+- **Path**: `PsstTests/{Feature}Tests.swift`
+- **Framework**: Swift Testing (modern)
+- **Syntax**: `@Test("Display Name")` with `#expect`
+- **Benefits**: Readable test names in navigator, modern async/await support
+- **Use for**: Service layer, business logic, data models, error handling
+
+### UI Tests → XCTest Framework
+- **Path**: `PsstUITests/{Feature}UITests.swift`
+- **Framework**: XCTest (traditional)
+- **Syntax**: `XCTestCase` with `func test...()`
+- **Benefits**: Full `XCUIApplication` support, performance metrics
+- **Use for**: User flows, navigation, UI interactions, app lifecycle
+
+---
+
 ## Test Types Overview
 
-### 1. Unit Tests (XCTest)
+### 1. Unit Tests (Swift Testing) ⭐ RECOMMENDED
+
 **Path**: `PsstTests/{Feature}Tests.swift`
 
 **Purpose**: Test service layer logic, validation, Firebase operations
 
 **Pattern**:
 ```swift
-import XCTest
+import Testing
 @testable import Psst
 
-class MessageServiceTests: XCTestCase {
-    var service: MessageService!
+@Suite("Message Service Tests")
+struct MessageServiceTests {
     
-    override func setUp() {
-        super.setUp()
-        service = MessageService()
-    }
-    
-    override func tearDown() {
-        service = nil
-        super.tearDown()
-    }
-    
-    func testSendMessage() async throws {
+    /// Verifies that messages are sent successfully to Firebase
+    @Test("Send Message With Valid Data Creates Message")
+    func sendMessageWithValidDataCreatesMessage() async throws {
         // Given
+        let service = MessageService()
         let testMessage = "Hello World"
         let testChatID = "test-chat"
         
@@ -41,24 +55,33 @@ class MessageServiceTests: XCTestCase {
         )
         
         // Then
-        XCTAssertNotNil(messageID)
+        #expect(messageID != nil)
+        
         // Verify message saved to Firebase
         let messages = try await service.fetchMessages(chatID: testChatID)
-        XCTAssertTrue(messages.contains { $0.id == messageID })
+        #expect(messages.contains { $0.id == messageID })
     }
     
-    func testSendEmptyMessage() async throws {
-        // Empty message should throw error
-        do {
-            _ = try await service.sendMessage(chatID: "test", text: "")
-            XCTFail("Should have thrown error")
-        } catch {
-            // Expected error
-            XCTAssertTrue(true)
+    /// Verifies that empty messages throw validation error
+    @Test("Send Empty Message Throws Validation Error")
+    func sendEmptyMessageThrowsValidationError() async throws {
+        // Given
+        let service = MessageService()
+        
+        // When/Then
+        await #expect(throws: ValidationError.self) {
+            try await service.sendMessage(chatID: "test", text: "")
         }
     }
 }
 ```
+
+**Key Points:**
+- Use `@Suite("Suite Name")` for test grouping
+- Use `@Test("Display Name")` for readable test names in navigator
+- Use `#expect` instead of `XCTAssert`
+- No `setUp/tearDown` - use instance properties or init if needed
+- Tests show as "Send Message With Valid Data Creates Message" in Xcode
 
 ---
 
@@ -120,95 +143,103 @@ class ChatViewUITests: XCTestCase {
 
 ---
 
-### 3. Service Tests
+### 3. Service Tests (Swift Testing)
 **Path**: `PsstTests/Services/{ServiceName}Tests.swift`
 
 **Purpose**: Test Firebase-specific operations, async behavior, error handling
 
 **Pattern**:
 ```swift
-import XCTest
+import Testing
 @testable import Psst
 
-class MessageServiceFirebaseTests: XCTestCase {
-    var service: MessageService!
+@Suite("Message Service Firebase Tests")
+struct MessageServiceFirebaseTests {
     
-    override func setUp() {
-        super.setUp()
-        service = MessageService()
-        // Configure Firebase test environment
-    }
-    
-    func testFirestoreWrite() async throws {
+    /// Verifies that messages are written to Firestore successfully
+    @Test("Firestore Write Creates Document")
+    func firestoreWriteCreatesDocument() async throws {
+        // Given
+        let service = MessageService()
         let chatID = "test-chat-\(UUID().uuidString)"
         let text = "Test message"
         
+        // When
         let messageID = try await service.sendMessage(chatID: chatID, text: text)
         
-        // Verify written to Firestore
+        // Then
+        #expect(messageID != nil)
         // Query Firestore directly to confirm
-        XCTAssertNotNil(messageID)
     }
     
-    func testOfflineMessageQueue() async throws {
-        // Simulate offline mode
-        // Send message
-        // Verify queued locally
-        // Simulate reconnection
-        // Verify message sent
+    /// Verifies that offline messages are queued and sent when online
+    @Test("Offline Message Queue Syncs When Online")
+    func offlineMessageQueueSyncsWhenOnline() async throws {
+        // Given: Offline mode
+        // When: Send message
+        // Then: Verify queued locally
+        // When: Reconnection
+        // Then: Verify message sent
     }
 }
 ```
 
 ---
 
-## Multi-Device Testing
+## Multi-Device Testing (Swift Testing)
 
 Use this pattern for testing real-time sync (from `agents/shared-standards.md`):
 
 ```swift
-func testMessageSyncAcrossDevices() async throws {
-    // Simulate 2 devices
-    let device1Service = MessageService()
-    let device2Service = MessageService()
+@Suite("Multi-Device Sync Tests")
+struct MultiDeviceSyncTests {
     
-    let chatID = "sync-test-\(UUID().uuidString)"
+    /// Verifies that messages sync across devices within 100ms
+    @Test("Message Sync Across Devices Completes Within 100ms")
+    func messageSyncAcrossDevicesCompletesWithin100ms() async throws {
+        // Given: 2 devices
+        let device1Service = MessageService()
+        let device2Service = MessageService()
+        let chatID = "sync-test-\(UUID().uuidString)"
+        
+        // When: Device 1 sends message
+        let messageID = try await device1Service.sendMessage(
+            chatID: chatID,
+            text: "Hello from device 1"
+        )
+        
+        // Wait for Firebase sync (should be <100ms)
+        try await Task.sleep(nanoseconds: 100_000_000) // 100ms
+        
+        // Then: Device 2 receives the message
+        let messages = try await device2Service.fetchMessages(chatID: chatID)
+        
+        #expect(messages.contains { $0.id == messageID })
+        #expect(messages.first?.text == "Hello from device 1")
+    }
     
-    // Device 1 sends message
-    let messageID = try await device1Service.sendMessage(
-        chatID: chatID,
-        text: "Hello from device 1"
-    )
-    
-    // Wait for Firebase sync (should be <100ms)
-    try await Task.sleep(nanoseconds: 100_000_000) // 100ms
-    
-    // Device 2 fetches messages
-    let messages = try await device2Service.fetchMessages(chatID: chatID)
-    
-    // Assert device 2 received the message
-    XCTAssertTrue(messages.contains { $0.id == messageID })
-    XCTAssertEqual(messages.first?.text, "Hello from device 1")
-}
-
-func testConcurrentMessages() async throws {
-    let device1 = MessageService()
-    let device2 = MessageService()
-    let chatID = "concurrent-test-\(UUID().uuidString)"
-    
-    // Both devices send simultaneously
-    async let msg1 = device1.sendMessage(chatID: chatID, text: "From device 1")
-    async let msg2 = device2.sendMessage(chatID: chatID, text: "From device 2")
-    
-    let (id1, id2) = try await (msg1, msg2)
-    
-    // Both messages should succeed
-    XCTAssertNotNil(id1)
-    XCTAssertNotNil(id2)
-    
-    // Both should be in chat
-    let messages = try await device1.fetchMessages(chatID: chatID)
-    XCTAssertEqual(messages.count, 2)
+    /// Verifies that concurrent messages from multiple devices succeed
+    @Test("Concurrent Messages From Multiple Devices Succeed")
+    func concurrentMessagesFromMultipleDevicesSucceed() async throws {
+        // Given: 2 devices
+        let device1 = MessageService()
+        let device2 = MessageService()
+        let chatID = "concurrent-test-\(UUID().uuidString)"
+        
+        // When: Both devices send simultaneously
+        async let msg1 = device1.sendMessage(chatID: chatID, text: "From device 1")
+        async let msg2 = device2.sendMessage(chatID: chatID, text: "From device 2")
+        
+        let (id1, id2) = try await (msg1, msg2)
+        
+        // Then: Both messages should succeed
+        #expect(id1 != nil)
+        #expect(id2 != nil)
+        
+        // And: Both should be in chat
+        let messages = try await device1.fetchMessages(chatID: chatID)
+        #expect(messages.count == 2)
+    }
 }
 ```
 
@@ -300,26 +331,37 @@ xcodebuild test -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15
 
 ## Common Test Patterns
 
-### Testing Async Operations
+### Swift Testing Patterns
+
+#### Testing Async Operations
 ```swift
-func testAsyncOperation() async throws {
+@Test("Async Operation Returns Valid Result")
+func asyncOperationReturnsValidResult() async throws {
     let result = try await service.asyncMethod()
-    XCTAssertNotNil(result)
+    #expect(result != nil)
 }
 ```
 
-### Testing Errors
+#### Testing Errors
 ```swift
-func testThrowsError() async throws {
-    do {
-        _ = try await service.failingMethod()
-        XCTFail("Should have thrown error")
-    } catch {
-        // Expected error
-        XCTAssertTrue(error is ExpectedErrorType)
+@Test("Failing Method Throws Expected Error")
+func failingMethodThrowsExpectedError() async throws {
+    await #expect(throws: ExpectedErrorType.self) {
+        try await service.failingMethod()
     }
 }
 ```
+
+#### Testing Boolean Conditions
+```swift
+@Test("User Is Authenticated After Login")
+func userIsAuthenticatedAfterLogin() async throws {
+    try await service.login(email: "test@example.com", password: "password")
+    #expect(service.isAuthenticated == true)
+}
+```
+
+### XCTest Patterns (for UI Tests)
 
 ### Testing UI Existence
 ```swift
@@ -365,12 +407,18 @@ override func tearDown() {
 
 ## Best Practices
 
+### Framework Selection
+- ✅ **Use Swift Testing** for all unit/service tests (readable names, modern syntax)
+- ✅ **Use XCTest** for all UI tests (XCUIApplication support)
+- ✅ Use `@Test("Display Name")` for unit tests (shows in navigator)
+- ✅ Use `#expect` for Swift Testing, `XCTAssert` for XCTest
+
+### General Best Practices
 - ✅ Tests should be independent (don't rely on order)
 - ✅ Clean up test data after each test
-- ✅ Use meaningful test names (testUserCanSendMessage)
+- ✅ Use meaningful test names
 - ✅ Follow Given-When-Then pattern
 - ✅ Test one thing per test function
-- ✅ Use XCTAssert for clear failure messages
 - ✅ Mock external dependencies when appropriate
 - ❌ Don't test implementation details
 - ❌ Don't write flaky tests that sometimes fail
@@ -390,3 +438,4 @@ Automated tests focus on:
 - Performance targets
 
 See `agents/shared-standards.md` for more patterns and requirements.
+

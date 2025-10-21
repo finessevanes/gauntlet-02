@@ -164,6 +164,22 @@ Define BEFORE implementation. Use checkboxes.
 
 Reference testing standards from `Psst/agents/shared-standards.md`.
 
+### Testing Framework Strategy
+
+This project uses a **hybrid approach** for testing:
+
+**Unit Tests (Swift Testing Framework)**
+- Use `@Test("Display Name")` syntax for readable test names
+- Tests appear with custom names in test navigator (e.g., "Sign Up With Valid Credentials Creates User")
+- Use `#expect` instead of `XCTAssert`
+- Best for service layer, business logic, data models
+
+**UI Tests (XCTest Framework)**
+- Use traditional `XCTestCase` with function-based naming
+- Required for `XCUIApplication` integration and UI automation
+- Use `XCTAssert` for assertions
+- Best for user flows, navigation, UI interactions
+
 - **Happy Path**
   - [ ] User can sign up with valid email/password
   - [ ] User can sign up with Google
@@ -195,12 +211,14 @@ Reference testing standards from `Psst/agents/shared-standards.md`.
 ## 13. Definition of Done
 
 See standards in `Psst/agents/shared-standards.md`:
-- [ ] AuthenticationService implemented + unit tests (XCTest)
+- [ ] AuthenticationService implemented + unit tests (Swift Testing)
 - [ ] SwiftUI auth views with all states (loading, error, success)
 - [ ] Authentication state persistence verified
 - [ ] All acceptance gates pass
-- [ ] UI tests for auth flows (XCUITest)
+- [ ] UI tests for auth flows (XCTest/XCUITest)
 - [ ] Error handling tested
+- [ ] Unit tests use `@Test("Display Name")` for readable test names
+- [ ] UI tests use descriptive function names
 - [ ] Docs updated
 
 ---

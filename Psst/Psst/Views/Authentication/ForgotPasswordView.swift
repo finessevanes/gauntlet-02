@@ -61,6 +61,7 @@ struct ForgotPasswordView: View {
                                 .autocapitalization(.none)
                                 .keyboardType(.emailAddress)
                                 .disabled(viewModel.isLoading)
+                                .accessibilityIdentifier("forgotPasswordEmailField")
                         }
                         
                         // Send Reset Link Button
@@ -86,6 +87,7 @@ struct ForgotPasswordView: View {
                         }
                         .disabled(viewModel.isLoading || email.isEmpty)
                         .opacity((viewModel.isLoading || email.isEmpty) ? 0.6 : 1.0)
+                        .accessibilityIdentifier("Send Reset Link")
                     }
                     .padding(.horizontal, 24)
                     
@@ -97,6 +99,7 @@ struct ForgotPasswordView: View {
                     .foregroundColor(.blue)
                     .disabled(viewModel.isLoading)
                     .padding(.top, 8)
+                    .accessibilityIdentifier("Back to Sign In")
                     
                     Spacer()
                 }
@@ -153,6 +156,7 @@ struct ForgotPasswordView: View {
                             .foregroundColor(.secondary)
                     }
                     .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("xmark")
                 }
             }
         }

@@ -62,6 +62,7 @@ struct LoginView: View {
                                     .autocapitalization(.none)
                                     .keyboardType(.emailAddress)
                                     .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("loginEmailField")
                             }
                             
                             // Password Field
@@ -74,6 +75,7 @@ struct LoginView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .textContentType(.password)
                                     .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("loginPasswordField")
                             }
                             
                             // Forgot Password Link
@@ -85,6 +87,7 @@ struct LoginView: View {
                                 .font(.footnote)
                                 .foregroundColor(.blue)
                                 .disabled(viewModel.isLoading)
+                                .accessibilityIdentifier("Forgot Password?")
                             }
                             
                             // Sign In Button
@@ -110,6 +113,7 @@ struct LoginView: View {
                             }
                             .disabled(viewModel.isLoading || email.isEmpty || password.isEmpty)
                             .opacity((viewModel.isLoading || email.isEmpty || password.isEmpty) ? 0.6 : 1.0)
+                            .accessibilityIdentifier("Sign In")
                         }
                         .padding(.horizontal, 24)
                         
@@ -157,6 +161,7 @@ struct LoginView: View {
                         .disabled(viewModel.isLoading)
                         .opacity(viewModel.isLoading ? 0.6 : 1.0)
                         .padding(.horizontal, 24)
+                        .accessibilityIdentifier("Sign in with Google")
                         
                         // Divider
                         HStack {
@@ -192,6 +197,7 @@ struct LoginView: View {
                         .disabled(viewModel.isLoading)
                         .opacity(viewModel.isLoading ? 0.6 : 1.0)
                         .padding(.horizontal, 24)
+                        .accessibilityIdentifier("Sign up with Google")
                         
                         // Email Sign Up Link
                         HStack {
@@ -204,6 +210,7 @@ struct LoginView: View {
                             .foregroundColor(.blue)
                             .fontWeight(.semibold)
                             .disabled(viewModel.isLoading)
+                            .accessibilityIdentifier("Email")
                         }
                         .font(.footnote)
                         .padding(.top, 16)

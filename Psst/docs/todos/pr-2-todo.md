@@ -112,17 +112,36 @@ Reference requirements from `Psst/agents/shared-standards.md`.
 
 Follow patterns from `Psst/agents/shared-standards.md` and `Psst/agents/test-template.md`.
 
-- [x] Unit Tests (XCTest)
+### Testing Framework Strategy
+
+**Unit Tests → Swift Testing Framework**
+- Use `@Test("Display Name")` syntax for readable test names
+- Use `#expect` for assertions instead of `XCTAssert`
+- Tests appear with custom display names in test navigator
+- Example: `@Test("Sign Up With Valid Credentials Creates User")`
+
+**UI Tests → XCTest Framework**
+- Use traditional `XCTestCase` with `XCUIApplication`
+- Use descriptive function names (e.g., `testLoginView_DisplaysCorrectly()`)
+- Use `XCTAssert` for assertions
+- Required for UI automation and lifecycle management
+
+### Test Checklist
+
+- [x] Unit Tests (Swift Testing)
   - Path: `PsstTests/AuthenticationServiceTests.swift`
   - Test Gate: Service logic validated, edge cases covered
+  - Format: Uses `@Test("Display Name")` syntax
   
-- [x] UI Tests (XCUITest)
+- [x] UI Tests (XCTest)
   - Path: `PsstUITests/AuthenticationUITests.swift`
   - Test Gate: User flows succeed, navigation works
+  - Format: Uses `XCTestCase` with descriptive function names
   
-- [x] Service Tests
-  - Path: `PsstTests/Services/AuthenticationServiceTests.swift`
+- [x] Service Tests (Swift Testing)
+  - Path: `PsstTests/AuthenticationServiceTests.swift`
   - Test Gate: Firebase operations tested
+  - Format: Uses `@Test("Display Name")` syntax
   
 - [ ] Google Sign-In Tests
   - Test Gate: Google auth flow tested (requires SDK to be added)

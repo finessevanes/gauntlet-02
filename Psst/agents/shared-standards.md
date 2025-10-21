@@ -58,20 +58,42 @@ Every feature involving messaging MUST address:
 
 ## Testing Standards
 
+### Testing Framework Strategy
+
+This project uses a **hybrid testing approach**:
+
+**Unit/Service Tests → Swift Testing Framework ⭐ REQUIRED**
+- Modern `@Test("Display Name")` syntax with custom names
+- Tests appear with readable names in test navigator
+- Use `#expect` for assertions
+- Best for service layer, business logic, data models
+
+**UI Tests → XCTest Framework**
+- Traditional `XCTestCase` with `XCUIApplication`
+- Descriptive function names (e.g., `testLoginView_DisplaysCorrectly()`)
+- Use `XCTAssert` for assertions
+- Required for UI automation and app lifecycle
+
 ### Test Types Required
 
-**1. Unit Tests (XCTest)** — Mandatory for all features
+**1. Unit Tests (Swift Testing)** — Mandatory for all features
 - Path: `PsstTests/{Feature}Tests.swift`
+- Framework: Swift Testing
+- Pattern: `@Test("Display Name")` with `#expect`
 - Tests: Service method behavior, validation, Firebase operations
-- Example: `PsstTests/MessageServiceTests.swift`
+- Example: `PsstTests/AuthenticationServiceTests.swift`
 
-**2. UI Tests (XCUITest)** — Mandatory for user-facing features
+**2. UI Tests (XCTest)** — Mandatory for user-facing features
 - Path: `PsstUITests/{Feature}UITests.swift`
+- Framework: XCTest
+- Pattern: `class XCTestCase` with `func test...()`
 - Tests: User interactions, navigation, state changes
-- Example: `PsstUITests/ChatViewUITests.swift`
+- Example: `PsstUITests/AuthenticationUITests.swift`
 
-**3. Service Tests** — If you created/modified service methods
+**3. Service Tests (Swift Testing)** — If you created/modified service methods
 - Path: `PsstTests/Services/{ServiceName}Tests.swift`
+- Framework: Swift Testing
+- Pattern: `@Test("Display Name")` with `#expect`
 - Tests: Firebase interactions, async operations, error handling
 
 ### Test Coverage Requirements
@@ -82,22 +104,27 @@ Every feature involving messaging MUST address:
 - ✅ Real-time sync (<100ms)
 - ✅ Offline persistence
 
-### Multi-Device Testing Pattern
+### Multi-Device Testing Pattern (Swift Testing)
 ```swift
 // Automated test simulating multiple devices
-func testMessageSyncAcrossDevices() async throws {
+@Test("Message Sync Across Devices Completes Within 100ms")
+func messageSyncAcrossDevicesCompletesWithin100ms() async throws {
+    // Given: Two devices
     let device1Service = MessageService()
     let device2Service = MessageService()
     
+    // When: Device 1 sends message
     let messageID = try await device1Service.sendMessage(
         chatID: "test-chat",
         text: "Hello from device 1"
     )
     
+    // Wait for Firebase sync (should be <100ms)
     try await Task.sleep(nanoseconds: 100_000_000) // 100ms
     
+    // Then: Device 2 receives the message
     let messages = try await device2Service.fetchMessages(chatID: "test-chat")
-    XCTAssertTrue(messages.contains { $0.id == messageID })
+    #expect(messages.contains { $0.id == messageID })
 }
 ```
 

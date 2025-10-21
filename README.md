@@ -116,9 +116,35 @@ gauntlet-02/
 
 ## Testing
 
+### Test Framework Strategy
+
+This project uses a **hybrid testing approach** combining modern and traditional frameworks:
+
+**Unit Tests → Swift Testing Framework**
+- Modern `@Test` syntax with custom display names
+- Tests appear with readable names in test navigator (e.g., "Sign Up With Valid Credentials Creates User")
+- Uses `#expect` for assertions
+- Located in `PsstTests/`
+
+**UI Tests → XCTest Framework**
+- Traditional `XCTestCase` with `XCUIApplication`
+- Function-based naming (e.g., `testLoginView_DisplaysCorrectly()`)
+- Uses `XCTAssert` for assertions
+- Located in `PsstUITests/`
+
+### Why Different Frameworks?
+
+- **Swift Testing** provides better readability and modern syntax for unit tests
+- **XCTest** remains the industry standard for UI tests due to `XCUIApplication` lifecycle requirements
+
+### Running Tests
+
 Run tests using Xcode:
-- **Unit Tests**: Cmd+U
-- **UI Tests**: Product → Test
+- **All Tests**: Cmd+U
+- **Specific Test**: Click diamond icon next to test name
+- **Performance Tests**: Included in test suite
+
+See `Psst/agents/test-template.md` for detailed testing patterns.
 
 ## License
 

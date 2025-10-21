@@ -8,10 +8,9 @@
 import Testing
 @testable import Psst
 
+/// General test suite for Psst app
+/// Add new test suites to this target as needed
+@Suite("Psst Tests")
 struct PsstTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-    }
-
+    // Test suites will be added here as features are developed
 }

@@ -66,12 +66,13 @@ struct SignUpView: View {
                                     .font(.subheadline)
                                     .fontWeight(.medium)
                                 
-                                TextField("Enter your email", text: $email)
-                                    .textFieldStyle(.roundedBorder)
-                                    .textContentType(.emailAddress)
-                                    .autocapitalization(.none)
-                                    .keyboardType(.emailAddress)
-                                    .disabled(viewModel.isLoading)
+                            TextField("Enter your email", text: $email)
+                                .textFieldStyle(.roundedBorder)
+                                .textContentType(.emailAddress)
+                                .autocapitalization(.none)
+                                .keyboardType(.emailAddress)
+                                .disabled(viewModel.isLoading)
+                                .accessibilityIdentifier("signUpEmailField")
                             }
                             
                             // Password Field
@@ -84,6 +85,7 @@ struct SignUpView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .textContentType(.newPassword)
                                     .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpPasswordField")
                                 
                                 Text("Password must be at least 6 characters")
                                     .font(.caption)
@@ -100,6 +102,7 @@ struct SignUpView: View {
                                     .textFieldStyle(.roundedBorder)
                                     .textContentType(.newPassword)
                                     .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpConfirmPasswordField")
                                 
                                 if !confirmPassword.isEmpty && !passwordsMatch {
                                     Text("Passwords do not match")
@@ -131,6 +134,7 @@ struct SignUpView: View {
                             }
                             .disabled(viewModel.isLoading || !isFormValid)
                             .opacity((viewModel.isLoading || !isFormValid) ? 0.6 : 1.0)
+                            .accessibilityIdentifier("Sign Up")
                         }
                         .padding(.horizontal, 24)
                         
@@ -178,6 +182,7 @@ struct SignUpView: View {
                         .disabled(viewModel.isLoading)
                         .opacity(viewModel.isLoading ? 0.6 : 1.0)
                         .padding(.horizontal, 24)
+                        .accessibilityIdentifier("Sign up with Google")
                         
                         // Sign In Link
                         HStack {
@@ -190,6 +195,7 @@ struct SignUpView: View {
                             .foregroundColor(.blue)
                             .fontWeight(.semibold)
                             .disabled(viewModel.isLoading)
+                            .accessibilityIdentifier("Sign In")
                         }
                         .font(.footnote)
                         .padding(.top, 16)
@@ -228,6 +234,7 @@ struct SignUpView: View {
                             .foregroundColor(.secondary)
                     }
                     .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("xmark")
                 }
             }
             .onChange(of: viewModel.currentUser) { newUser in
