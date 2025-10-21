@@ -3,7 +3,6 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #4
-//  Updated by Caleb (Coder Agent) - PR #8: Added temporary test chat button
 //  Placeholder for conversation list (to be implemented in Phase 2)
 //
 
