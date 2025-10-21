@@ -3,6 +3,7 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #6
+//  Updated by Caleb (Coder Agent) - PR #12: Added presence indicators
 //  Individual chat preview row component
 //
 
@@ -10,7 +11,7 @@ import SwiftUI
 import FirebaseAuth
 
 /// Individual chat row displaying preview information
-/// Shows avatar, name, last message, and timestamp
+/// Shows avatar, name, last message, timestamp, and presence indicator
 struct ChatRowView: View {
     // MARK: - Properties
     
@@ -18,6 +19,10 @@ struct ChatRowView: View {
     
     @State private var displayName: String = ""
     @State private var isLoadingName = true
+    @State private var isContactOnline: Bool = false
+    @State private var otherUserID: String?
+    
+    @EnvironmentObject private var presenceService: PresenceService
     
     private let chatService = ChatService()
     
@@ -38,8 +43,13 @@ struct ChatRowView: View {
             
             // Chat info
             VStack(alignment: .leading, spacing: 4) {
-                // Name
+                // Name with presence indicator
                 HStack {
+                    // Presence indicator (only for 1-on-1 chats)
+                    if !chat.isGroupChat {
+                        PresenceIndicator(isOnline: isContactOnline)
+                    }
+                    
                     if isLoadingName {
                         Text("Loading...")
                             .font(.headline)
@@ -68,6 +78,14 @@ struct ChatRowView: View {
         .padding(.vertical, 8)
         .task {
             await loadDisplayName()
+        }
+        .onAppear {
+            // Attach presence listener for 1-on-1 chats
+            attachPresenceListener()
+        }
+        .onDisappear {
+            // Detach presence listener to prevent memory leaks
+            detachPresenceListener()
         }
     }
     
@@ -103,11 +121,44 @@ struct ChatRowView: View {
             let name = try await chatService.fetchUserName(userID: otherUserID)
             displayName = name
             isLoadingName = false
+            
+            // Store otherUserID for presence listener
+            self.otherUserID = otherUserID
         } catch {
             print("❌ Error loading display name: \(error.localizedDescription)")
             displayName = "Unknown User"
             isLoadingName = false
         }
+    }
+    
+    /// Attach presence listener for the contact in this chat
+    private func attachPresenceListener() {
+        // Only attach for 1-on-1 chats
+        guard !chat.isGroupChat else { return }
+        
+        // Wait for otherUserID to be set (loadDisplayName runs asynchronously)
+        // Listener will be attached when otherUserID is available
+        Task {
+            // Poll until otherUserID is set (simple approach for async coordination)
+            while otherUserID == nil {
+                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            }
+            
+            guard let contactID = otherUserID else { return }
+            
+            // Attach presence listener
+            _ = presenceService.observePresence(userID: contactID) { isOnline in
+                DispatchQueue.main.async {
+                    self.isContactOnline = isOnline
+                }
+            }
+        }
+    }
+    
+    /// Detach presence listener to prevent memory leaks
+    private func detachPresenceListener() {
+        guard let contactID = otherUserID else { return }
+        presenceService.stopObserving(userID: contactID)
     }
 }
 

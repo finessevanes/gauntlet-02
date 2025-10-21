@@ -2,8 +2,6 @@
 //  ChatView.swift
 //  Psst
 //
-//  Created by Caleb (Coder Agent) - PR #7
-//  Updated by Caleb (Coder Agent) - PR #8: Real-time messaging integration
 //  Updated by Caleb (Coder Agent) - PR #10: Optimistic UI and offline persistence
 //  Full chat view with message list, input bar, auto-scroll, and offline support
 //
@@ -13,7 +11,7 @@ import FirebaseAuth
 import FirebaseFirestore
 
 /// Main chat view displaying messages in a conversation
-/// Shows message list with sent/received styling, message input bar, offline support, and optimistic UI
+/// Shows message list with sent/received styling, presence indicator, and message input bar, offline support, and optimistic UI
 struct ChatView: View {
     // MARK: - Properties
     
@@ -29,6 +27,12 @@ struct ChatView: View {
     /// Current user ID from Firebase Auth
     @State private var currentUserID: String = ""
     
+    /// Contact's online status (for 1-on-1 chats)
+    @State private var isContactOnline: Bool = false
+    
+    /// Other user's ID (for presence tracking)
+    @State private var otherUserID: String?
+    
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
@@ -40,6 +44,9 @@ struct ChatView: View {
     
     /// Message service for real-time messaging
     private let messageService = MessageService()
+    
+    /// Presence service for online/offline status
+    @EnvironmentObject private var presenceService: PresenceService
     
     /// Firestore listener registration for cleanup (wrapped in State for mutability)
     @State private var messageListener: ListenerRegistration?
@@ -65,19 +72,37 @@ struct ChatView: View {
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            // Show presence indicator in header for 1-on-1 chats
+            if !chat.isGroupChat {
+                ToolbarItem(placement: .principal) {
+                    HStack(spacing: 6) {
+                        PresenceIndicator(isOnline: isContactOnline)
+                        Text("Chat")
+                            .font(.headline)
+                    }
+                }
+            }
+        }
         .onAppear {
             // Get current user ID from Firebase Auth
             if let uid = Auth.auth().currentUser?.uid {
                 currentUserID = uid
             }
+            // Determine other user ID for presence tracking
+            determineOtherUserID()
             // Start listening for real-time messages
             startListeningForMessages()
             // Update queue count for this chat
             updateQueueCount()
+            // Attach presence listener
+            attachPresenceListener()
         }
         .onDisappear {
             // Stop listening to prevent memory leaks
             stopListeningForMessages()
+            // Detach presence listener
+            detachPresenceListener()
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected
@@ -310,6 +335,32 @@ struct ChatView: View {
         // Remove Firestore listener
         messageListener?.remove()
         messageListener = nil
+    }
+    
+    /// Determine the other user's ID in this chat (for 1-on-1 presence tracking)
+    private func determineOtherUserID() {
+        guard !chat.isGroupChat else { return }
+        
+        // Get other user's ID from chat members
+        otherUserID = chat.otherUserID(currentUserID: currentUserID)
+    }
+    
+    /// Attach presence listener for the contact in this chat
+    private func attachPresenceListener() {
+        guard !chat.isGroupChat, let contactID = otherUserID else { return }
+        
+        // Attach presence listener
+        _ = presenceService.observePresence(userID: contactID) { isOnline in
+            DispatchQueue.main.async {
+                self.isContactOnline = isOnline
+            }
+        }
+    }
+    
+    /// Detach presence listener to prevent memory leaks
+    private func detachPresenceListener() {
+        guard let contactID = otherUserID else { return }
+        presenceService.stopObserving(userID: contactID)
     }
 }
 
