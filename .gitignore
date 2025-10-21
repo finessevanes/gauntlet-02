@@ -1,6 +1,19 @@
-# macOS
+# Firebase Configuration
+Psst/Psst/GoogleService-Info.plist
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad
 .DS_Store
 
-# Xcode user data
-xcuserdata/
-*.xcuserstate
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# CocoaPods
+Pods/
+*.xcworkspace/xcuserdata/
+
+# Secrets and Environment
+.env
+.env.local

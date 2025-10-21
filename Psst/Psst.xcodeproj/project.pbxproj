@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		262226FF2EA71CD200303C16 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000001 /* FirebaseAuth */; };
+		262227002EA71CD200303C16 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000002 /* FirebaseFirestore */; };
+		262227012EA71CD200303C16 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000003 /* FirebaseDatabase */; };
+		262227022EA71CD200303C16 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000004 /* FirebaseMessaging */; };
 		2626E8002EA703CF00F8567B /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FD2EA703CF00F8567B /* architecture.md */; };
 		2626E8012EA703CF00F8567B /* prd-full-features.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FE2EA703CF00F8567B /* prd-full-features.md */; };
 		2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F42EA703CF00F8567B /* caleb-agent.md */; };
@@ -75,6 +79,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				262227022EA71CD200303C16 /* FirebaseMessaging in Frameworks */,
+				262227012EA71CD200303C16 /* FirebaseDatabase in Frameworks */,
+				262227002EA71CD200303C16 /* FirebaseFirestore in Frameworks */,
+				262226FF2EA71CD200303C16 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -161,6 +169,10 @@
 			);
 			name = Psst;
 			packageProductDependencies = (
+				FB0000012EA7100000000001 /* FirebaseAuth */,
+				FB0000012EA7100000000002 /* FirebaseFirestore */,
+				FB0000012EA7100000000003 /* FirebaseDatabase */,
+				FB0000012EA7100000000004 /* FirebaseMessaging */,
 			);
 			productName = Psst;
 			productReference = 2659517F2EA6D27E00B5C739 /* Psst.app */;
@@ -218,7 +230,7 @@
 		265951772EA6D27E00B5C739 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				BuildIndependentTargetsInParallel = 1;
+				BuildIndependentTargetsInParallel = NO;
 				LastSwiftUpdateCheck = 1620;
 				LastUpgradeCheck = 1620;
 				TargetAttributes = {
@@ -244,6 +256,9 @@
 			);
 			mainGroup = 265951762EA6D27E00B5C739;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 265951802EA6D27E00B5C739 /* Products */;
 			projectDirPath = "";
@@ -621,6 +636,40 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 10.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		FB0000012EA7100000000001 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		FB0000012EA7100000000002 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+		FB0000012EA7100000000003 /* FirebaseDatabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseDatabase;
+		};
+		FB0000012EA7100000000004 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 265951772EA6D27E00B5C739 /* Project object */;
 }
