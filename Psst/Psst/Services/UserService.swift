@@ -145,6 +145,35 @@ class UserService {
 
         return users
     }
+    
+    /// Fetches all users from Firestore users collection
+    /// - Returns: Array of User objects
+    /// - Throws: Firestore errors if query fails
+    func fetchAllUsers() async throws -> [User] {
+        let start = Date()
+        
+        do {
+            let snapshot = try await db.collection(usersCollection).getDocuments()
+            
+            let users = snapshot.documents.compactMap { document -> User? in
+                do {
+                    return try document.data(as: User.self)
+                } catch {
+                    print("[UserService] ⚠️ Error decoding user \(document.documentID): \(error.localizedDescription)")
+                    return nil
+                }
+            }
+            
+            // Log performance
+            let duration = Date().timeIntervalSince(start) * 1000
+            print("[UserService] Fetched \(users.count) users in \(Int(duration))ms")
+            
+            return users
+        } catch {
+            print("[UserService] ❌ Failed to fetch all users: \(error.localizedDescription)")
+            throw UserServiceError.fetchFailed(error)
+        }
+    }
 
     /// Updates user profile data in Firestore
     /// - Parameters:
