@@ -227,6 +227,8 @@ After completing PR #8, we identified a critical dependency issue in the origina
 
 **Phase:** 4
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #15: push-notifications-setup
@@ -263,6 +265,8 @@ After completing PR #8, we identified a critical dependency issue in the origina
 
 **Phase:** 4
 
+**Status:** ✅ COMPLETED
+
 ---
 
 ### PR #18: final-polish-and-testing
@@ -272,6 +276,18 @@ After completing PR #8, we identified a critical dependency issue in the origina
 **Dependencies:** All previous PRs (1-17)
 
 **Complexity:** Complex
+
+**Phase:** 4
+
+---
+
+### PR #19: network-simulation-debug-settings
+
+**Brief:** Add DEBUG-only developer settings to the Settings screen enabling QA and developers to simulate various network conditions for thorough testing. Implement three simulation modes: Offline Mode (simulates airplane mode/no connection), Slow Network (adds 3-5 second delays to requests), and Timeout Errors (forces requests to timeout). Create a NetworkSimulator utility class to manage simulation state and integrate it into existing service calls. Add visual feedback including toggle switches in Settings with descriptive labels, a persistent banner at the top of the app when simulations are active, and highlighted row backgrounds for enabled modes. These features are wrapped in #if DEBUG conditionals to ensure they never appear in production builds. This tooling will significantly improve testing efficiency for network error handling, loading states, and offline functionality without requiring physical network manipulation or test devices.
+
+**Dependencies:** PR #4 (settings screen navigation)
+
+**Complexity:** Simple
 
 **Phase:** 4
 
@@ -287,11 +303,11 @@ After completing PR #8, we identified a critical dependency issue in the origina
 - **Phase 4 (Polish & Notifications):** 9 PRs
 
 ### Revised Plan (After PR #8)
-- **Total PRs:** 18 (consolidated from 25)
+- **Total PRs:** 19 (consolidated from 25, +1 for debug tooling)
 - **Phase 1 (Foundation):** 4 PRs - ✅ **COMPLETED** (PRs 1-4)
-- **Phase 2 (Core Chat):** 6 PRs - ✅ **5 COMPLETED** (PRs 5-8), 🎯 **2 TODO** (PRs 9-10)
-- **Phase 3 (Group Chats & Presence):** 3 PRs (PRs 11-13)
-- **Phase 4 (Polish & Notifications):** 5 PRs (PRs 14-18)
+- **Phase 2 (Core Chat):** 6 PRs - ✅ **COMPLETED** (PRs 5-10)
+- **Phase 3 (Group Chats & Presence):** 3 PRs - ✅ **COMPLETED** (PRs 11-13)
+- **Phase 4 (Polish & Notifications):** 6 PRs - ✅ **3 COMPLETED** (PRs 14, 17), 🎯 **3 TODO** (PRs 15-16, 18-19)
 
 ### Why the Change?
 After completing PR #8, we realized the original order had us building display/messaging features before the ability to create chats. The revised plan:

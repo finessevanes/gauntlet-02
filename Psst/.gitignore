@@ -4,3 +4,4 @@
 # Xcode user data
 xcuserdata/
 *.xcuserstate
+GoogleService-Info.plist
