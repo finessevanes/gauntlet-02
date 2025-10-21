@@ -48,6 +48,15 @@ struct ChatView: View {
     /// Presence service for online/offline status
     @EnvironmentObject private var presenceService: PresenceService
     
+    /// Typing indicator service for real-time typing status
+    @StateObject private var typingIndicatorService = TypingIndicatorService()
+    
+    /// User IDs currently typing in this chat
+    @State private var typingUserIDs: [String] = []
+    
+    /// Display names of users currently typing
+    @State private var typingUserNames: [String] = []
+    
     /// Firestore listener registration for cleanup (wrapped in State for mutability)
     @State private var messageListener: ListenerRegistration?
     
@@ -67,8 +76,17 @@ struct ChatView: View {
                 messageListView
             }
             
+            // Typing indicator (appears below messages, above input)
+            TypingIndicatorView(typingUserNames: typingUserNames)
+            
             // Message input bar
-            MessageInputView(text: $inputText, onSend: handleSend)
+            MessageInputView(
+                text: $inputText,
+                onSend: handleSend,
+                chatID: chat.id,
+                userID: currentUserID,
+                typingIndicatorService: typingIndicatorService
+            )
         }
         .navigationTitle("Chat")
         .navigationBarTitleDisplayMode(.inline)
@@ -97,12 +115,16 @@ struct ChatView: View {
             updateQueueCount()
             // Attach presence listener
             attachPresenceListener()
+            // Attach typing listener
+            attachTypingListener()
         }
         .onDisappear {
             // Stop listening to prevent memory leaks
             stopListeningForMessages()
             // Detach presence listener
             detachPresenceListener()
+            // Detach typing listener and clear own typing status
+            detachTypingListener()
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected
@@ -361,6 +383,44 @@ struct ChatView: View {
     private func detachPresenceListener() {
         guard let contactID = otherUserID else { return }
         presenceService.stopObserving(userID: contactID)
+    }
+    
+    /// Attach typing listener for this chat
+    private func attachTypingListener() {
+        _ = typingIndicatorService.observeTypingUsers(chatID: chat.id) { userIDs in
+            DispatchQueue.main.async {
+                // Filter out current user (don't show own typing status)
+                let filteredIDs = userIDs.filter { $0 != self.currentUserID }
+                self.typingUserIDs = filteredIDs
+                self.fetchDisplayNames(for: filteredIDs)
+            }
+        }
+    }
+    
+    /// Detach typing listener and clear own typing status
+    private func detachTypingListener() {
+        // Stop observing typing users
+        typingIndicatorService.stopObserving(chatID: chat.id)
+        
+        // Clear own typing status when leaving chat
+        Task {
+            try? await typingIndicatorService.stopTyping(chatID: chat.id, userID: currentUserID)
+        }
+    }
+    
+    /// Fetch display names for typing users
+    private func fetchDisplayNames(for userIDs: [String]) {
+        Task {
+            var names: [String] = []
+            for userID in userIDs {
+                if let user = try? await UserService.shared.getUser(id: userID) {
+                    names.append(user.displayName)
+                }
+            }
+            await MainActor.run {
+                self.typingUserNames = names
+            }
+        }
     }
 }
 
