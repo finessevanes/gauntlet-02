@@ -8,6 +8,7 @@
 
 import Foundation
 import FirebaseAuth
+import FirebaseFirestore
 import GoogleSignIn
 
 /// Error types for authentication operations
@@ -58,22 +59,57 @@ class AuthenticationService: ObservableObject {
     /// Authentication state listener handle
     private var authStateHandle: AuthStateDidChangeListenerHandle?
     
+    /// Firestore user profile listener
+    private var userProfileListener: ListenerRegistration?
+    
     /// Private initializer to enforce singleton pattern
     private init() {
         // Observe auth state changes and update currentUser
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] _, firebaseUser in
             if let firebaseUser = firebaseUser {
+                // Initial user from Firebase Auth
                 self?.currentUser = User(from: firebaseUser)
+                
+                // Attach Firestore listener for real-time profile updates
+                self?.attachProfileListener(uid: firebaseUser.uid)
             } else {
                 self?.currentUser = nil
+                // Remove Firestore listener when signed out
+                self?.detachProfileListener()
             }
         }
+    }
+    
+    /// Attach real-time listener to user's Firestore profile
+    private func attachProfileListener(uid: String) {
+        // Remove existing listener if any
+        detachProfileListener()
+        
+        // Listen for real-time updates to the user's profile
+        userProfileListener = UserService.shared.observeUser(id: uid) { [weak self] result in
+            switch result {
+            case .success(let user):
+                // Update currentUser with latest profile from Firestore
+                DispatchQueue.main.async {
+                    self?.currentUser = user
+                }
+            case .failure(let error):
+                print("[AuthenticationService] ❌ Error observing user profile: \(error.localizedDescription)")
+            }
+        }
+    }
+    
+    /// Remove Firestore profile listener
+    private func detachProfileListener() {
+        userProfileListener?.remove()
+        userProfileListener = nil
     }
     
     deinit {
         if let handle = authStateHandle {
             Auth.auth().removeStateDidChangeListener(handle)
         }
+        detachProfileListener()
     }
     
     // MARK: - Email/Password Authentication

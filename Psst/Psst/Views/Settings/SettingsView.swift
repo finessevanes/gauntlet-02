@@ -3,12 +3,12 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #4
-//  Settings screen with logout functionality
+//  Updated by Caleb (Coder Agent) - PR #17 (Edit Profile integration)
 //
 
 import SwiftUI
 
-/// Settings view with logout functionality
+/// Settings view with logout functionality and profile editing
 /// Additional settings features will be implemented in Phase 4
 struct SettingsView: View {
     // MARK: - State Management
@@ -18,6 +18,9 @@ struct SettingsView: View {
 
     /// Show error alert
     @State private var showErrorAlert: Bool = false
+    
+    /// Show edit profile sheet
+    @State private var showEditProfile = false
 
     // MARK: - Body
 
@@ -67,6 +70,25 @@ struct SettingsView: View {
                     .padding(.horizontal, 32)
 
                 Spacer()
+                
+                // Edit Profile Button
+                if authViewModel.currentUser != nil {
+                    Button(action: {
+                        showEditProfile = true
+                    }) {
+                        HStack {
+                            Image(systemName: "person.circle.fill")
+                            Text("Edit Profile")
+                                .fontWeight(.semibold)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal, 24)
+                }
 
                 // Logout Button
                 Button(action: {
@@ -99,6 +121,11 @@ struct SettingsView: View {
                 }
             } message: {
                 Text(authViewModel.errorMessage ?? "An error occurred while logging out.")
+            }
+            .sheet(isPresented: $showEditProfile) {
+                if let user = authViewModel.currentUser {
+                    EditProfileView(user: user)
+                }
             }
         }
     }

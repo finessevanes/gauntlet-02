@@ -4,11 +4,13 @@
 //
 //  Created by Caleb (Coder Agent) - PR #6
 //  Updated by Caleb (Coder Agent) - PR #12: Added presence indicators
+//  Updated by Caleb (Coder Agent) - PR #17: Added profile photos
 //  Individual chat preview row component
 //
 
 import SwiftUI
 import FirebaseAuth
+import FirebaseFirestore
 
 /// Individual chat row displaying preview information
 /// Shows avatar, name, last message, timestamp, and presence indicator
@@ -22,33 +24,38 @@ struct ChatRowView: View {
     @State private var isContactOnline: Bool = false
     @State private var otherUserID: String?
     @State private var lastMessageSenderName: String? = nil
+    @State private var otherUser: User? = nil
+    @State private var userListener: ListenerRegistration? = nil
     
     @EnvironmentObject private var presenceService: PresenceService
     
     private let chatService = ChatService()
+    private let userService = UserService.shared
     
     // MARK: - Body
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Avatar placeholder with group indicator
-            ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.3))
-                    .frame(width: 50, height: 50)
-                
-                if chat.isGroupChat {
-                    // Group icon
+            // Avatar with profile photo for 1-on-1 or group indicator
+            if chat.isGroupChat {
+                // Group icon
+                ZStack {
+                    Circle()
+                        .fill(Color.blue.opacity(0.3))
+                        .frame(width: 50, height: 50)
+                    
                     Image(systemName: "person.3.fill")
                         .font(.title3)
                         .foregroundColor(.blue)
-                } else {
-                    // Initial for 1-on-1
-                    Text(displayName.prefix(1).uppercased())
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
                 }
+            } else {
+                // Profile photo for 1-on-1 chats
+                ProfilePhotoPreview(
+                    imageURL: otherUser?.photoURL,
+                    selectedImage: nil,
+                    isLoading: false,
+                    size: 50
+                )
             }
             
             // Chat info
@@ -118,8 +125,8 @@ struct ChatRowView: View {
     
     // MARK: - Private Methods
     
-    /// Load display name based on chat type
-    /// For 1-on-1: fetch other user's name
+    /// Load display name and profile photo based on chat type
+    /// For 1-on-1: fetch other user's profile with real-time updates
     /// For group: show group name
     private func loadDisplayName() async {
         // Handle group chat
@@ -148,18 +155,23 @@ struct ChatRowView: View {
             return
         }
         
-        // Fetch other user's name
-        do {
-            let name = try await chatService.fetchUserName(userID: otherUserID)
-            displayName = name
-            isLoadingName = false
-            
-            // Store otherUserID for presence listener
-            self.otherUserID = otherUserID
-        } catch {
-            print("❌ Error loading display name: \(error.localizedDescription)")
-            displayName = "Unknown User"
-            isLoadingName = false
+        // Store otherUserID for presence listener
+        self.otherUserID = otherUserID
+        
+        // Set up real-time listener for user profile updates
+        userListener = userService.observeUser(id: otherUserID) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let user):
+                    self.otherUser = user
+                    self.displayName = user.displayName
+                    self.isLoadingName = false
+                case .failure(let error):
+                    print("❌ Error observing user profile: \(error.localizedDescription)")
+                    self.displayName = "Unknown User"
+                    self.isLoadingName = false
+                }
+            }
         }
     }
     
@@ -191,6 +203,10 @@ struct ChatRowView: View {
     private func detachPresenceListener() {
         guard let contactID = otherUserID else { return }
         presenceService.stopObserving(userID: contactID)
+        
+        // Remove user profile listener
+        userListener?.remove()
+        userListener = nil
     }
     
     /// Fetch sender name for the last message in a group chat

@@ -3,6 +3,7 @@
 //  Psst
 //
 //  Updated by Caleb (Coder Agent) - PR #10: Optimistic UI and offline persistence
+//  Updated by Caleb (Coder Agent) - PR #17: Added profile photos in header
 //  Full chat view with message list, input bar, auto-scroll, and offline support
 //
 
@@ -33,6 +34,12 @@ struct ChatView: View {
     /// Other user's ID (for presence tracking)
     @State private var otherUserID: String?
     
+    /// Other user's profile (for displaying photo in header)
+    @State private var otherUser: User? = nil
+    
+    /// User profile listener for real-time updates
+    @State private var userListener: ListenerRegistration? = nil
+    
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
@@ -61,6 +68,9 @@ struct ChatView: View {
     @State private var typingUserNames: [String] = []
     /// Chat service for fetching user names
     private let chatService = ChatService()
+    
+    /// User service for fetching user profiles
+    private let userService = UserService.shared
     
     /// Firestore listener registration for cleanup (wrapped in State for mutability)
     @State private var messageListener: ListenerRegistration?
@@ -96,13 +106,28 @@ struct ChatView: View {
         .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Show presence indicator in header for 1-on-1 chats
+            // Show presence indicator and profile photo in header for 1-on-1 chats
             if !chat.isGroupChat {
                 ToolbarItem(placement: .principal) {
-                    HStack(spacing: 6) {
-                        PresenceIndicator(isOnline: isContactOnline)
-                        Text("Chat")
-                            .font(.headline)
+                    HStack(spacing: 8) {
+                        // Profile photo
+                        ProfilePhotoPreview(
+                            imageURL: otherUser?.photoURL,
+                            selectedImage: nil,
+                            isLoading: false,
+                            size: 32
+                        )
+                        
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(otherUser?.displayName ?? "Chat")
+                                .font(.headline)
+                            HStack(spacing: 4) {
+                                PresenceIndicator(isOnline: isContactOnline)
+                                Text(isContactOnline ? "Online" : "Offline")
+                                    .font(.caption2)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
                     }
                 }
             } else {
@@ -388,6 +413,25 @@ struct ChatView: View {
         
         // Get other user's ID from chat members
         otherUserID = chat.otherUserID(currentUserID: currentUserID)
+        
+        // Attach user profile listener for real-time updates
+        if let otherUserID = otherUserID {
+            attachUserProfileListener(userID: otherUserID)
+        }
+    }
+    
+    /// Attach user profile listener for real-time profile updates
+    private func attachUserProfileListener(userID: String) {
+        userListener = userService.observeUser(id: userID) { result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let user):
+                    self.otherUser = user
+                case .failure(let error):
+                    print("❌ Error observing user profile: \(error.localizedDescription)")
+                }
+            }
+        }
     }
     
     /// Attach presence listener for the contact in this chat
@@ -406,6 +450,10 @@ struct ChatView: View {
     private func detachPresenceListener() {
         guard let contactID = otherUserID else { return }
         presenceService.stopObserving(userID: contactID)
+        
+        // Remove user profile listener
+        userListener?.remove()
+        userListener = nil
     }
     
     /// Attach typing listener for this chat
@@ -442,6 +490,10 @@ struct ChatView: View {
             }
             await MainActor.run {
                 self.typingUserNames = names
+            }
+        }
+    }
+    
     /// Get sender name for a message (for group chats only)
     /// - Parameter message: The message to get sender name for
     /// - Returns: Sender name or nil if not needed (1-on-1 chat or current user)
