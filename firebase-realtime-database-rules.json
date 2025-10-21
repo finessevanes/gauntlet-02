@@ -5,6 +5,14 @@
         ".read": true,
         ".write": "$uid === auth.uid"
       }
+    },
+    "typing": {
+      "$chatID": {
+        ".read": "auth != null",
+        "$uid": {
+          ".write": "$uid === auth.uid"
+        }
+      }
     }
   }
 }
