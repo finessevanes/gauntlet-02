@@ -32,69 +32,12 @@ struct ContentView: View {
     }
 }
 
-/// Placeholder for main app view after authentication
-/// Will be replaced in future PRs with actual app content
+/// Main app view after authentication
+/// Shows the conversation list (PR #6)
 struct MainAppView: View {
-    @StateObject private var authService = AuthenticationService.shared
-    
     var body: some View {
-        NavigationView {
-            VStack(spacing: 20) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 72))
-                    .foregroundColor(.green)
-                
-                Text("Successfully Authenticated!")
-                    .font(.title)
-                    .fontWeight(.bold)
-                
-                if let user = authService.currentUser {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Email: \(user.email)")
-                            .font(.subheadline)
-
-                        Text("Name: \(user.displayName)")
-                            .font(.subheadline)
-
-                        Text("User ID: \(user.id)")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(12)
-                }
-                
-                Text("Main app screens will be implemented in future PRs")
-                    .font(.footnote)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-                    .padding(.top, 20)
-                
-                // Sign Out Button
-                Button(action: {
-                    Task {
-                        try? await authService.signOut()
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.right.square.fill")
-                        Text("Sign Out")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 20)
-            }
-            .padding()
-            .navigationTitle("Psst")
-        }
+        // Show ChatListView as main screen after authentication
+        ChatListView()
     }
 }
 

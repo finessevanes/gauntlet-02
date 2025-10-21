@@ -20,8 +20,8 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Conversations
-            ConversationListView()
+            // Tab 1: Conversations (PR #6)
+            ChatListView()
                 .tabItem {
                     Label("Conversations", systemImage: "message.fill")
                 }
