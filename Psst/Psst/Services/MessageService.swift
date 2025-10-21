@@ -21,13 +21,20 @@ class MessageService {
     
     // MARK: - Send Message
     
-    /// Sends a message to a chat
+    /// Sends a message to a chat with optimistic UI support
     /// - Parameters:
     ///   - chatID: The ID of the chat to send message to
     ///   - text: The message text (will be trimmed)
+    ///   - messageID: Optional pre-generated message ID (for queue processing)
+    ///   - optimisticCompletion: Optional closure called immediately with optimistic message (before Firestore)
     /// - Returns: The ID of the created message
-    /// - Throws: MessageError if validation fails or Firestore write fails
-    func sendMessage(chatID: String, text: String) async throws -> String {
+    /// - Throws: MessageError if validation fails, offline, or Firestore write fails
+    func sendMessage(
+        chatID: String,
+        text: String,
+        messageID: String? = nil,
+        optimisticCompletion: ((Message) -> Void)? = nil
+    ) async throws -> String {
         // Validate chat ID
         guard !chatID.isEmpty else {
             throw MessageError.invalidChatID
@@ -40,37 +47,62 @@ class MessageService {
         // Get current user ID
         let senderID = try getCurrentUserID()
         
-        // Generate unique message ID
-        let messageID = UUID().uuidString
+        // Use provided message ID or generate new one (for queue processing vs new messages)
+        let finalMessageID = messageID ?? UUID().uuidString
         
-        // Create message object
-        let message = Message(
-            id: messageID,
+        // Create optimistic message with .sending status
+        let optimisticMessage = Message(
+            id: finalMessageID,
             text: trimmedText,
             senderID: senderID,
             timestamp: Date(),
-            readBy: []
+            readBy: [],
+            sendStatus: .sending
         )
+        
+        // Call optimistic completion IMMEDIATELY (before Firestore)
+        // This allows UI to show message instantly
+        optimisticCompletion?(optimisticMessage)
+        print("⚡️ Optimistic message added: \(finalMessageID)")
+        
+        // Check network state
+        if !NetworkMonitor.shared.isConnected {
+            // Create queued message
+            let queuedMessage = QueuedMessage(
+                id: finalMessageID,
+                chatID: chatID,
+                text: trimmedText,
+                timestamp: Date(),
+                retryCount: 0
+            )
+            
+            // Enqueue for offline sync
+            try MessageQueue.shared.enqueue(queuedMessage)
+            print("📥 Message queued for offline send: \(finalMessageID)")
+            
+            // Throw offline error (allows caller to update UI to "queued" status)
+            throw MessageError.offline
+        }
         
         // Log message send
         print("📤 Sending message to chat: \(chatID)")
         
         do {
-            // Write message to Firestore
+            // Write message to Firestore (online path)
             let messageRef = db
                 .collection("chats")
                 .document(chatID)
                 .collection("messages")
-                .document(messageID)
+                .document(finalMessageID)
             
-            try await messageRef.setData(message.toDictionary())
+            try await messageRef.setData(optimisticMessage.toDictionary())
             
             // Update chat document with last message metadata
             try await updateChatLastMessage(chatID: chatID, text: trimmedText)
             
-            print("✅ Message sent successfully: \(messageID)")
+            print("✅ Message sent successfully: \(finalMessageID)")
             
-            return messageID
+            return finalMessageID
         } catch {
             print("❌ Send failed: \(error.localizedDescription)")
             throw MessageError.firestoreError(error)
@@ -178,6 +210,7 @@ enum MessageError: LocalizedError {
     case emptyText
     case textTooLong
     case invalidChatID
+    case offline           // Message queued for offline send
     case firestoreError(Error)
     
     var errorDescription: String? {
@@ -190,6 +223,8 @@ enum MessageError: LocalizedError {
             return "Message text is too long (max 10,000 characters)"
         case .invalidChatID:
             return "Invalid chat ID"
+        case .offline:
+            return "Message queued - will send when online"
         case .firestoreError(let error):
             return "Firestore error: \(error.localizedDescription)"
         }
