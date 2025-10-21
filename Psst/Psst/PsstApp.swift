@@ -12,10 +12,13 @@ import GoogleSignIn
 @main
 struct PsstApp: App {
 
-    // Initialize Firebase on app launch
+    // Initialize Firebase and NetworkMonitor on app launch
     init() {
         // Configure Firebase with GoogleService-Info.plist
         FirebaseService.shared.configure()
+        
+        // Initialize NetworkMonitor to start monitoring network state
+        _ = NetworkMonitor.shared
     }
 
     var body: some Scene {
