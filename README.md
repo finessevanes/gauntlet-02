@@ -66,6 +66,23 @@ The following Firebase services must be enabled in the Firebase Console:
 
 ## Development
 
+### Quick Start - Build & Run
+
+Run the app on iOS Simulator **without opening Xcode**:
+
+```bash
+# Run on iPhone 17 Pro
+./run iphone17
+
+# Run on default simulator (iPhone 15 Pro)
+./run
+
+# List all available simulators
+./run list
+```
+
+See [`scripts/README.md`](scripts/README.md) for more options and troubleshooting.
+
 ### Branch Strategy
 
 - **Base Branch**: `develop`
@@ -77,6 +94,7 @@ The following Firebase services must be enabled in the Firebase Console:
 - Xcode 15.0+
 - iOS 16.0+
 - Swift 5.9+
+- Xcode Command Line Tools (for running via `./run` scripts)
 
 ## Project Structure
 

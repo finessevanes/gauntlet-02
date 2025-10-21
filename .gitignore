@@ -10,6 +10,9 @@ Psst/Psst/GoogleService-Info.plist
 .swiftpm/
 .build/
 
+# Build artifacts from run scripts
+build/
+
 # CocoaPods
 Pods/
 *.xcworkspace/xcuserdata/

@@ -294,4 +294,74 @@ gauntlet-02/
 - Tests are mandatory: Unit (XCTest) + UI (XCUITest)
 - Caleb checks off TODO items as he completes them
 - Brenda creates briefs → Pam plans → Caleb builds
+# Swift Development Rules
 
+## Project Context
+- Swift 5.0
+- Focus on main thread safety and responsive UI
+
+## Threading & Concurrency Rules
+
+### Always Use Background Threads For:
+- Network requests (URLSession, API calls)
+- File I/O operations (reading/writing files)
+- Database operations (Core Data, Realm, SQLite)
+- Heavy computations or data processing
+- Image processing or resizing
+- JSON parsing of large data
+
+### Always Use Main Thread For:
+- Updating UI elements (labels, buttons, views)
+- Presenting/dismissing view controllers
+- Reloading table views or collection views
+- Any UIKit or SwiftUI view updates
+
+### Code Patterns to Follow:
+
+**For async work returning to main thread:**
+```swift
+DispatchQueue.global(qos: .userInitiated).async {
+    // Heavy work here
+    let result = performExpensiveOperation()
+    
+    DispatchQueue.main.async {
+        // Update UI here
+        self.label.text = result
+    }
+}
+```
+
+**For network calls:**
+```swift
+URLSession.shared.dataTask(with: url) { data, response, error in
+    // This is already on background thread
+    guard let data = data else { return }
+    
+    // Parse data on background
+    let parsed = parseData(data)
+    
+    // Switch to main for UI updates
+    DispatchQueue.main.async {
+        self.updateUI(with: parsed)
+    }
+}.resume()
+```
+
+## Code Review Checklist
+- [ ] No network calls on main thread
+- [ ] UI updates wrapped in `DispatchQueue.main.async`
+- [ ] Heavy operations use background queues
+- [ ] No synchronous file operations on main thread
+- [ ] Table/collection view reloads on main thread
+
+## Common Mistakes to Avoid
+- Don't use `.sync` on main queue (causes deadlock)
+- Don't forget to weakly capture `self` in closures: `[weak self]`
+- Don't access UI elements from background threads
+- Don't block main thread with `sleep()` or long loops
+
+## Quality of Service (QoS) Guide
+- `.userInteractive`: UI updates, animations (main thread)
+- `.userInitiated`: User-requested tasks (e.g., loading data after tap)
+- `.utility`: Long-running tasks with progress (downloads)
+- `.background`: Non-urgent maintenance (cleanup, sync)
