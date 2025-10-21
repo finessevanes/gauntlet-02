@@ -50,16 +50,12 @@ struct MainAppView: View {
                 
                 if let user = authService.currentUser {
                     VStack(alignment: .leading, spacing: 8) {
-                        if let email = user.email {
-                            Text("Email: \(email)")
-                                .font(.subheadline)
-                        }
-                        
-                        if let displayName = user.displayName {
-                            Text("Name: \(displayName)")
-                                .font(.subheadline)
-                        }
-                        
+                        Text("Email: \(user.email)")
+                            .font(.subheadline)
+
+                        Text("Name: \(user.displayName)")
+                            .font(.subheadline)
+
                         Text("User ID: \(user.id)")
                             .font(.caption)
                             .foregroundColor(.secondary)
