@@ -237,9 +237,9 @@ struct SignUpView: View {
                     .accessibilityIdentifier("xmark")
                 }
             }
-            .onChange(of: viewModel.currentUser) { newUser in
+            .onChange(of: viewModel.currentUser) { oldValue, newValue in
                 // Automatically dismiss when authentication succeeds
-                if newUser != nil {
+                if newValue != nil {
                     dismiss()
                 }
             }

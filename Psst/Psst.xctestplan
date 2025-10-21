@@ -1,0 +1,38 @@
+{
+  "configurations" : [
+    {
+      "id" : "DE8AE25C-F77E-4306-B4C6-E61989075494",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:Psst.xcodeproj",
+      "identifier" : "2659517E2EA6D27E00B5C739",
+      "name" : "Psst"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Psst.xcodeproj",
+        "identifier" : "2659518E2EA6D27F00B5C739",
+        "name" : "PsstTests"
+      }
+    },
+    {
+      "parallelizable" : true,
+      "target" : {
+        "containerPath" : "container:Psst.xcodeproj",
+        "identifier" : "265951982EA6D27F00B5C739",
+        "name" : "PsstUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
