@@ -9,6 +9,14 @@
 import Foundation
 import SwiftUI
 import Combine
+import FirebaseDatabase
+
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// Posted before user logout to allow cleanup of Firestore listeners
+    static let userWillLogout = Notification.Name("userWillLogout")
+}
 
 /// ViewModel managing authentication UI state and operations
 /// Thin wrapper around AuthenticationService following MVVM pattern
@@ -33,6 +41,9 @@ class AuthViewModel: ObservableObject {
     /// Authentication service instance
     private let authService: AuthenticationService
     
+    /// Presence service for setting online/offline status
+    private var presenceService: PresenceService?
+    
     /// Cancellable for auth state subscription
     private var cancellables = Set<AnyCancellable>()
     
@@ -46,6 +57,13 @@ class AuthViewModel: ObservableObject {
         // Subscribe to auth service's currentUser changes
         authService.$currentUser
             .assign(to: &$currentUser)
+    }
+    
+    /// Set presence service for logout handling
+    /// Must be called after initialization to avoid dependency injection issues
+    /// - Parameter service: PresenceService instance
+    func setPresenceService(_ service: PresenceService) {
+        self.presenceService = service
     }
     
     // MARK: - Email/Password Authentication
@@ -144,8 +162,34 @@ class AuthViewModel: ObservableObject {
         isLoading = true
         
         do {
+            // CRITICAL: Disconnect from Firebase Realtime Database BEFORE signing out
+            // This triggers the onDisconnect() hook which sets status to offline
+            // We can't manually set offline because auth token gets invalidated
+            print("[AuthViewModel] Disconnecting from Firebase Database to trigger offline status...")
+            
+            // Force disconnect which triggers onDisconnect() hook
+            Database.database().goOffline()
+            
+            // Wait a moment for the disconnect to process
+            try await Task.sleep(nanoseconds: 500_000_000) // 0.5 seconds
+            
+            // Post notification to cleanup all Firestore listeners BEFORE auth invalidation
+            print("[AuthViewModel] Posting logout notification to cleanup Firestore listeners...")
+            await MainActor.run {
+                NotificationCenter.default.post(name: .userWillLogout, object: nil)
+            }
+            
+            // Small delay to let listeners cleanup
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            
+            // Reset tab selection to Conversations for next login
+            UserDefaults.standard.set(0, forKey: "selectedTab")
+            
+            // Now sign out (this invalidates auth token)
             try await authService.signOut()
             // Success - currentUser will be cleared automatically via ObservableObject
+            
+            print("[AuthViewModel] User signed out successfully")
         } catch let error as AuthenticationError {
             errorMessage = error.errorDescription
         } catch {

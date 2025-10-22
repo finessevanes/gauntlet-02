@@ -29,6 +29,29 @@ struct MessageInputView: View {
     /// Typing indicator service for broadcasting typing status
     let typingIndicatorService: TypingIndicatorService
     
+    /// Optional callback for handling typing service errors
+    let onError: ((Error) -> Void)?
+    
+    /// Focus state for keyboard management
+    @FocusState private var isTextFieldFocused: Bool
+    
+    /// Task state for managing typing indicator operations
+    @State private var typingTask: Task<Void, Never>?
+    
+    // MARK: - Constants
+    
+    private enum Constants {
+        static let horizontalPadding: CGFloat = 12
+        static let verticalPadding: CGFloat = 8
+        static let interItemSpacing: CGFloat = 12
+        static let leadingPadding: CGFloat = 4
+        static let trailingPadding: CGFloat = 4
+        static let sendIconSize: CGFloat = 20
+        static let sendButtonSize: CGFloat = 36
+        static let minLineLimit = 1
+        static let maxLineLimit = 5
+    }
+    
     // MARK: - Computed Properties
     
     /// Whether the send button should be enabled (text is not empty)
@@ -39,15 +62,31 @@ struct MessageInputView: View {
     // MARK: - Body
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Constants.interItemSpacing) {
             // Text input field
             TextField("Message...", text: $text, axis: .vertical)
                 .textFieldStyle(.roundedBorder)
-                .lineLimit(1...5)
-                .padding(.leading, 4)
+                .lineLimit(Constants.minLineLimit...Constants.maxLineLimit)
+                .submitLabel(.send)
+                .focused($isTextFieldFocused)
+                .onSubmit {
+                    // Handle Enter key submission only when text is present
+                    // This should not interfere with system keyboard shortcuts like Cmd+V
+                    if isSendEnabled {
+                        handleSendButton()
+                    }
+                }
+                .accessibilityLabel("Message input field")
+                .accessibilityHint("Type your message here, then press send")
+                .padding(.leading, Constants.leadingPadding)
                 .onChange(of: text) { oldValue, newValue in
+                    print("[MessageInputView] Text changed from '\(oldValue)' to '\(newValue)'")
                     handleTextChange(newValue)
                 }
+                .textInputAutocapitalization(.sentences)
+                .autocorrectionDisabled(false)
+                .keyboardType(.default)
+                .textContentType(.none)
             
             // Send button
             Button(action: {
@@ -56,47 +95,59 @@ struct MessageInputView: View {
                 }
             }) {
                 Image(systemName: "paperplane.fill")
-                    .font(.system(size: 20))
+                    .font(.system(size: Constants.sendIconSize))
                     .foregroundColor(isSendEnabled ? .blue : .gray)
-                    .frame(width: 36, height: 36)
+                    .frame(width: Constants.sendButtonSize, height: Constants.sendButtonSize)
             }
+            .accessibilityLabel("Send message")
+            .accessibilityHint(isSendEnabled ? "Send your message" : "Enter text to enable sending")
             .disabled(!isSendEnabled)
-            .padding(.trailing, 4)
+            .padding(.trailing, Constants.trailingPadding)
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
+        .padding(.horizontal, Constants.horizontalPadding)
+        .padding(.vertical, Constants.verticalPadding)
         .background(Color(.systemBackground))
+        .onDisappear {
+            // Cancel any pending typing tasks
+            typingTask?.cancel()
+            
+            // Clear typing status when view disappears
+            Task {
+                try? await typingIndicatorService.stopTyping(chatID: chatID, userID: userID)
+            }
+        }
     }
     
     // MARK: - Actions
     
     /// Handle text change to broadcast typing status
     private func handleTextChange(_ newText: String) {
+        // Cancel previous task to prevent multiple simultaneous requests
+        typingTask?.cancel()
+        
         let trimmed = newText.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        if trimmed.isEmpty {
-            // User deleted all text - stop typing
-            Task {
-                do {
+        typingTask = Task {
+            do {
+                if trimmed.isEmpty {
                     try await typingIndicatorService.stopTyping(chatID: chatID, userID: userID)
-                } catch {
-                    print("[MessageInputView] Error stopping typing: \(error.localizedDescription)")
-                }
-            }
-        } else {
-            // User is typing - broadcast status (throttled automatically)
-            Task {
-                do {
+                } else {
                     try await typingIndicatorService.startTyping(chatID: chatID, userID: userID)
-                } catch {
-                    print("[MessageInputView] Error starting typing: \(error.localizedDescription)")
                 }
+            } catch {
+                guard !Task.isCancelled else { return }
+                print("[MessageInputView] Error updating typing status: \(error.localizedDescription)")
+                onError?(error)
             }
         }
     }
     
     /// Handle send button tap - clear typing status before sending
     private func handleSendButton() {
+        // Add haptic feedback for better UX
+        let generator = UIImpactFeedbackGenerator(style: .light)
+        generator.impactOccurred()
+        
         // Clear typing status immediately before sending
         Task {
             try? await typingIndicatorService.stopTyping(chatID: chatID, userID: userID)
@@ -104,6 +155,21 @@ struct MessageInputView: View {
         
         // Call original send handler
         onSend()
+        
+        // Don't automatically dismiss keyboard to allow for paste operations
+        // User can manually dismiss by tapping outside or using keyboard shortcuts
+    }
+}
+
+// MARK: - Mock Services for Previews
+
+private class MockTypingIndicatorService: TypingIndicatorService {
+    override func startTyping(chatID: String, userID: String) async throws {
+        print("Mock: Start typing in chat \(chatID)")
+    }
+    
+    override func stopTyping(chatID: String, userID: String) async throws {
+        print("Mock: Stop typing in chat \(chatID)")
     }
 }
 
@@ -117,7 +183,8 @@ struct MessageInputView: View {
             onSend: { print("Send tapped") },
             chatID: "preview_chat",
             userID: "preview_user",
-            typingIndicatorService: TypingIndicatorService()
+            typingIndicatorService: MockTypingIndicatorService(),
+            onError: { error in print("Error: \(error)") }
         )
         .background(Color(.systemGray6))
     }
@@ -131,7 +198,8 @@ struct MessageInputView: View {
             onSend: { print("Send tapped") },
             chatID: "preview_chat",
             userID: "preview_user",
-            typingIndicatorService: TypingIndicatorService()
+            typingIndicatorService: MockTypingIndicatorService(),
+            onError: { error in print("Error: \(error)") }
         )
         .background(Color(.systemGray6))
     }
@@ -145,7 +213,8 @@ struct MessageInputView: View {
             onSend: { print("Send tapped") },
             chatID: "preview_chat",
             userID: "preview_user",
-            typingIndicatorService: TypingIndicatorService()
+            typingIndicatorService: MockTypingIndicatorService(),
+            onError: { error in print("Error: \(error)") }
         )
         .background(Color(.systemGray6))
     }

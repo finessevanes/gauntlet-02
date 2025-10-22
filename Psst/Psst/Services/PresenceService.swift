@@ -27,14 +27,53 @@ class PresenceService: ObservableObject {
     /// Firebase Realtime Database reference
     private let database = Database.database().reference()
     
-    /// Active presence listeners keyed by userID
+    /// Active presence listeners keyed by userID, then by unique listener UUID
+    /// Multi-listener support: Each user can have multiple simultaneous listeners (e.g., ChatRowView + ChatView)
+    /// Nested structure prevents listener conflicts and enables precise cleanup
+    /// Stores both DatabaseReference (path) and DatabaseHandle (observer ID) for proper cleanup
     /// Tracked for proper cleanup to prevent memory leaks
-    private var presenceRefs: [String: DatabaseReference] = [:]
+    private var presenceRefs: [String: [UUID: (ref: DatabaseReference, handle: DatabaseHandle)]] = [:]
+    
+    /// Cache mapping userID to email for readable debug logs
+    private var userEmailCache: [String: String] = [:]
+    
+    /// User service for fetching email addresses
+    private let userService = UserService.shared
+    
+    // MARK: - Helper Methods
+    
+    /// Get user identifier for logging (email or abbreviated userID)
+    /// Fetches email from cache or Firestore asynchronously
+    /// - Parameter userID: The Firebase user ID
+    /// - Returns: Formatted string for logging (email or "user_XXXXXXXX")
+    private func getUserIdentifier(_ userID: String) -> String {
+        // Check cache first
+        if let cachedEmail = userEmailCache[userID] {
+            return cachedEmail
+        }
+        
+        // Fetch email asynchronously and cache it for future use
+        Task {
+            do {
+                let user = try await userService.getUser(id: userID)
+                await MainActor.run {
+                    self.userEmailCache[userID] = user.email
+                }
+            } catch {
+                // Silently fail - just use abbreviated ID
+            }
+        }
+        
+        // Return abbreviated userID while email loads
+        let suffix = String(userID.suffix(8))
+        return "user_\(suffix)"
+    }
     
     // MARK: - Public Methods
     
     /// Set the current user's online status
-    /// Configures Firebase onDisconnect() hook when going online to automatically set offline on disconnect
+    /// Always configures Firebase onDisconnect() hook for crash protection
+    /// onDisconnect() is set BEFORE setting status to ensure crash protection is always active
     /// - Parameters:
     ///   - userID: The user's Firebase UID
     ///   - isOnline: True for online, false for offline
@@ -48,22 +87,21 @@ class PresenceService: ObservableObject {
         ]
         
         do {
-            // Write presence data to Firebase
+            // ALWAYS set up onDisconnect hook BEFORE setting status
+            // This ensures crash protection works in all scenarios (login, logout, crash)
+            let offlineData: [String: Any] = [
+                "status": "offline",
+                "lastChanged": ServerValue.timestamp()
+            ]
+            try await presenceRef.onDisconnectSetValue(offlineData)
+            
+            // Now write presence data to Firebase
             try await presenceRef.setValue(presenceData)
             
-            // Set up onDisconnect hook when going online
-            // This ensures status automatically becomes "offline" if connection drops
-            if isOnline {
-                let offlineData: [String: Any] = [
-                    "status": "offline",
-                    "lastChanged": ServerValue.timestamp()
-                ]
-                try await presenceRef.onDisconnectSetValue(offlineData)
-            }
-            
-            print("[PresenceService] Set \(userID) status to \(isOnline ? "online" : "offline")")
+            // Successfully set online status
         } catch {
-            print("[PresenceService] Error setting online status for \(userID): \(error.localizedDescription)")
+            let userIdentifier = getUserIdentifier(userID)
+            print("[PresenceService] ❌ Error setting online status for \(userIdentifier): \(error.localizedDescription)")
             throw error
         }
     }
@@ -71,14 +109,21 @@ class PresenceService: ObservableObject {
     /// Observe presence status for a specific user
     /// Attaches a real-time listener to Firebase Realtime Database
     /// Listener fires immediately with current status and on every subsequent change
+    /// Supports multiple simultaneous listeners per user without conflicts
     /// - Parameters:
     ///   - userID: The user ID to observe
     ///   - completion: Callback with Bool (true = online, false = offline)
-    /// - Returns: DatabaseReference for listener cleanup
-    func observePresence(userID: String, completion: @escaping (Bool) -> Void) -> DatabaseReference {
+    /// - Returns: UUID for listener cleanup (pass to stopObserving)
+    func observePresence(userID: String, completion: @escaping (Bool) -> Void) -> UUID {
         let presenceRef = database.child("presence").child(userID)
         
-        presenceRef.observe(.value) { snapshot in
+        // Generate unique listener ID
+        let listenerID = UUID()
+        
+        // Attach observer and capture the handle
+        let handle = presenceRef.observe(.value) { [weak self] snapshot in
+            guard let self = self else { return }
+            
             guard let data = snapshot.value as? [String: Any],
                   let status = data["status"] as? String else {
                 // Default to offline if data is missing or malformed
@@ -90,30 +135,57 @@ class PresenceService: ObservableObject {
             completion(isOnline)
         }
         
-        // Store reference for cleanup
-        presenceRefs[userID] = presenceRef
-        return presenceRef
+        // Store both reference and handle for precise cleanup
+        if presenceRefs[userID] == nil {
+            presenceRefs[userID] = [:]
+        }
+        presenceRefs[userID]?[listenerID] = (ref: presenceRef, handle: handle)
+        
+        return listenerID
     }
     
-    /// Stop observing presence for a specific user
-    /// Removes Firebase listener and cleans up internal references
-    /// - Parameter userID: The user ID to stop observing
-    func stopObserving(userID: String) {
-        if let ref = presenceRefs[userID] {
-            ref.removeAllObservers()
+    /// Stop observing presence for a specific listener
+    /// Removes only the specified Firebase listener, leaving other listeners for the same user active
+    /// Cleans up empty user dictionaries to prevent memory bloat
+    /// - Parameters:
+    ///   - userID: The user ID to stop observing
+    ///   - listenerID: The unique listener UUID returned from observePresence
+    func stopObserving(userID: String, listenerID: UUID) {
+        guard let userListeners = presenceRefs[userID] else {
+            return
+        }
+        
+        guard let (ref, handle) = userListeners[listenerID] else {
+            return
+        }
+        
+        // Remove only this specific listener using its handle
+        ref.removeObserver(withHandle: handle)
+        presenceRefs[userID]?.removeValue(forKey: listenerID)
+        
+        // Clean up empty user dictionary to prevent memory bloat
+        if presenceRefs[userID]?.isEmpty == true {
             presenceRefs.removeValue(forKey: userID)
-            print("[PresenceService] Stopped observing \(userID)")
         }
     }
     
     /// Stop all active presence listeners
     /// Called on logout or app termination to prevent memory leaks
+    /// Iterates through nested dictionary structure to remove all listeners for all users
     func stopAllObservers() {
-        presenceRefs.forEach { userID, ref in
-            ref.removeAllObservers()
+        var totalListenerCount = 0
+        
+        // Iterate through all users and their listeners
+        for (userID, listeners) in presenceRefs {
+            for (listenerID, listener) in listeners {
+                let (ref, handle) = listener
+                ref.removeObserver(withHandle: handle)
+                totalListenerCount += 1
+            }
         }
+        
         presenceRefs.removeAll()
-        print("[PresenceService] Stopped all presence observers (\(presenceRefs.count) listeners removed)")
+        print("[PresenceService] Stopped all presence observers (\(totalListenerCount) listeners)")
     }
 }
 

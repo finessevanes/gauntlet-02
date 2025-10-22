@@ -73,6 +73,11 @@ struct ChatListView: View {
             .onDisappear {
                 viewModel.stopObserving()
             }
+            .onReceive(NotificationCenter.default.publisher(for: .userWillLogout)) { _ in
+                // Cleanup Firestore listeners BEFORE auth token is invalidated
+                print("[ChatListView] Received logout notification, cleaning up listeners...")
+                viewModel.stopObserving()
+            }
             .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
                 if let chatId = newChatId {
                     print("[ChatListView] 🧭 Deep link received for chat: \(chatId)")

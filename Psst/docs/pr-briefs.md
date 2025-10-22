@@ -2,319 +2,15 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** ✅ 17 Completed | 🎯 7 In Progress/Todo
-
----
-
-## ✅ Completed PRs
-
-### Phase 1: Core Foundation (4/4 Complete)
-
-#### PR #1: project-setup-and-firebase-integration
-
-**Brief:** Set up the Firebase project and integrate Firebase SDK into the iOS application. This includes configuring Firebase Authentication, Firestore Database, Firebase Realtime Database (for presence), and Firebase Cloud Messaging. Create the necessary configuration files (GoogleService-Info.plist) and initialize Firebase in the app delegate. This PR establishes the foundation for all backend services.
-
-**Dependencies:** None
-
-**Complexity:** Simple
-
-**Phase:** 1
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #2: user-authentication-flow
-
-**Brief:** Implement complete user authentication flows including sign-up, login, logout, and password reset using Firebase Authentication. Create SwiftUI views for the authentication screens with email/password support. Build an AuthenticationService to handle all auth operations and state management. Include basic form validation and error handling for a smooth user experience.
-
-**Dependencies:** PR #1
-
-**Complexity:** Medium
-
-**Phase:** 1
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #3: user-profile-model-and-firestore
-
-**Brief:** Create the User model and establish the `users` collection in Firestore. Implement UserService to handle CRUD operations for user profiles including creating user documents on signup, fetching user data, and updating profile information. Define the user schema (uid, displayName, email, profilePhotoURL) and ensure proper data persistence in Firestore.
-
-**Dependencies:** PR #1, PR #2
-
-**Complexity:** Simple
-
-**Phase:** 1
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #4: app-navigation-structure
-
-**Brief:** Build the core SwiftUI navigation structure for the app including tab bar navigation, screen routing, and navigation state management. Create placeholder screens for main app sections (ConversationList, Profile, Settings). Implement navigation between authentication screens and main app screens based on authentication state. Ensure proper view lifecycle management and navigation patterns.
-
-**Dependencies:** PR #2
-
-**Complexity:** Simple
-
-**Phase:** 1
-
-**Status:** ✅ COMPLETED
-
----
-
-### Phase 2: 1-on-1 Chat (6/6 Complete)
-
-#### PR #5: chat-data-models-and-schema
-
-**Brief:** Define the Chat and Message models along with their Firestore schema structure. Create the `chats` collection structure with fields for members, lastMessage, lastMessageTimestamp, and isGroupChat. Define the `messages` sub-collection structure with fields for text, senderID, timestamp, and readBy array. Build helper utilities for chat and message serialization/deserialization.
-
-**Dependencies:** PR #3
-
-**Complexity:** Simple
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #6: conversation-list-screen
-
-**Brief:** Build the Conversation List screen that displays all user chats in a scrollable list. Implement real-time Firestore listeners to fetch and update the list of chats. Display chat preview information including the other user's name, last message text, and timestamp. Handle empty states when no conversations exist. Implement pull-to-refresh functionality and proper loading states.
-
-**Dependencies:** PR #4, PR #5
-
-**Complexity:** Medium
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #7: chat-view-screen-ui
-
-**Brief:** Create the Chat View screen UI with a message list and input field. Build a scrollable message list that displays messages in chronological order with proper styling for sent vs received messages. Implement the message input bar with text field and send button. Add auto-scroll to bottom when new messages arrive and keyboard handling to avoid input obstruction.
-
-**Dependencies:** PR #4, PR #5
-
-**Complexity:** Medium
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #8: real-time-messaging-service
-
-**Brief:** Implement MessageService to handle real-time message sending and receiving using Firestore snapshot listeners. Build functionality to send messages to a chat, listen for new messages in real-time, and update the UI automatically when messages arrive. Implement proper listener lifecycle management to prevent memory leaks. Ensure sub-3-second message delivery latency.
-
-**Dependencies:** PR #5, PR #7
-
-**Complexity:** Complex
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #9: chat-creation-and-contact-selection
-
-**Brief:** Build the complete "Start New Chat" flow with user selection, search, and chat creation. Add createChat() method to ChatService that checks for existing chats before creating duplicates. Create a user selection screen displaying all available users from the `users` collection with real-time search functionality to filter by display name or email. Implement chat creation logic for 1-on-1 conversations and navigate to the new chat. Remove MockDataService after completion since users can now create real chats.
-
-**Dependencies:** PRs 1-8 (completed)
-
-**Complexity:** Medium
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #10: optimistic-ui-and-offline-persistence
-
-**Brief:** Implement optimistic UI pattern for instant message feedback and enable full offline support. When users send messages, immediately add them to local SwiftUI state with "sending" status before Firestore confirms. Update status to "delivered" once confirmed. Enable Firestore offline persistence (isPersistenceEnabled = true) so users can view previously loaded messages without internet. Implement message queueing for offline sends with automatic sync on reconnection. Add offline mode indicators and handle network state transitions gracefully.
-
-**Dependencies:** PR #8
-
-**Complexity:** Medium
-
-**Phase:** 2
-
-**Status:** ✅ COMPLETED
-
----
-
-### Phase 3: Group Chats & Presence (3/3 Complete)
-
-#### PR #11: group-chat-support
-
-**Brief:** Extend chat functionality to support group conversations with 3+ users. Update the user selection screen from PR #9 to support multi-select mode for choosing multiple contacts. Implement group chat creation logic in ChatService that sets isGroupChat to true and supports multiple members in the members array. Add group chat naming functionality. Update ChatView UI to display sender names with each message in group conversations (instead of just sent/received styling). Update MessageService to properly handle sending to and receiving from multiple group members with real-time synchronization for all participants. Display group member avatars in the conversation list.
-
-**Dependencies:** PR #9 (chat creation)
-
-**Complexity:** Medium
-
-**Phase:** 3
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #12: online-offline-presence-system
-
-**Brief:** Integrate Firebase Realtime Database to implement online/offline presence indicators for users. Create a PresenceService that writes a user's online status when they open the app and uses Firebase's onDisconnect() hook to automatically set offline status when the app disconnects or crashes. Update presence on app lifecycle events (foreground, background, terminate). Display presence indicators (green dot for online, gray dot for offline) next to user names in the conversation list and chat view header. Handle presence updates in real-time across all users.
-
-**Dependencies:** PR #1, PR #6
-
-**Complexity:** Complex
-
-**Phase:** 3
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #13: typing-indicators
-
-**Brief:** Implement "is typing..." indicators to show when other users are composing messages in a conversation. Use Firebase Realtime Database to broadcast typing status with automatic 3-second timeout. Display typing indicator in the chat view below the message list when one or more users are typing. Ensure typing status is automatically cleared when messages are sent or after inactivity timeout. Handle multiple simultaneous typers in group chats (e.g., "Alice and 2 others are typing...").
-
-**Dependencies:** PR #12 (presence system)
-
-**Complexity:** Medium
-
-**Phase:** 3
-
-**Status:** ✅ COMPLETED
-
----
-
-### Phase 4: Polish & Notifications (4/11 Complete)
-
-#### PR #14: message-read-receipts
-
-**Brief:** Implement read receipts to show when messages have been seen by recipients. Update message documents in Firestore with a readBy array when users view messages in the chat view. Create logic to automatically mark messages as read when the chat view is opened and messages become visible on screen. Display "Read", "Delivered", or "Seen" indicators under sent messages in the UI with appropriate visual styling. Handle read receipts correctly for both 1-on-1 and group chats (showing individual read status per recipient in groups).
-
-**Dependencies:** PR #8 (messaging service)
-
-**Complexity:** Medium
-
-**Phase:** 4
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #15: push-notifications-setup
-
-**Brief:** Configure Apple Push Notification service (APNs) and Firebase Cloud Messaging (FCM) for the iOS app. Register the app with APNs to receive device tokens and upload them to Firebase. Configure push notification capabilities in Xcode, add necessary entitlements, and update provisioning profiles. Create NotificationService to handle device token registration, notification permission requests, and token refresh. Store device tokens in user documents in Firestore. Test basic notification reception from Firebase Console.
-
-**Dependencies:** PR #1 (Firebase setup)
-
-**Complexity:** Medium
-
-**Phase:** 4
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #17: user-profile-editing
-
-**Brief:** Build a profile editing screen where users can update their display name and profile picture. Implement PHPicker integration to allow users to select photos from their device photo library. Upload profile photos to Firebase Storage with proper compression and store the download URL in the user's Firestore document. Add form validation for display name (character limits, empty checks). Implement real-time profile updates across all app screens (conversation list, chat view, settings). Add loading states during image upload and save operations.
-
-**Dependencies:** PR #3 (user profiles), PR #4 (navigation)
-
-**Complexity:** Medium
-
-**Phase:** 4
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #22: message-timestamp-ui-polish
-
-**Brief:** Implement swipe-to-reveal timestamps functionality where users can slide their own messages left or other users' messages right to reveal the timestamp of when each message was sent. This creates a cleaner, more professional chat experience that follows iOS design patterns and provides access to timing information when needed.
-
-**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
-
-**Complexity:** Simple
-
-**Phase:** 4
-
-**Status:** ✅ COMPLETED
+**Status:** 🎯 9 In Progress/Todo
 
 ---
 
 ## 🎯 Todo / In Progress
 
-### Phase 4: Polish & Notifications (7 Remaining)
+### Phase 1: MVP Polish & UX Enhancement (Ordered by Criticality)
 
-#### PR #16: cloud-functions-and-notification-handling
-
-**Brief:** Write and deploy Firebase Cloud Functions that trigger when new messages are written to Firestore. Functions should identify all chat recipients (excluding sender), fetch their FCM device tokens, and send push notifications with message content and sender information. Implement notification handling on iOS to process received notifications in foreground, background, and terminated app states. Create deep linking logic to navigate users directly to the relevant chat when tapping a notification. Display foreground notifications as in-app banners. Implement notification badge count management and clear notifications when messages are read. Handle both 1-on-1 and group chat notification scenarios.
-
-**Dependencies:** PR #15 (push setup), PR #8 (messaging)
-
-**Complexity:** Complex
-
-**Phase:** 4
-
-**Status:** 🎯 TODO
-
----
-
-#### PR #18: final-polish-and-testing
-
-**Brief:** Complete all remaining polish, error handling, accessibility, and testing tasks. Polish the entire app UI with consistent styling, smooth animations, and iOS Human Interface Guidelines compliance. Implement comprehensive accessibility features (VoiceOver support, Dynamic Type, color contrast, accessible labels). Add haptic feedback for key interactions. Implement thorough error handling for network errors, Firebase errors, authentication failures, and permission denials with user-friendly error messages and retry mechanisms. Handle edge cases (deleted users, deleted chats, malformed data, concurrent modifications). Create comprehensive test coverage including unit tests for all services (AuthenticationService, MessageService, UserService, PresenceService, ChatService), UI tests for critical user flows (auth, messaging, chat creation), and integration tests for Firebase interactions. Test offline scenarios and edge conditions. Perform end-to-end testing of all 10 core MVP requirements. Document test results and fix all discovered bugs.
-
-**Dependencies:** All previous PRs (1-17)
-
-**Complexity:** Complex
-
-**Phase:** 4
-
-**Status:** 🎯 TODO
-
----
-
-#### PR #19: network-simulation-debug-settings
-
-**Brief:** Add DEBUG-only developer settings to the Settings screen enabling QA and developers to simulate various network conditions for thorough testing. Implement three simulation modes: Offline Mode (simulates airplane mode/no connection), Slow Network (adds 3-5 second delays to requests), and Timeout Errors (forces requests to timeout). Create a NetworkSimulator utility class to manage simulation state and integrate it into existing service calls. Add visual feedback including toggle switches in Settings with descriptive labels, a persistent banner at the top of the app when simulations are active, and highlighted row backgrounds for enabled modes. These features are wrapped in #if DEBUG conditionals to ensure they never appear in production builds. This tooling will significantly improve testing efficiency for network error handling, loading states, and offline functionality without requiring physical network manipulation or test devices.
-
-**Dependencies:** PR #4 (settings screen navigation)
-
-**Complexity:** Simple
-
-**Phase:** 4
-
-**Status:** 🎯 TODO
-
----
-
-#### PR #20: authentication-ui-redesign-and-color-scheme
-
-**Brief:** Redesign the authentication screens to be cleaner and less cluttered, focusing on two primary sign-in options (email/password and Google) with a simple sign-up option. Implement a cohesive color scheme inspired by modern weather apps with gradient backgrounds that reflect the app's mood and purpose. Simplify the login screen to show only essential elements: app branding, two sign-in buttons (Email and Google), and a subtle sign-up link. Move the detailed sign-up form to a separate screen accessible only when needed. Apply the new color scheme consistently across all authentication screens with smooth gradients, modern typography, and improved visual hierarchy. Remove visual clutter like excessive dividers, redundant buttons, and overwhelming form elements. Ensure the design follows iOS Human Interface Guidelines while creating a distinctive, modern look that sets Psst apart from generic messaging apps.
-
-**Dependencies:** PR #2 (authentication flow)
-
-**Complexity:** Medium
-
-**Phase:** 4
-
-**Status:** 🎯 TODO
-
----
-
-#### PR #21: profile-photo-upload-reliability-fix
+#### PR #001: profile-photo-upload-reliability-fix
 
 **Brief:** Fix critical user experience issue where new users are unable to upload profile photos on their first attempt, requiring multiple retries. This affects all new users and occurs with both native camera photos and real fence images. The issue appears to be related to threading problems in ProfilePhotoPicker, compression logic failures in UserService.uploadProfilePhoto(), insufficient error handling that doesn't surface upload failures to users, potential Firebase Storage permission issues for first-time uploads, and lack of network state validation before upload attempts. Implement comprehensive error handling with user-friendly error messages, add network connectivity checks before uploads, improve threading safety in image processing pipeline, add retry mechanisms for failed uploads, enhance compression logic with better error handling, and add detailed logging for debugging upload failures. Ensure the fix works reliably for all image types and sizes while maintaining the existing compression and storage security rules.
 
@@ -322,13 +18,13 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Complexity:** Medium
 
-**Phase:** 4
+**Phase:** 1 (MVP Polish)
 
 **Status:** 🎯 TODO
 
 ---
 
-#### PR #23: message-delivery-status-indicator-fix
+#### PR #002: message-delivery-status-indicator-fix
 
 **Brief:** Fix the "Delivered" status indicator to only show on the latest message instead of appearing under every message bubble, matching iOS Messages behavior. Currently, the delivery status appears under all sent messages which creates visual clutter and doesn't follow standard messaging app patterns. Implement logic to track the latest message in each conversation and only display the delivery status indicator on that message, automatically moving the indicator to newer messages as they are sent. This creates a cleaner, more professional chat experience that follows iOS design patterns.
 
@@ -336,21 +32,105 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Complexity:** Medium
 
-**Phase:** 4
+**Phase:** 1 (MVP Polish)
 
 **Status:** 🎯 TODO
 
 ---
 
-#### PR #24: image-caching-and-app-state-persistence
+#### PR #003: presence-indicator-redesign-and-unread-badges
 
-**Brief:** Fix critical user experience issues with image loading and app state management. Implement local image caching to prevent profile photos from refreshing every time users log in, which creates a poor user experience and unnecessary network requests. Add proper app state persistence so users return to the home screen when they close and reopen the app, and maintain their current view when switching between apps in the background. This includes implementing NSCache for profile images with proper cache invalidation, adding app lifecycle state management to remember the last active screen, and ensuring smooth transitions between app states without losing user context.
+**Brief:** Redesign the presence indicator system to use a halo effect around user profile photos instead of the current online/offline circle. Implement unread message indicators that show a blue halo or badge when there are unread messages in a chat. Update the presence system to be more visually appealing and intuitive, with the halo effect providing a cleaner, more modern look. Ensure the unread indicators are clearly visible and update in real-time as messages are read or received. This redesign should improve the overall visual hierarchy and make it easier for users to quickly identify who is online and which chats have unread messages.
 
-**Dependencies:** PR #3 (user profiles), PR #4 (navigation), PR #17 (profile photos)
+**Dependencies:** PR #12 (presence system), PR #14 (read receipts)
 
 **Complexity:** Medium
 
-**Phase:** 4
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #004: group-online-indicators-and-member-status
+
+**Brief:** Implement comprehensive group chat online indicators that show which members are currently online, following WhatsApp/Signal conventions. Currently, the presence system only works for one user at a time, making it difficult to know who's active in group conversations. Add group member online status indicators that display next to each member's name in the group chat header or member list. Show a small green dot or halo effect for online members and gray for offline members. Implement real-time updates so the online status changes immediately when members come online or go offline. This should work seamlessly with the existing presence system and provide clear visual feedback about group activity.
+
+**Dependencies:** PR #12 (presence system), PR #11 (group chat support)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #005: group-read-receipts-detailed-view
+
+**Brief:** Replace the generic "1/2 have read" read receipt display with detailed information showing exactly who has read each message in group chats. Currently, users only see a count of who has read messages, but not the specific names. Implement a detailed read receipt system that shows individual member names who have read each message, similar to WhatsApp's read receipt system. Allow users to tap on read receipts to see a detailed list of who has read the message and when. This should work for both sent and received messages, with clear visual indicators and smooth animations. The system should handle large groups efficiently and provide a professional, intuitive way to track message read status.
+
+**Dependencies:** PR #14 (read receipts), PR #11 (group chat support)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #006: authentication-ui-redesign-and-color-scheme
+
+**Brief:** Redesign the authentication screens to be cleaner and less cluttered, focusing on two primary sign-in options (email/password and Google) with a simple sign-up option. Implement a cohesive color scheme inspired by modern weather apps with gradient backgrounds that reflect the app's mood and purpose. Simplify the login screen to show only essential elements: app branding, two sign-in buttons (Email and Google), and a subtle sign-up link. Move the detailed sign-up form to a separate screen accessible only when needed. Apply the new color scheme consistently across all authentication screens with smooth gradients, modern typography, and improved visual hierarchy. Remove visual clutter like excessive dividers, redundant buttons, and overwhelming form elements. Ensure the design follows iOS Human Interface Guidelines while creating a distinctive, modern look that sets Psst apart from generic messaging apps.
+
+**Dependencies:** PR #2 (authentication flow)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #007: app-launch-loading-screen-and-skeleton
+
+**Brief:** Implement a smooth app launch experience by replacing the brief login screen flash with a proper loading screen or skeleton UI when users reopen the app. Currently, users who were previously logged in see the login screen for a second before being redirected to the main app, creating a jarring user experience. Create a loading screen with app branding, skeleton UI components that match the main app layout, and smooth transitions. The loading screen should appear immediately on app launch while Firebase Authentication checks the user's login status in the background. Once authentication is confirmed, smoothly transition to the main app without showing the login screen. This creates a more professional, seamless user experience that matches modern app standards.
+
+**Dependencies:** PR #2 (authentication flow), PR #4 (app navigation)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #008: message-timestamp-tap-to-reveal
+
+**Brief:** Replace the current swipe gesture for viewing message timestamps with a simple tap interaction. Currently, users must swipe left or right on messages to reveal timestamps, which is not intuitive and can be difficult to discover. Implement a tap-to-reveal system where users can tap on any message to show its timestamp for a few seconds before it automatically fades back. This should work for both sent and received messages, with smooth animations for the timestamp appearance and disappearance. The timestamp should be clearly visible and positioned appropriately relative to the message bubble. This creates a more discoverable and user-friendly way to view message timing information, following modern messaging app patterns.
+
+**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
+
+**Complexity:** Simple
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #009: basic-media-support-and-image-messaging
+
+**Brief:** Implement basic media support to allow users to send and receive images in conversations. This includes adding image picker functionality to the message input, uploading images to Firebase Storage, displaying images in chat messages, and handling image compression for optimal performance. Users should be able to select images from their photo library or take new photos with the camera. Implement proper image loading states, error handling for failed uploads, and thumbnail generation for better performance. Images should display inline within the chat conversation with proper sizing and aspect ratio handling. This basic media support is essential for a complete messaging experience and addresses a core requirement for modern messaging apps.
+
+**Dependencies:** PR #8 (messaging service), PR #17 (user profile editing for image handling)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
 
 **Status:** 🎯 TODO
 
@@ -359,39 +139,13 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 ## 📊 Summary
 
 ### Project Progress
-- **Phase 1 (Foundation):** ✅ 4/4 Complete
-- **Phase 2 (Core Chat):** ✅ 6/6 Complete  
-- **Phase 3 (Group & Presence):** ✅ 3/3 Complete
-- **Phase 4 (Polish & Notifications):** 🎯 4/11 Complete
+- **Phase 1 (MVP Polish):** 🎯 0/9 Complete
 
 ### Overall Status
-- **Total PRs:** 24
-- **Completed:** 17 (71%)
-- **Remaining:** 7 (29%)
+- **Total PRs:** 9
+- **Completed:** 0 (0%)
+- **Remaining:** 9 (100%)
 
 ---
 
-## 🔄 Direction Change After PR #8
-
-After completing PR #8, we identified a critical dependency issue in the original build order:
-
-**The Problem:** PRs 6, 7, and 8 built screens to display and message in chats, but PR #12 (the ability to CREATE chats) wasn't scheduled until later. This meant we couldn't properly test PRs 6-8 without either:
-- Manually creating chat documents in Firestore Console
-- Using MockDataService (DEBUG-only fake data)
-
-**The Solution:** Restructure remaining PRs to:
-1. Prioritize chat creation (move PR #12 logic to NEW PR #9)
-2. Consolidate related features to reduce context switching
-3. Build features in dependency order (create → display → enhance)
-
-**Changes Made:**
-- Original PRs 9-25 (17 PRs) → Consolidated to NEW PRs 9-18 (10 PRs)
-- Chat creation moved from old PR #12 to NEW PR #9 (next immediate task)
-- Related features bundled (e.g., optimistic UI + offline persistence)
-- Server timestamps already implemented in PR #8, so old PR #10 is effectively done
-
-**Result:** More logical build order with fewer, more complete PRs.
-
----
-
-Each PR is designed to deliver a complete, testable piece of functionality that builds incrementally toward the full MVP as defined in the Product Requirements Document.
+Each PR is designed to deliver a complete, testable piece of functionality that builds incrementally toward a polished MVP before adding AI features.

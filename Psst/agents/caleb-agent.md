@@ -24,6 +24,30 @@ When starting, you will receive:
 
 ---
 
+## ⚠️ CRITICAL RULES
+
+### 🚨 NEVER COMMIT WITHOUT USER APPROVAL 🚨
+
+**YOU MUST FOLLOW THESE RULES:**
+
+1. ❌ **DO NOT run `git add` without explicit user permission**
+2. ❌ **DO NOT run `git commit` without explicit user permission**
+3. ❌ **DO NOT run `git push` without explicit user permission**
+4. ✅ **ALWAYS wait for user to test the code first**
+5. ✅ **ALWAYS ask "Ready to commit?" after user tests**
+6. ✅ **ONLY commit when user explicitly says "commit it" or "looks good"**
+
+**Workflow:**
+- Complete code changes
+- User tests in Xcode
+- User gives feedback
+- **WAIT FOR EXPLICIT APPROVAL**
+- Only then: commit
+
+**If you attempt to commit before approval, you are FAILING your job.**
+
+---
+
 ## Workflow
 
 ### Step 1: Setup
@@ -51,9 +75,29 @@ git checkout -b feat/pr-{number}-{feature-name}
 
 **Follow TODO list exactly:**
 - Complete tasks in order (top to bottom)
-- **CHECK OFF each task immediately after completing it**
+- **🚨 CRITICAL: CHECK OFF each task immediately after completing it 🚨**
+- **ALWAYS update TODO file with `[x]` when task is done**
+- **NEVER leave tasks unchecked - this is mandatory**
 - If blocked, document in TODO
 - Keep PRD open as reference
+
+#### TODO Management Rules
+**MANDATORY TODO CHECKING:**
+1. **After completing ANY task:** Immediately update TODO file
+2. **Change `- [ ]` to `- [x]`** when task is done
+3. **Use search_replace tool** to update TODO file
+4. **Never skip this step** - it's how we track progress
+5. **If you forget:** Go back and check off completed tasks
+6. **All tasks must be checked off** before creating PR
+
+**Example:**
+```markdown
+# Before completing task:
+- [ ] Create ChatView.swift
+
+# After completing task:
+- [x] Create ChatView.swift
+```
 
 **Code quality:**
 - Follow patterns in `Psst/agents/shared-standards.md`
@@ -94,38 +138,62 @@ Check every gate from PRD Section 12:
 **If any gate fails:**
 1. Document failure in TODO
 2. Fix issue
-3. Re-run tests
-4. Don't proceed until all pass
+3. **CHECK OFF the fix task in TODO when completed**
+4. Re-run tests
+5. Don't proceed until all pass
 
-### Step 6: Verify With User (Before PR)
+### Step 6: Verify With User (Before Committing)
 
-**BEFORE creating PR:**
+**🚨 CRITICAL: STOP HERE AND WAIT FOR USER 🚨**
 
-1. **Build and run:**
-   ```bash
-   xcodebuild -scheme Psst -destination 'platform=iOS Simulator,name=iPhone 15' build
+**BEFORE doing ANYTHING with git:**
+
+1. **Inform user that code is ready for testing:**
+   ```
+   "Code changes complete. Ready for you to test.
+   
+   Please:
+   - Build and run in Xcode
+   - Test the feature
+   - Check console logs
+   - Verify acceptance gates
+   
+   Let me know when ready to commit."
    ```
 
-2. **Test end-to-end:**
+2. **WAIT for user to test** - DO NOT PROCEED
+
+3. **User will test:**
    - Does it work as described?
    - Any bugs or unexpected behaviors?
    - Smooth and responsive?
+   - Console logs look correct?
 
-3. **Confirm with user:**
-   ```
-   "Feature complete. All tests pass. All acceptance gates pass. 
-   No bugs found. Ready to create PR?"
-   ```
+4. **WAIT for explicit approval:**
+   - ✅ User says: "commit it" / "looks good" / "ready to commit"
+   - ❌ User says: "found issue" → Fix and repeat
+   - ❌ User says: "wait" → STOP and wait
 
-4. **Wait for user approval** before proceeding
+5. **ONLY AFTER APPROVAL:** Proceed to commit
 
 **If user finds issues:**
 - Document in TODO
 - Fix issues
-- Re-run tests
-- Verify again
+- **CHECK OFF the fix task in TODO when completed**
+- WAIT for user to test again
+- WAIT for approval again
 
-### Step 7: Create Pull Request
+### Step 7: Commit Changes (ONLY AFTER USER APPROVAL)
+
+**⚠️ PREREQUISITE: User has tested and explicitly approved ⚠️**
+
+```bash
+git add .
+git commit -m "feat: [descriptive commit message]"
+git push origin feat/pr-{number}-{feature-name}
+```
+
+### Step 8: Create Pull Request
 
 **IMPORTANT: PR must target `develop` branch, NOT `main`**
 
@@ -243,7 +311,7 @@ Before submitting PR, review using checklist in `Psst/agents/shared-standards.md
 ## Success Criteria
 
 **PR ready for USER review when:**
-- ✅ All TODO items checked off
+- ✅ **ALL TODO items checked off (MANDATORY)**
 - ✅ All automated tests pass
 - ✅ All acceptance gates pass
 - ✅ Code review self-checklist complete (shared-standards.md)
@@ -272,7 +340,8 @@ git checkout -b feat/pr-1-message-send
 
 # 3. Implement (follow TODO)
 # - Add views, services, models
-# - Check off each task as completed
+# - **CHECK OFF each task immediately after completing it**
+# - **ALWAYS update TODO file with [x] when done**
 # - Document any blockers in TODO
 
 # 4. Write tests
