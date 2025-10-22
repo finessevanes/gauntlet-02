@@ -30,7 +30,7 @@ struct MessageStatusIndicator: View {
                 failedIndicator
                 
             case .delivered, .none:
-                // No indicator for delivered messages
+                // No indicator for delivered messages or messages without status
                 EmptyView()
             }
         }
@@ -39,10 +39,11 @@ struct MessageStatusIndicator: View {
     // MARK: - Subviews
     
     /// Gray "Sending..." text for optimistic messages
+    /// PR #21: Enhanced for better dark mode visibility
     private var sendingIndicator: some View {
         Text("Sending...")
             .font(.caption)
-            .foregroundColor(.gray)
+            .foregroundColor(.secondary) // Use semantic color for better dark mode support
     }
     
     /// Yellow "Queued" badge for offline messages
@@ -70,6 +71,7 @@ struct MessageStatusIndicator: View {
             onRetry?()
         }
     }
+    
 }
 
 // MARK: - Preview
@@ -127,6 +129,19 @@ struct MessageStatusIndicator: View {
         }
         
         MessageStatusIndicator(status: .delivered, onRetry: nil)
+        
+        Divider()
+        
+        HStack {
+            Text("Message bubble")
+                .padding()
+                .background(Color.blue.opacity(0.2))
+                .cornerRadius(12)
+            
+            Spacer()
+        }
+        
+        MessageStatusIndicator(status: .none, onRetry: nil)
     }
     .padding()
 }

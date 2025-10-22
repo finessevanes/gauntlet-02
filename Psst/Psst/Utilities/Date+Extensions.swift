@@ -58,5 +58,46 @@ extension Date {
         dateFormatter.dateFormat = "MMM d"
         return dateFormatter.string(from: self)
     }
+    
+    /// Format timestamp for swipe reveal display (PR #21)
+    /// Matches iOS Messages format: "2:30 PM", "Yesterday 2:30 PM", etc.
+    /// - Returns: Formatted timestamp string for message display
+    func formattedTimestamp() -> String {
+        let calendar = Calendar.current
+        let now = Date()
+        
+        // Same day: show time only (e.g., "2:30 PM")
+        if calendar.isDateInToday(self) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"
+            return formatter.string(from: self)
+        }
+        
+        // Yesterday: show "Yesterday" + time (e.g., "Yesterday 2:30 PM")
+        if calendar.isDateInYesterday(self) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "h:mm a"
+            return "Yesterday \(formatter.string(from: self))"
+        }
+        
+        // This week: show day + time (e.g., "Monday 2:30 PM")
+        if calendar.dateInterval(of: .weekOfYear, for: now)?.contains(self) == true {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "EEEE h:mm a"
+            return formatter.string(from: self)
+        }
+        
+        // This year: show date + time (e.g., "Jan 15, 2:30 PM")
+        if calendar.component(.year, from: self) == calendar.component(.year, from: now) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, h:mm a"
+            return formatter.string(from: self)
+        }
+        
+        // Different year: show full date + time (e.g., "Jan 15, 2023 2:30 PM")
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM d, yyyy h:mm a"
+        return formatter.string(from: self)
+    }
 }
 

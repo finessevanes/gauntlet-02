@@ -77,12 +77,20 @@ struct MessageInputView: View {
         if trimmed.isEmpty {
             // User deleted all text - stop typing
             Task {
-                try? await typingIndicatorService.stopTyping(chatID: chatID, userID: userID)
+                do {
+                    try await typingIndicatorService.stopTyping(chatID: chatID, userID: userID)
+                } catch {
+                    print("[MessageInputView] Error stopping typing: \(error.localizedDescription)")
+                }
             }
         } else {
             // User is typing - broadcast status (throttled automatically)
             Task {
-                try? await typingIndicatorService.startTyping(chatID: chatID, userID: userID)
+                do {
+                    try await typingIndicatorService.startTyping(chatID: chatID, userID: userID)
+                } catch {
+                    print("[MessageInputView] Error starting typing: \(error.localizedDescription)")
+                }
             }
         }
     }
