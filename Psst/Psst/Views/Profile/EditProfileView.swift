@@ -33,6 +33,9 @@ struct EditProfileView: View {
     /// Saving state during profile update
     @State private var isSaving = false
     
+    /// Error from photo picker (validation errors)
+    @State private var pickerError: ProfilePhotoError? = nil
+    
     /// Error message to display
     @State private var errorMessage: String? = nil
     
@@ -52,9 +55,10 @@ struct EditProfileView: View {
                 // Profile Photo Section
                 Section {
                     VStack(spacing: 16) {
-                        // Photo Preview
+                        // Photo Preview (with cache support)
                         ProfilePhotoPreview(
                             imageURL: user.photoURL,
+                            userID: user.id,
                             selectedImage: selectedImage,
                             isLoading: isSaving && selectedImage != nil,
                             size: 120
@@ -128,7 +132,14 @@ struct EditProfileView: View {
                 }
             }
             .sheet(isPresented: $showPhotoPicker) {
-                ProfilePhotoPicker(selectedImage: $selectedImage)
+                ProfilePhotoPicker(selectedImage: $selectedImage, error: $pickerError)
+            }
+            .onChange(of: pickerError) { oldValue, newValue in
+                // Show error alert if picker error occurs
+                if let error = newValue {
+                    errorMessage = error.localizedDescription
+                    showError = true
+                }
             }
             .alert("Error", isPresented: $showError) {
                 Button("OK") {
@@ -181,6 +192,7 @@ struct EditProfileView: View {
     // MARK: - Methods
     
     /// Saves profile changes to Firebase
+    /// All image processing happens on background threads via UserService
     @MainActor
     private func saveProfile() async {
         // Set saving state
@@ -198,9 +210,16 @@ struct EditProfileView: View {
             var photoURL: String? = nil
             
             // Upload photo if selected
-            if let selectedImage = selectedImage,
-               let imageData = selectedImage.jpegData(compressionQuality: 0.8) {
+            if let selectedImage = selectedImage {
                 print("[EditProfileView] Uploading profile photo...")
+                
+                // Convert image to data on background thread (handled in UserService)
+                // No compression here - UserService handles all image processing on background threads
+                guard let imageData = selectedImage.pngData() else {
+                    throw ProfilePhotoError.invalidImageData
+                }
+                
+                // Upload (UserService will validate, compress on background thread, and upload)
                 photoURL = try await UserService.shared.uploadProfilePhoto(
                     uid: user.id,
                     imageData: imageData
@@ -222,7 +241,21 @@ struct EditProfileView: View {
             // Dismiss view
             dismiss()
             
+        } catch let error as ProfilePhotoError {
+            // Handle specific profile photo errors with user-friendly messages
+            print("[EditProfileView] ❌ Profile photo error: \(error.localizedDescription ?? "unknown")")
+            
+            errorMessage = error.localizedDescription
+            
+            // Add recovery suggestion if available
+            if let suggestion = error.recoverySuggestion {
+                errorMessage = (errorMessage ?? "") + "\n\n" + suggestion
+            }
+            
+            showError = true
+            
         } catch {
+            // Handle other errors
             print("[EditProfileView] ❌ Failed to save profile: \(error.localizedDescription)")
             errorMessage = error.localizedDescription
             showError = true
