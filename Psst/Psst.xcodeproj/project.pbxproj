@@ -60,21 +60,11 @@
 		265951992EA6D27F00B5C739 /* PsstUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PsstUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		2615AFCA2EA73E0A00F56968 /* Exceptions for "Psst" folder in "Psst" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 2659517E2EA6D27E00B5C739 /* Psst */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		265951812EA6D27E00B5C739 /* Psst */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				2615AFCA2EA73E0A00F56968 /* Exceptions for "Psst" folder in "Psst" target */,
+				265951B02EA6D27E00B5C739 /* Exceptions for "Psst" folder in "Psst" target */,
 			);
 			path = Psst;
 			sourceTree = "<group>";
@@ -90,6 +80,16 @@
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		265951B02EA6D27E00B5C739 /* Exceptions for "Psst" folder in "Psst" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2659517E2EA6D27E00B5C739 /* Psst */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		2659517C2EA6D27E00B5C739 /* Frameworks */ = {
