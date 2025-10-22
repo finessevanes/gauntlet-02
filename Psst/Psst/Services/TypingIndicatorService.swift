@@ -41,6 +41,12 @@ class TypingIndicatorService: ObservableObject {
     ///   - userID: The user's Firebase UID
     /// - Throws: Firebase database errors
     func startTyping(chatID: String, userID: String) async throws {
+        // Validate parameters
+        guard !chatID.isEmpty, !userID.isEmpty else {
+            print("[TypingIndicatorService] ✗ Invalid parameters: chatID=\(chatID), userID=\(userID)")
+            return
+        }
+        
         // Debounce: Check if we recently broadcasted
         let key = "\(chatID)_\(userID)"
         if let lastBroadcast = lastBroadcastTime[key],
@@ -81,6 +87,12 @@ class TypingIndicatorService: ObservableObject {
     ///   - userID: The user's Firebase UID
     /// - Throws: Firebase database errors
     func stopTyping(chatID: String, userID: String) async throws {
+        // Validate parameters
+        guard !chatID.isEmpty, !userID.isEmpty else {
+            print("[TypingIndicatorService] ✗ Invalid parameters: chatID=\(chatID), userID=\(userID)")
+            return
+        }
+        
         let typingRef = database.child("typing").child(chatID).child(userID)
         
         do {
