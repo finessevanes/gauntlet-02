@@ -295,6 +295,68 @@ After completing PR #8, we identified a critical dependency issue in the origina
 
 ---
 
+### PR #20: authentication-ui-redesign-and-color-scheme
+
+**Brief:** Redesign the authentication screens to be cleaner and less cluttered, focusing on two primary sign-in options (email/password and Google) with a simple sign-up option. Implement a cohesive color scheme inspired by modern weather apps with gradient backgrounds that reflect the app's mood and purpose. Simplify the login screen to show only essential elements: app branding, two sign-in buttons (Email and Google), and a subtle sign-up link. Move the detailed sign-up form to a separate screen accessible only when needed. Apply the new color scheme consistently across all authentication screens with smooth gradients, modern typography, and improved visual hierarchy. Remove visual clutter like excessive dividers, redundant buttons, and overwhelming form elements. Ensure the design follows iOS Human Interface Guidelines while creating a distinctive, modern look that sets Psst apart from generic messaging apps.
+
+**Dependencies:** PR #2 (authentication flow)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
+### PR #21: profile-photo-upload-reliability-fix
+
+**Brief:** Fix critical user experience issue where new users are unable to upload profile photos on their first attempt, requiring multiple retries. This affects all new users and occurs with both native camera photos and real fence images. The issue appears to be related to threading problems in ProfilePhotoPicker, compression logic failures in UserService.uploadProfilePhoto(), insufficient error handling that doesn't surface upload failures to users, potential Firebase Storage permission issues for first-time uploads, and lack of network state validation before upload attempts. Implement comprehensive error handling with user-friendly error messages, add network connectivity checks before uploads, improve threading safety in image processing pipeline, add retry mechanisms for failed uploads, enhance compression logic with better error handling, and add detailed logging for debugging upload failures. Ensure the fix works reliably for all image types and sizes while maintaining the existing compression and storage security rules.
+
+**Dependencies:** PR #17 (user profile editing)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
+### PR #22: message-timestamp-ui-polish
+
+**Brief:** Implement swipe-to-reveal timestamps functionality where users can slide their own messages left or other users' messages right to reveal the timestamp of when each message was sent. This creates a cleaner, more professional chat experience that follows iOS design patterns and provides access to timing information when needed.
+
+**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
+
+**Complexity:** Simple
+
+**Phase:** 4
+
+**Status:** ✅ COMPLETED
+
+---
+
+### PR #23: message-delivery-status-indicator-fix
+
+**Brief:** Fix the "Delivered" status indicator to only show on the latest message instead of appearing under every message bubble, matching iOS Messages behavior. Currently, the delivery status appears under all sent messages which creates visual clutter and doesn't follow standard messaging app patterns. Implement logic to track the latest message in each conversation and only display the delivery status indicator on that message, automatically moving the indicator to newer messages as they are sent. This creates a cleaner, more professional chat experience that follows iOS design patterns.
+
+**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
+### PR #24: image-caching-and-app-state-persistence
+
+**Brief:** Fix critical user experience issues with image loading and app state management. Implement local image caching to prevent profile photos from refreshing every time users log in, which creates a poor user experience and unnecessary network requests. Add proper app state persistence so users return to the home screen when they close and reopen the app, and maintain their current view when switching between apps in the background. This includes implementing NSCache for profile images with proper cache invalidation, adding app lifecycle state management to remember the last active screen, and ensuring smooth transitions between app states without losing user context.
+
+**Dependencies:** PR #3 (user profiles), PR #4 (navigation), PR #17 (profile photos)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
 ## Summary
 
 ### Original Plan

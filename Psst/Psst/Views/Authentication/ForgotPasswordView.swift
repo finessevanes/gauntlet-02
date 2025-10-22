@@ -2,14 +2,14 @@
 //  ForgotPasswordView.swift
 //  Psst
 //
-//  Created by Caleb (Coder Agent) - PR #2
-//  Password reset screen
+//  Created by Caleb (Coder Agent) - PR #20
+//  Redesigned password reset screen with gradient background
 //
 
 import SwiftUI
 
-/// Forgot password view for password reset
-/// Allows users to request a password reset email
+/// Redesigned forgot password view with clean, modern interface
+/// Features gradient background and consistent styling
 struct ForgotPasswordView: View {
     // MARK: - State Management
     
@@ -23,24 +23,23 @@ struct ForgotPasswordView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Background
-                Color(.systemBackground)
-                    .ignoresSafeArea()
+                // Gradient Background
+                GradientBackground.primary()
                 
-                VStack(spacing: 24) {
-                    // Logo/Title Section
-                    VStack(spacing: 12) {
+                VStack(spacing: 32) {
+                    // Header Section
+                    VStack(spacing: 16) {
                         Image(systemName: "key.fill")
-                            .font(.system(size: 72))
-                            .foregroundColor(.blue)
+                            .font(.system(size: 48))
+                            .foregroundColor(.white)
                         
                         Text("Reset Password")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(PsstTypography.largeTitle)
+                            .foregroundColor(.white)
                         
                         Text("Enter your email address and we'll send you a link to reset your password.")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                            .font(PsstTypography.body)
+                            .foregroundColor(Color.white.opacity(0.85))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -48,12 +47,12 @@ struct ForgotPasswordView: View {
                     .padding(.bottom, 20)
                     
                     // Email Form
-                    VStack(spacing: 16) {
+                    VStack(spacing: 20) {
                         // Email Field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Email")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
+                                .font(PsstTypography.headline)
+                                .foregroundColor(.white)
                             
                             TextField("Enter your email", text: $email)
                                 .textFieldStyle(.roundedBorder)
@@ -65,29 +64,15 @@ struct ForgotPasswordView: View {
                         }
                         
                         // Send Reset Link Button
-                        Button(action: {
+                        AuthenticationButton.primary(
+                            title: "Send Reset Link",
+                            isLoading: viewModel.isLoading
+                        ) {
                             Task {
                                 await viewModel.resetPassword(email: email)
                             }
-                        }) {
-                            HStack {
-                                if viewModel.isLoading {
-                                    ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                } else {
-                                    Text("Send Reset Link")
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
                         }
-                        .disabled(viewModel.isLoading || email.isEmpty)
-                        .opacity((viewModel.isLoading || email.isEmpty) ? 0.6 : 1.0)
-                        .accessibilityIdentifier("Send Reset Link")
+                        .disabled(email.isEmpty)
                     }
                     .padding(.horizontal, 24)
                     
@@ -95,8 +80,8 @@ struct ForgotPasswordView: View {
                     Button("Back to Sign In") {
                         dismiss()
                     }
-                    .font(.footnote)
-                    .foregroundColor(.blue)
+                    .font(PsstTypography.caption)
+                    .foregroundColor(.white)
                     .disabled(viewModel.isLoading)
                     .padding(.top, 8)
                     .accessibilityIdentifier("Back to Sign In")
@@ -114,7 +99,7 @@ struct ForgotPasswordView: View {
                                 .font(.footnote)
                         }
                         .padding()
-                        .background(Color.red.opacity(0.9))
+                        .background(PsstColors.error.opacity(0.9))
                         .foregroundColor(.white)
                         .cornerRadius(12)
                         .padding()
@@ -136,7 +121,7 @@ struct ForgotPasswordView: View {
                                 .font(.footnote)
                         }
                         .padding()
-                        .background(Color.green.opacity(0.9))
+                        .background(PsstColors.success.opacity(0.9))
                         .foregroundColor(.white)
                         .cornerRadius(12)
                         .padding()
@@ -153,10 +138,10 @@ struct ForgotPasswordView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
-                            .foregroundColor(.secondary)
+                            .foregroundColor(.white)
                     }
                     .disabled(viewModel.isLoading)
-                    .accessibilityIdentifier("xmark")
+                    .accessibilityIdentifier("closeButton")
                 }
             }
         }
