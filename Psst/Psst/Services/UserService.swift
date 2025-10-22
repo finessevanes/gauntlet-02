@@ -345,9 +345,10 @@ class UserService {
         }
         
         // Attempt compression FIRST (this handles large images)
+        // Target: 1500KB (increased from 1000KB for better image quality)
         let compressedData: Data
         do {
-            compressedData = try await compressImage(image, maxSizeKB: 1000)
+            compressedData = try await compressImage(image, maxSizeKB: 1500)
             print("[UserService] ✅ Compression complete: \(compressedData.count) bytes")
         } catch {
             print("[UserService] ❌ Compression failed: \(error.localizedDescription)")
@@ -460,10 +461,10 @@ class UserService {
     /// Compresses an image to target size with quality fallback
     /// - Parameters:
     ///   - image: UIImage to compress
-    ///   - maxSizeKB: Maximum size in kilobytes (default: 500KB)
+    ///   - maxSizeKB: Maximum size in kilobytes (default: 1500KB)
     /// - Returns: Compressed image data
     /// - Throws: ProfilePhotoError.compressionFailed if compression fails
-    func compressImage(_ image: UIImage, maxSizeKB: Int = 500) async throws -> Data {
+    func compressImage(_ image: UIImage, maxSizeKB: Int = 1500) async throws -> Data {
         return try await withCheckedThrowingContinuation { continuation in
             // Run compression on background thread to avoid blocking UI
             DispatchQueue.global(qos: .userInitiated).async {

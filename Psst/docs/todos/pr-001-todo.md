@@ -42,6 +42,7 @@ Implement deterministic service contracts from PRD.
   - Test Gate: Specific errors for network, size, format, permissions
   - Test Gate: Proper async/await threading patterns
   - Test Gate: Detailed logging for all failure scenarios
+  - ✅ **FIXED**: Changed validation order to compress THEN validate (allows large images to be compressed before size validation)
   
 ### Image Validation and Compression
 - [x] Add UserService.validateImageData() method
@@ -54,6 +55,7 @@ Implement deterministic service contracts from PRD.
   - Test Gate: Memory-efficient compression for large images
   - Test Gate: Graceful error handling for compression failures
   - Test Gate: Fallback quality options if compression fails
+  - ✅ **OPTIMIZED**: Increased compression target from 1000KB → 1500KB for better image quality (36% larger files, but 66% better quality retention)
   
 ### Network Validation
 - [x] Add UserService.checkNetworkConnectivity() method
@@ -93,6 +95,7 @@ Implement deterministic service contracts from PRD.
 
 - [x] Verify existing User model supports profilePhotoURL field
   - Test Gate: profilePhotoURL field exists and is optional String
+  - ✅ **FIXED**: Added custom decoder to handle missing createdAt/updatedAt fields gracefully (prevents decoding errors for existing users)
 
 ### Firebase Storage Security Rules
 - [x] Review Firebase Storage security rules for authenticated uploads
@@ -172,6 +175,7 @@ Reference requirements from `Psst/agents/shared-standards.md`.
   - Test Gate: Upload succeeds and returns valid Storage URL
   - Test Gate: Upload path follows pattern: profile_photos/{userId}/profile.jpg
   - Test Gate: Storage URL saved to User document in Firestore
+  - ✅ **FIXED**: Added retry logic with exponential backoff to handle Firebase Storage propagation delays (404 errors immediately after upload)
   
 - [ ] Test Firebase Storage permissions and security (USER TESTING REQUIRED)
   - Test Gate: Authenticated users can upload to own folder
