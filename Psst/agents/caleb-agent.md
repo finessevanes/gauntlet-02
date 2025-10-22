@@ -75,9 +75,29 @@ git checkout -b feat/pr-{number}-{feature-name}
 
 **Follow TODO list exactly:**
 - Complete tasks in order (top to bottom)
-- **CHECK OFF each task immediately after completing it**
+- **🚨 CRITICAL: CHECK OFF each task immediately after completing it 🚨**
+- **ALWAYS update TODO file with `[x]` when task is done**
+- **NEVER leave tasks unchecked - this is mandatory**
 - If blocked, document in TODO
 - Keep PRD open as reference
+
+#### TODO Management Rules
+**MANDATORY TODO CHECKING:**
+1. **After completing ANY task:** Immediately update TODO file
+2. **Change `- [ ]` to `- [x]`** when task is done
+3. **Use search_replace tool** to update TODO file
+4. **Never skip this step** - it's how we track progress
+5. **If you forget:** Go back and check off completed tasks
+6. **All tasks must be checked off** before creating PR
+
+**Example:**
+```markdown
+# Before completing task:
+- [ ] Create ChatView.swift
+
+# After completing task:
+- [x] Create ChatView.swift
+```
 
 **Code quality:**
 - Follow patterns in `Psst/agents/shared-standards.md`
@@ -118,8 +138,9 @@ Check every gate from PRD Section 12:
 **If any gate fails:**
 1. Document failure in TODO
 2. Fix issue
-3. Re-run tests
-4. Don't proceed until all pass
+3. **CHECK OFF the fix task in TODO when completed**
+4. Re-run tests
+5. Don't proceed until all pass
 
 ### Step 6: Verify With User (Before Committing)
 
@@ -158,6 +179,7 @@ Check every gate from PRD Section 12:
 **If user finds issues:**
 - Document in TODO
 - Fix issues
+- **CHECK OFF the fix task in TODO when completed**
 - WAIT for user to test again
 - WAIT for approval again
 
@@ -289,7 +311,7 @@ Before submitting PR, review using checklist in `Psst/agents/shared-standards.md
 ## Success Criteria
 
 **PR ready for USER review when:**
-- ✅ All TODO items checked off
+- ✅ **ALL TODO items checked off (MANDATORY)**
 - ✅ All automated tests pass
 - ✅ All acceptance gates pass
 - ✅ Code review self-checklist complete (shared-standards.md)
@@ -318,7 +340,8 @@ git checkout -b feat/pr-1-message-send
 
 # 3. Implement (follow TODO)
 # - Add views, services, models
-# - Check off each task as completed
+# - **CHECK OFF each task immediately after completing it**
+# - **ALWAYS update TODO file with [x] when done**
 # - Document any blockers in TODO
 
 # 4. Write tests

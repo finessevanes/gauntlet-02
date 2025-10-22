@@ -2,7 +2,7 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** ✅ 17 Completed | 🎯 8 In Progress/Todo
+**Status:** ✅ 17 Completed | 🎯 9 In Progress/Todo
 
 ---
 
@@ -256,7 +256,7 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ## 🎯 Todo / In Progress
 
-### Phase 4: Polish & Notifications (7 Remaining)
+### Phase 4: Polish & Notifications (8 Remaining)
 
 #### PR #16: cloud-functions-and-notification-handling
 
@@ -370,18 +370,32 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
+#### PR #26: message-input-view-refactor-and-enhancements
+
+**Brief:** Refactor MessageInputView to fix critical UX issues and improve code quality. Currently, users cannot press Enter/Return to send messages on hardware keyboards or via the on-screen keyboard, which is standard messaging app behavior. Additionally, the component lacks proper focus management, accessibility support, task lifecycle cleanup, and error handling. This PR implements Enter key submission support with proper keyboard handling, focus state management to dismiss keyboard after sending, comprehensive accessibility labels and hints for VoiceOver support, proper Task cancellation to prevent memory leaks, cleanup on view disappear to clear typing status, and haptic feedback for better user experience. The refactor also extracts magic numbers into constants, improves error handling with optional callbacks, and enhances preview providers with mock services for better development workflow.
+
+**Dependencies:** PR #7 (chat view UI), PR #13 (typing indicators)
+
+**Complexity:** Simple
+
+**Phase:** 4 (Polish)
+
+**Status:** 🎯 TODO
+
+---
+
 ## 📊 Summary
 
 ### Project Progress
 - **Phase 1 (Foundation):** ✅ 4/4 Complete
 - **Phase 2 (Core Chat):** ✅ 6/6 Complete  
 - **Phase 3 (Group & Presence):** ✅ 3/3 Complete
-- **Phase 4 (Polish & Notifications):** 🎯 4/11 Complete
+- **Phase 4 (Polish & Notifications):** 🎯 4/12 Complete
 
 ### Overall Status
-- **Total PRs:** 25
-- **Completed:** 17 (68%)
-- **Remaining:** 8 (32%)
+- **Total PRs:** 26
+- **Completed:** 17 (65%)
+- **Remaining:** 9 (35%)
 
 ---
 
