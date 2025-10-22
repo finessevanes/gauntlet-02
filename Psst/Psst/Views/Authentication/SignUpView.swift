@@ -53,7 +53,7 @@ struct SignUpView: View {
                                         .fill(PsstColors.primaryGreen)
                                         .frame(width: 80, height: 80)
                                     
-                                    Image(systemName: "person.crop.circle.fill.badge.plus")
+                                    Image(systemName: "person.crop.circle.fill")
                                         .font(.system(size: 32, weight: .medium))
                                         .foregroundColor(.white)
                                 }

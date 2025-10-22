@@ -12,6 +12,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import UserNotifications
 import UIKit
+import SwiftUI
 
 /// Service for managing push notifications, device tokens, and permission requests
 /// Handles APNs registration, FCM token management, and Firestore token storage
@@ -24,6 +25,9 @@ class NotificationService: NSObject, ObservableObject {
     
     /// Firebase Cloud Messaging device token for push notifications
     @Published var fcmToken: String?
+    
+    /// Deep link handler for notification navigation
+    @Published var deepLinkHandler = DeepLinkHandler()
     
     // MARK: - Private Properties
     
@@ -49,7 +53,7 @@ class NotificationService: NSObject, ObservableObject {
     /// - Returns: Bool indicating if permission was granted
     /// - Throws: Error if permission request fails
     func requestPermission() async throws -> Bool {
-        let options: UNAuthorizationOptions = [.alert, .sound, .badge]
+        let options: UNAuthorizationOptions = [.alert, .sound]
         let granted = try await notificationCenter.requestAuthorization(options: options)
         
         await MainActor.run {
@@ -155,14 +159,53 @@ class NotificationService: NSObject, ObservableObject {
     func refreshFCMToken() async {
         print("[NotificationService] 🔄 Refreshing FCM token...")
         
+        // Check if we have permission first
+        let status = await checkPermissionStatus()
+        guard status == .authorized else {
+            print("[NotificationService] ⚠️ No notification permission, skipping FCM token refresh")
+            return
+        }
+        
         do {
             let token = try await Messaging.messaging().token()
             print("[NotificationService] 🔥 Refreshed FCM token: \(token)")
             didReceiveFCMToken(token)
         } catch {
             print("[NotificationService] ❌ Failed to refresh FCM token: \(error.localizedDescription)")
+            
+            // If it's the APNs token error, we'll wait for the APNs token to be set
+            if error.localizedDescription.contains("No APNS token") {
+                print("[NotificationService] ⏳ Waiting for APNs token to be registered...")
+                // The FCM token will be automatically refreshed when APNs token is set
+            }
         }
     }
+    
+    // MARK: - Deep Link Handling
+    
+    /// Handle notification tap and process deep link
+    /// - Parameter userInfo: Notification user info dictionary
+    /// - Returns: Bool indicating if deep link was processed
+    func handleNotificationTap(_ userInfo: [AnyHashable: Any]) -> Bool {
+        print("[NotificationService] 👆 Handling notification tap")
+        
+        // Process deep link data
+        let success = deepLinkHandler.processNotificationData(userInfo)
+        
+        if success {
+            print("[NotificationService] ✅ Deep link processed successfully")
+        } else {
+            print("[NotificationService] ❌ Failed to process deep link")
+        }
+        
+        return success
+    }
+    
+    /// Clear deep link target after navigation
+    func clearDeepLink() {
+        deepLinkHandler.clearDeepLink()
+    }
+    
 }
 
 // MARK: - MessagingDelegate

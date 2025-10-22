@@ -96,7 +96,7 @@ struct ProfileView: View {
                     } else {
                         // No user logged in (shouldn't happen)
                         VStack {
-                            Image(systemName: "person.crop.circle.badge.exclamationmark")
+                            Image(systemName: "person.crop.circle")
                                 .font(.system(size: 72))
                                 .foregroundColor(.gray)
                             

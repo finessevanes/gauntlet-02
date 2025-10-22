@@ -171,7 +171,7 @@ struct UserSelectionView: View {
     /// Empty state when no users exist in database
     private var emptyStateView: some View {
         VStack(spacing: 20) {
-            Image(systemName: "person.crop.circle.badge.questionmark")
+            Image(systemName: "person.crop.circle")
                 .font(.system(size: 64))
                 .foregroundColor(.gray)
             

@@ -53,6 +53,9 @@ struct RootView: View {
                         let granted = try await notificationService.requestPermission()
                         hasRequestedPermission = true
                         print("[RootView] Notification permission: \(granted ? "granted" : "denied")")
+                        
+                        // If permission granted, the FCM token will be refreshed automatically
+                        // when the APNs token is received in AppDelegate
                     } catch {
                         print("[RootView] Error requesting permission: \(error.localizedDescription)")
                         hasRequestedPermission = true // Don't ask again even if error

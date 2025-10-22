@@ -55,10 +55,15 @@ struct PsstApp: App {
                     // Handle Google Sign-In callback URL
                     GIDSignIn.sharedInstance.handle(url)
                 }
-                .onAppear {
-                    Task {
-                        await notificationService.refreshFCMToken()
+                .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
+                    if let chatId = newChatId {
+                        print("[PsstApp] 🧭 Deep link target chat: \(chatId)")
+                        // Navigation will be handled by the UI layer
                     }
+                }
+                .onAppear {
+                    // FCM token will be refreshed after APNs token is received
+                    print("[PsstApp] 📱 App appeared, waiting for APNs token...")
                 }
                 .onChange(of: scenePhase) { oldPhase, newPhase in
                     handleScenePhaseChange(newPhase)
@@ -144,6 +149,11 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         // Let FCM SDK know about the token
         Messaging.messaging().apnsToken = deviceToken
+        
+        // Now that we have the APNs token, refresh the FCM token
+        Task {
+            await NotificationService().refreshFCMToken()
+        }
     }
     
     func application(_ application: UIApplication,
@@ -162,7 +172,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
         print("[AppDelegate] 📬 Notification received in foreground")
         
         // Show notification even when app is in foreground
-        completionHandler([.banner, .sound, .badge])
+        completionHandler([.banner, .sound])
     }
     
     /// Handle notification tap
@@ -171,7 +181,16 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
                                withCompletionHandler completionHandler: @escaping () -> Void) {
         print("[AppDelegate] 👆 User tapped notification")
         
-        // Deep linking logic will go here in PR #16
+        // Process deep link through NotificationService
+        let userInfo = response.notification.request.content.userInfo
+        let notificationService = NotificationService()
+        let success = notificationService.handleNotificationTap(userInfo)
+        
+        if success {
+            print("[AppDelegate] ✅ Deep link processed successfully")
+        } else {
+            print("[AppDelegate] ❌ Failed to process deep link")
+        }
         
         completionHandler()
     }
