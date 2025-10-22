@@ -1,5 +1,12 @@
-# Firebase Configuration
+# Firebase Configuration (actual config with API keys - NEVER commit!)
+Psst/GoogleService-Info.plist
 Psst/Psst/GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# Swift Configuration Files (API keys, secrets)
+Psst/Psst/Config.swift
+**/Config.swift
+!**/Config.example.swift
 
 # Xcode
 *.xcuserstate

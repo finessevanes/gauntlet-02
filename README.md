@@ -1,151 +1,608 @@
-# Psst - Real-Time Messaging App
+# Gauntlet-02 🚀
 
-A modern iOS messaging application built with SwiftUI and Firebase.
+A sophisticated iOS development project featuring **Psst** - a modern real-time messaging application built with SwiftUI and Firebase, powered by an intelligent multi-agent development system.
 
-## Firebase Configuration
+[![Swift](https://img.shields.io/badge/Swift-5.9+-orange.svg)](https://swift.org)
+[![iOS](https://img.shields.io/badge/iOS-16.0+-blue.svg)](https://developer.apple.com/ios/)
+[![Firebase](https://img.shields.io/badge/Firebase-10.0+-yellow.svg)](https://firebase.google.com)
+[![Xcode](https://img.shields.io/badge/Xcode-15.0+-blue.svg)](https://developer.apple.com/xcode/)
 
-This project uses Firebase for backend services including Authentication, Firestore Database, Realtime Database, and Cloud Messaging.
+---
 
-### Firebase Project Details
+## 📋 Table of Contents
 
-- **Project Name**: psst
-- **Project ID**: psst-fef89
-- **Project Number**: 505865284795
+- [Overview](#overview)
+- [Agent System](#agent-system)
+- [Quick Start](#quick-start)
+- [Development Workflow](#development-workflow)
+- [Project Structure](#project-structure)
+- [Psst iOS App](#psst-ios-app)
+- [Firebase Configuration](#firebase-configuration)
+- [Testing Strategy](#testing-strategy)
+- [Custom Commands](#custom-commands)
+- [Contributing](#contributing)
 
-### Required Firebase Services
+---
 
-The following Firebase services must be enabled in the Firebase Console:
+## 🎯 Overview
 
-- ✅ **Firebase Authentication** - User sign-up, login, and session management
-- ✅ **Cloud Firestore** - Primary database for messages, chats, and user data
-- ✅ **Realtime Database** - Used for presence indicators and typing status
-- ✅ **Cloud Messaging (FCM)** - Push notifications for new messages
+**Gauntlet-02** is a dual-purpose project:
 
-### Setup Instructions
+1. **Psst Messaging App** - A production-ready iOS messaging application with:
+   - Real-time one-on-one and group messaging
+   - Firebase backend integration
+   - Offline-first architecture
+   - Push notifications
+   - Modern SwiftUI interface
 
-1. **Download GoogleService-Info.plist** ⚠️ **REQUIRED**
-   - Go to [Firebase Console](https://console.firebase.google.com) → Project `psst` (psst-fef89)
-   - Navigate to Project Settings → Your Apps → iOS app
-   - Download `GoogleService-Info.plist`
-   - Place it at: `Psst/Psst/GoogleService-Info.plist`
-   - **Note**: This file is in `.gitignore` for security - you must download it yourself
+2. **Multi-Agent Development System** - An intelligent workflow system with specialized AI agents:
+   - **Brenda** (Brief Creator) - Creates PR briefs from feature requirements
+   - **Pam** (Planning Agent) - Generates detailed PRDs and TODO lists
+   - **Caleb** (Coder Agent) - Implements features following PRDs
 
-2. **Install Firebase SDK via Swift Package Manager**
-   - Open `Psst.xcodeproj` in Xcode
-   - Go to `File` → `Add Package Dependencies`
-   - Enter URL: `https://github.com/firebase/firebase-ios-sdk`
-   - Use the latest stable version (10.x or higher)
-   - Select the following packages:
-     - `FirebaseAuth`
-     - `FirebaseFirestore`
-     - `FirebaseDatabase`
-     - `FirebaseMessaging`
-   - Add all packages to the `Psst` target
+This system enables systematic, well-documented feature development with clear separation of concerns.
 
-3. **Verify Firebase Initialization**
-   - Build and run the app (Cmd+R)
-   - Check Xcode console for: `✅ Firebase configured successfully`
-   - Verify the Project ID matches: `psst-fef89`
+---
 
-### Firebase Architecture
+## 🤖 Agent System
 
-- **FirebaseService.swift** - Centralized Firebase configuration and service access
-- **Offline Persistence** - Firestore offline persistence is enabled for offline-first architecture
-- **Cache Size** - Unlimited cache size to support extensive offline usage
+### The Team
 
-### Troubleshooting
+#### 🎨 Brenda - Brief Creator
+Creates high-level PR briefs from feature requirements.
 
-**Issue**: Build fails with "No such module 'Firebase'"
-- **Solution**: Ensure Firebase SDK is added via Swift Package Manager to the Psst target
-
-**Issue**: Console shows "Could not configure Firebase"
-- **Solution**: Verify `GoogleService-Info.plist` is in the correct location and added to the Psst target
-
-**Issue**: Firebase Console shows app as "not connected"
-- **Solution**: Run the app at least once and check for initialization logs in Xcode console
-
-## Development
-
-### Quick Start - Build & Run
-
-Run the app on iOS Simulator **without opening Xcode**:
-
+**Usage:**
 ```bash
-# Run on iPhone 17 Pro
-./run iphone17
-
-# Run on default simulator (iPhone 15 Pro)
-./run
-
-# List all available simulators
-./run list
+/brenda authentication-system
+/brenda prd-full-features  # Generate all briefs from PRD
 ```
 
-See [`scripts/README.md`](scripts/README.md) for more options and troubleshooting.
+**Output:**
+- Adds entry to `Psst/docs/pr-briefs.md`
+- Assigns next available PR number
+- Defines dependencies, complexity, and phase
+
+---
+
+#### 📝 Pam - Planning Agent
+Transforms PR briefs into detailed PRDs and actionable TODO lists.
+
+**Usage:**
+```bash
+/pam pr-5              # Create PRD, wait for review, then create TODO
+/pam pr-5 yolo         # Create both PRD and TODO without stopping
+```
+
+**Output:**
+- PRD: `Psst/docs/prds/pr-{N}-prd.md`
+- TODO: `Psst/docs/todos/pr-{N}-todo.md`
+
+**YOLO Mode:**
+- `false` (default): Creates PRD → Waits for approval → Creates TODO
+- `true`: Creates both documents without interruption
+
+---
+
+#### 👨‍💻 Caleb - Coder Agent
+Implements features by following PRDs and TODO checklists.
+
+**Usage:**
+```bash
+/caleb pr-3
+```
+
+**What Caleb Does:**
+1. Reads PRD and TODO documents
+2. Implements feature code (Services, Views, ViewModels, Models)
+3. Creates all test files (Unit + UI tests)
+4. Checks off TODO items as completed
+5. Runs tests to verify functionality
+6. Verifies with user before creating PR
+7. Creates PR to `develop` branch when approved
+
+---
+
+### Complete Workflow Example
+
+```bash
+# 1. Create PR brief
+/brenda user-authentication
+→ Assigns PR #3
+
+# 2. Plan the feature
+/pam pr-3
+→ Creates PRD
+→ [Review and approve]
+→ Creates TODO
+
+# 3. Build the feature
+/caleb pr-3
+→ Implements all code
+→ Creates tests
+→ Checks off TODO items
+→ Verifies with user
+→ Creates PR when approved
+```
+
+---
+
+## 🚀 Quick Start
+
+### Prerequisites
+
+- **Xcode** 15.0+
+- **iOS 16.0+**
+- **Firebase Account** (free tier)
+
+### Setup
+
+1. **Clone and open the project**
+   ```bash
+   git clone <repository-url>
+   cd gauntlet-02/Psst
+   open Psst.xcodeproj
+   ```
+
+2. **Get Firebase configuration** ⚠️ **REQUIRED**
+   
+   iOS projects use `.plist` files for configuration (like `.env` in web development):
+   
+   - Go to [Firebase Console](https://console.firebase.google.com/project/psst-fef89)
+   - **Project Settings** → **Your Apps** → **iOS app**
+   - Download `GoogleService-Info.plist`
+   - Save it to: `gauntlet-02/Psst/GoogleService-Info.plist`
+
+3. **Run the app**
+   - In Xcode: Press `Cmd + R`
+   - Or via terminal: `./run`
+
+That's it! You should see the app launch in the simulator.
+
+---
+
+## 🔄 Development Workflow
 
 ### Branch Strategy
 
-- **Base Branch**: `develop`
-- **Feature Branches**: `feat/pr-{number}-{feature-name}`
-- **PR Target**: Always create PRs against `develop`, never `main`
+- **Base Branch:** `develop` (default)
+- **Feature Branches:** `feat/pr-{number}-{feature-name}`
+- **PR Target:** Always create PRs against `develop`, never `main`
 
-### Requirements
+### Feature Development Lifecycle
 
-- Xcode 15.0+
-- iOS 16.0+
-- Swift 5.9+
-- Xcode Command Line Tools (for running via `./run` scripts)
+```
+1. Brief Creation (Brenda)
+   ├─ Define feature scope
+   ├─ Assign PR number
+   └─ Set dependencies & complexity
 
-## Project Structure
+2. Planning (Pam)
+   ├─ Write detailed PRD
+   ├─ Review & approval
+   └─ Generate TODO checklist
+
+3. Implementation (Caleb)
+   ├─ Read PRD + TODO
+   ├─ Implement feature
+   ├─ Create tests
+   ├─ Check off tasks
+   └─ Create PR
+
+4. Review & Merge
+   ├─ Code review
+   ├─ Test verification
+   └─ Merge to develop
+```
+
+---
+
+## 📁 Project Structure
 
 ```
 gauntlet-02/
-├── Psst/
-│   ├── Psst/
-│   │   ├── Services/
+├── Psst/                              # iOS Application
+│   ├── Psst/                          # Main app bundle
+│   │   ├── Services/                  # Business logic layer
+│   │   │   ├── AuthService.swift
+│   │   │   ├── ChatService.swift
+│   │   │   ├── MessageService.swift
 │   │   │   └── FirebaseService.swift
-│   │   ├── PsstApp.swift
-│   │   └── GoogleService-Info.plist
-│   ├── PsstTests/
-│   └── PsstUITests/
-├── Psst/
-│   ├── agents/          # Agent instructions
-│   ├── docs/            # PRDs, TODOs, and briefs
-└── README.md
+│   │   ├── Views/                     # SwiftUI views
+│   │   │   ├── Authentication/
+│   │   │   ├── ChatList/
+│   │   │   ├── Conversation/
+│   │   │   └── Components/
+│   │   ├── ViewModels/                # MVVM view models
+│   │   │   ├── AuthViewModel.swift
+│   │   │   └── ChatListViewModel.swift
+│   │   ├── Models/                    # Data models
+│   │   │   ├── User.swift
+│   │   │   ├── Chat.swift
+│   │   │   └── Message.swift
+│   │   └── Utilities/                 # Helpers & extensions
+│   ├── PsstTests/                     # Unit tests (Swift Testing)
+│   ├── PsstUITests/                   # UI tests (XCTest)
+│   ├── agents/                        # Agent instructions
+│   │   ├── caleb-agent.md
+│   │   ├── pam-agent.md
+│   │   ├── shared-standards.md
+│   │   └── templates/
+│   ├── docs/                          # Project documentation
+│   │   ├── pr-briefs.md               # All PR descriptions
+│   │   ├── prd-full-features.md       # Complete feature spec
+│   │   ├── architecture.md            # System architecture
+│   │   ├── prds/                      # Individual PRDs
+│   │   │   └── pr-{N}-prd.md
+│   │   └── todos/                     # Individual TODOs
+│   │       └── pr-{N}-todo.md
+│   └── functions/                     # Firebase Cloud Functions
+│       └── index.js
+└── README.md                          # This file
 ```
 
-## Testing
+---
 
-### Test Framework Strategy
+## 📱 Psst iOS App
 
-This project uses a **hybrid testing approach** combining modern and traditional frameworks:
+### Overview
+
+**Psst** is a modern real-time messaging application built with SwiftUI and Firebase, focusing on simplicity, reliability, and seamless user experience.
+
+### Key Features
+
+#### ✅ Phase 1: Foundation (Completed)
+- User authentication (Email/Password & Google Sign-In)
+- User profile management
+- Firebase integration
+- Basic UI structure
+
+#### ✅ Phase 2: Core Messaging (Completed)
+- One-on-one chat conversations
+- Real-time message synchronization
+- Message persistence
+- Chat list view
+
+#### 🚧 Phase 3: Enhanced Features (In Progress)
+- Group chat support
+- Media sharing (images, files)
+- Push notifications
+- Read receipts
+- Typing indicators
+
+#### 📋 Phase 4: Advanced Features (Planned)
+- Voice messages
+- Message search
+- Chat archiving
+- Advanced settings
+
+### Technical Stack
+
+- **Language:** Swift 5.9+
+- **UI Framework:** SwiftUI
+- **Backend:** Firebase
+  - Authentication
+  - Cloud Firestore
+  - Realtime Database
+  - Cloud Messaging
+  - Cloud Functions
+- **Architecture:** MVVM (Model-View-ViewModel)
+- **Concurrency:** Swift async/await
+- **Testing:** Swift Testing (unit) + XCTest (UI)
+
+### Performance Targets
+
+- **App load time:** < 2-3 seconds (cold start)
+- **Message delivery:** < 100ms latency
+- **Scrolling:** Smooth 60fps with 100+ messages
+- **Tap response:** < 50ms
+- **Offline support:** Full message persistence
+
+---
+
+## 🔥 Firebase Setup
+
+This project uses Firebase for backend services. You need a `GoogleService-Info.plist` file to run the app.
+
+### Getting the Config File
+
+**For this project (psst-fef89):**
+1. Go to [Firebase Console](https://console.firebase.google.com/project/psst-fef89/settings/general)
+2. Download `GoogleService-Info.plist`
+3. Save to `gauntlet-02/Psst/GoogleService-Info.plist`
+
+**For your own Firebase project:**
+1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
+2. Enable: Authentication, Firestore, Realtime Database, Cloud Messaging
+3. Add an iOS app with bundle ID: `gauntlet.Psst`
+4. Download `GoogleService-Info.plist`
+
+**Note:** This file is gitignored (like `.env` files) - you must download it yourself.
+
+---
+
+## 🧪 Testing Strategy
+
+### Hybrid Testing Approach
 
 **Unit Tests → Swift Testing Framework**
-- Modern `@Test` syntax with custom display names
-- Tests appear with readable names in test navigator (e.g., "Sign Up With Valid Credentials Creates User")
+- Modern `@Test` syntax
+- Readable test names: `"Sign Up With Valid Credentials Creates User"`
 - Uses `#expect` for assertions
 - Located in `PsstTests/`
 
+**Example:**
+```swift
+@Test("User Service Creates New User Successfully")
+func createUserTest() async throws {
+    let user = try await userService.createUser(email: "test@example.com")
+    #expect(user.email == "test@example.com")
+}
+```
+
 **UI Tests → XCTest Framework**
 - Traditional `XCTestCase` with `XCUIApplication`
-- Function-based naming (e.g., `testLoginView_DisplaysCorrectly()`)
+- Function-based naming: `testLoginView_DisplaysCorrectly()`
 - Uses `XCTAssert` for assertions
 - Located in `PsstUITests/`
 
-### Why Different Frameworks?
-
-- **Swift Testing** provides better readability and modern syntax for unit tests
-- **XCTest** remains the industry standard for UI tests due to `XCUIApplication` lifecycle requirements
+**Example:**
+```swift
+func testLoginView_DisplaysCorrectly() throws {
+    let app = XCUIApplication()
+    app.launch()
+    
+    XCTAssertTrue(app.buttons["Login"].exists)
+    XCTAssertTrue(app.textFields["Email"].exists)
+}
+```
 
 ### Running Tests
 
-Run tests using Xcode:
-- **All Tests**: Cmd+U
-- **Specific Test**: Click diamond icon next to test name
-- **Performance Tests**: Included in test suite
+```bash
+# All tests
+Cmd + U
 
-See `Psst/agents/test-template.md` for detailed testing patterns.
+# Specific test file
+Cmd + U (with file open)
 
-## License
+# Specific test
+Click diamond icon next to test
+```
+
+### Test Coverage Requirements
+
+- **Unit Tests:** All service methods
+- **UI Tests:** Critical user flows (login, send message, create chat)
+- **Integration Tests:** Firebase interactions
+- **Performance Tests:** Message list scrolling, database queries
+
+---
+
+## 🛠️ Custom Commands
+
+### `/caleb [pr-number]`
+Activates Caleb (Coder Agent) to implement a feature.
+
+```bash
+/caleb pr-3
+/caleb 3
+```
+
+### `/pam [pr-number] [yolo]`
+Activates Pam (Planning Agent) to create PRD and TODO.
+
+```bash
+/pam pr-5        # Wait for PRD approval
+/pam pr-5 yolo   # Create both without stopping
+```
+
+### `/brenda [feature-name]`
+Activates Brenda (Brief Creator) to create PR brief.
+
+```bash
+/brenda authentication-system
+/brenda prd-full-features
+```
+
+### `/status`
+Shows current PR status across all phases.
+
+```bash
+/status
+```
+
+**Output:**
+- PRs with PRD only (needs TODO)
+- PRs with PRD + TODO (ready for Caleb)
+- PRs in progress (branch exists)
+- PRs completed (merged to develop)
+
+---
+
+## 🎨 Code Quality Standards
+
+### Swift Best Practices
+
+- ✅ Explicit type annotations
+- ✅ Proper use of SwiftUI property wrappers (`@State`, `@StateObject`, etc.)
+- ✅ Small, focused functions
+- ✅ Meaningful variable names
+- ✅ No force unwrapping (`!`) without documentation
+
+### Architecture Principles
+
+- ✅ MVVM pattern for views
+- ✅ Service layer for business logic
+- ✅ Protocol-oriented design
+- ✅ Dependency injection
+- ✅ No business logic in views
+
+### Threading Rules
+
+**Main Thread:**
+- All UI updates
+- SwiftUI view rendering
+- User interaction handling
+
+**Background Thread:**
+- Network requests
+- Database operations
+- File I/O
+- Heavy computations
+
+**Example:**
+```swift
+Task {
+    // Network call on background
+    let data = try await networkService.fetchData()
+    
+    // Update UI on main thread
+    await MainActor.run {
+        self.messages = data
+    }
+}
+```
+
+---
+
+## 📖 Documentation
+
+### Agent Documentation
+- `Psst/agents/caleb-agent.md` - Coder agent
+- `Psst/agents/pam-agent.md` - Planning agent  
+- `Psst/agents/shared-standards.md` - Development standards
+
+### Project Documentation  
+- `Psst/docs/pr-briefs.md` - All PR descriptions
+- `Psst/docs/prd-full-features.md` - Complete feature spec
+- `Psst/docs/architecture.md` - System architecture
+
+---
+
+## 🤝 Contributing
+
+### Development Process
+
+1. **Create PR Brief** (via Brenda)
+   ```bash
+   /brenda your-feature-name
+   ```
+
+2. **Plan Feature** (via Pam)
+   ```bash
+   /pam pr-X
+   ```
+
+3. **Implement Feature** (via Caleb)
+   ```bash
+   /caleb pr-X
+   ```
+
+4. **Create Pull Request**
+   - Target: `develop` branch
+   - Include: PR description, test results, screenshots
+   - Reference: PR brief, PRD, and TODO
+
+5. **Code Review**
+   - Verify tests pass
+   - Check code quality
+   - Validate against PRD requirements
+
+6. **Merge**
+   - Squash and merge to `develop`
+   - Delete feature branch
+
+### Commit Message Format
+
+```
+type(scope): subject
+
+body (optional)
+
+footer (optional)
+```
+
+**Types:**
+- `feat:` New feature
+- `fix:` Bug fix
+- `docs:` Documentation
+- `test:` Tests
+- `refactor:` Code refactoring
+- `style:` Formatting changes
+- `chore:` Build/config changes
+
+**Example:**
+```
+feat(chat): Add group chat creation flow
+
+Implements group chat creation with multi-user selection,
+chat naming, and avatar upload.
+
+Closes PR-8
+```
+
+---
+
+## 🐛 Troubleshooting
+
+**Build fails: "No such module 'Firebase'"**
+- Clean build: `Cmd + Shift + K`
+- Reset packages: `File → Packages → Reset Package Caches`
+
+**"Could not configure Firebase"**
+- Verify `GoogleService-Info.plist` is in `Psst/` directory
+- Check it's added to Xcode target (File Inspector → Target Membership)
+
+**Simulator issues**
+- Reset simulator: `Device → Erase All Content and Settings`
+
+---
+
+## 📊 Project Status
+
+### Current Phase: **Phase 3** (Enhanced Features)
+
+**Completed:**
+- ✅ PR-1 to PR-10: Foundation & Core Messaging
+- ✅ Authentication system
+- ✅ One-on-one chat
+- ✅ Message persistence
+- ✅ Real-time synchronization
+
+**In Progress:**
+- 🚧 PR-15: Group chat support
+- 🚧 PR-16: Media sharing
+- 🚧 PR-17: Push notifications
+
+**Upcoming:**
+- 📋 Read receipts
+- 📋 Typing indicators
+- 📋 Voice messages
+- 📋 Message search
+
+---
+
+## 📝 License
 
 Copyright © 2025
+
+---
+
+## 🙏 Acknowledgments
+
+- **Firebase** - Backend infrastructure
+- **SwiftUI** - Modern UI framework
+- **Signal Protocol** - Architecture inspiration
+
+---
+
+## 📞 Support
+
+For questions, issues, or feature requests:
+1. Check existing documentation in `Psst/docs/`
+2. Review agent instructions in `Psst/agents/`
+3. Create an issue with detailed description
+
+---
+
+**Built with ❤️ using SwiftUI and Firebase**
