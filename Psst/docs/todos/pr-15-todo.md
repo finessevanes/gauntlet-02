@@ -1,4 +1,4 @@
-# PR-15 TODO — Push Notifications Setup [NOT STARTED]
+# PR-15 TODO — Push Notifications Setup
 
 **Branch**: `feat/pr-15-push-notifications-setup`  
 **Source PRD**: `Psst/docs/prds/pr-15-prd.md`  

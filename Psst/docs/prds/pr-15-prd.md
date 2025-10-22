@@ -1,6 +1,6 @@
 # PRD: Push Notifications Setup
 
-**Feature**: APNs and FCM Configuration [NOT STARTED]
+**Feature**: APNs and FCM Configuration
 
 **Version**: 1.0
 
