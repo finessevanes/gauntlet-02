@@ -319,6 +319,18 @@ After completing PR #8, we identified a critical dependency issue in the origina
 
 ---
 
+### PR #22: message-status-and-timestamp-ui-polish
+
+**Brief:** Fix two critical UI inconsistencies in the chat interface to match iOS Messages behavior. First, modify the "Delivered" status indicator to only show on the latest message instead of appearing under every message bubble. Second, implement swipe-to-reveal timestamps functionality where users can slide their own messages left or other users' messages right to reveal the timestamp of when each message was sent. This creates a cleaner, more professional chat experience that follows iOS design patterns and reduces visual clutter while providing access to timing information when needed.
+
+**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
 ## Summary
 
 ### Original Plan
