@@ -573,6 +573,7 @@ struct ChatView: View {
                 
                 print("📖 Marking messages as read for chat: \(chat.id)")
                 try await messageService.markChatMessagesAsRead(chatID: chat.id)
+                
                 print("✅ Messages marked as read")
             } catch {
                 // Fail silently - read receipts are non-critical
