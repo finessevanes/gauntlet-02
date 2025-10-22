@@ -29,6 +29,11 @@ struct PsstApp: App {
     // MARK: - Environment
     
     @Environment(\.scenePhase) private var scenePhase
+    
+    // MARK: - State for Debouncing
+    
+    /// Track last user ID to prevent duplicate auth state changes
+    @State private var lastUserID: String?
 
     // Initialize Firebase and NetworkMonitor on app launch
     // MARK: - Initialization
@@ -69,7 +74,12 @@ struct PsstApp: App {
                     handleScenePhaseChange(newPhase)
                 }
                 .onChange(of: authService.currentUser) { oldUser, newUser in
-                    handleAuthStateChange(newUser)
+                    // Debounce: Only call if userID actually changed to prevent triple login
+                    let newUserID = newUser?.id
+                    if newUserID != lastUserID {
+                        lastUserID = newUserID
+                        handleAuthStateChange(oldUser: oldUser, newUser: newUser)
+                    }
                 }
         }
     }
@@ -87,7 +97,8 @@ struct PsstApp: App {
             Task {
                 do {
                     try await presenceService.setOnlineStatus(userID: userID, isOnline: true)
-                    print("[PsstApp] User \(userID) is now online")
+                    let email = authService.currentUser?.email ?? "user_\(String(userID.suffix(8)))"
+                    print("[PsstApp] User \(email) is now online")
                 } catch {
                     print("[PsstApp] Error setting online status: \(error.localizedDescription)")
                 }
@@ -98,7 +109,8 @@ struct PsstApp: App {
             Task {
                 do {
                     try await presenceService.setOnlineStatus(userID: userID, isOnline: false)
-                    print("[PsstApp] User \(userID) is now offline")
+                    let email = authService.currentUser?.email ?? "user_\(String(userID.suffix(8)))"
+                    print("[PsstApp] User \(email) is now offline")
                 } catch {
                     print("[PsstApp] Error setting offline status: \(error.localizedDescription)")
                 }
@@ -111,21 +123,27 @@ struct PsstApp: App {
     
     /// Handle authentication state changes (login, logout)
     /// Sets presence and manages listeners based on auth status
-    private func handleAuthStateChange(_ user: User?) {
-        if let userID = user?.id {
-            // User logged in → Set online status
+    private func handleAuthStateChange(oldUser: User?, newUser: User?) {
+        if let user = newUser {
+            // User logged in → Reconnect to Firebase Database and set online status
+            // (Database might be offline from previous logout)
+            Database.database().goOnline()
+            
             Task {
                 do {
-                    try await presenceService.setOnlineStatus(userID: userID, isOnline: true)
-                    print("[PsstApp] User \(userID) logged in and set to online")
+                    try await presenceService.setOnlineStatus(userID: user.id, isOnline: true)
+                    let email = user.email
+                    print("[PsstApp] User \(email) logged in and set to online")
                 } catch {
                     print("[PsstApp] Error setting online status on login: \(error.localizedDescription)")
                 }
             }
-        } else {
-            // User logged out → Clean up all presence listeners
+        } else if let oldUser = oldUser {
+            // User logged out → Just clean up listeners
+            // (Offline status was already set via onDisconnect() hook in AuthViewModel)
             presenceService.stopAllObservers()
             print("[PsstApp] User logged out, presence listeners cleaned up")
+            print("[PsstApp] Offline status was set via Firebase onDisconnect() hook")
         }
     }
 }
