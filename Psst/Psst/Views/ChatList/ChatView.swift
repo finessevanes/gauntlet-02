@@ -103,7 +103,10 @@ struct ChatView: View {
                 onSend: handleSend,
                 chatID: chat.id,
                 userID: currentUserID,
-                typingIndicatorService: typingIndicatorService
+                typingIndicatorService: typingIndicatorService,
+                onError: { error in
+                    print("[ChatView] Typing indicator error: \(error.localizedDescription)")
+                }
             )
         }
         .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
