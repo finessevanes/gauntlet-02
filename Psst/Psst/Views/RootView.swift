@@ -17,6 +17,9 @@ struct RootView: View {
     /// Authentication view model - observes auth state changes
     @StateObject private var authViewModel = AuthViewModel()
     
+    /// Presence service - injected from parent (PsstApp)
+    @EnvironmentObject var presenceService: PresenceService
+    
     /// Notification service - injected from parent (PsstApp)
     @EnvironmentObject var notificationService: NotificationService
     
@@ -37,6 +40,7 @@ struct RootView: View {
             if isAuthenticated {
                 // User is authenticated - show main app with tabs
                 MainTabView()
+                    .id(authViewModel.currentUser?.id) // Force fresh view on each login
                     .environmentObject(authViewModel)
             } else {
                 // User is not authenticated - show login flow
@@ -45,6 +49,10 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut, value: isAuthenticated)
+        .onAppear {
+            // Inject presence service into auth view model for logout handling
+            authViewModel.setPresenceService(presenceService)
+        }
         .onChange(of: isAuthenticated) { oldValue, newValue in
             // Request notification permission after successful authentication
             if newValue && !hasRequestedPermission {

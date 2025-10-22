@@ -27,6 +27,9 @@ struct ChatRowView: View {
     @State private var otherUser: User? = nil
     @State private var userListener: ListenerRegistration? = nil
     
+    /// Presence listener ID for cleanup (UUID-based tracking)
+    @State private var presenceListenerID: UUID? = nil
+    
     @EnvironmentObject private var presenceService: PresenceService
     
     private let chatService = ChatService()
@@ -184,16 +187,18 @@ struct ChatRowView: View {
         // Listener will be attached when otherUserID is available
         Task {
             // Poll until otherUserID is set (simple approach for async coordination)
-            while otherUserID == nil {
-                try? await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+            while otherUserID == nil && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
             }
             
-            guard let contactID = otherUserID else { return }
+            guard let contactID = otherUserID, !Task.isCancelled else { return }
             
-            // Attach presence listener
-            _ = presenceService.observePresence(userID: contactID) { isOnline in
-                DispatchQueue.main.async {
-                    self.isContactOnline = isOnline
+            // Attach presence listener on main thread and store UUID
+            await MainActor.run {
+                presenceListenerID = presenceService.observePresence(userID: contactID) { isOnline in
+                    DispatchQueue.main.async {
+                        self.isContactOnline = isOnline
+                    }
                 }
             }
         }
@@ -201,8 +206,10 @@ struct ChatRowView: View {
     
     /// Detach presence listener to prevent memory leaks
     private func detachPresenceListener() {
-        guard let contactID = otherUserID else { return }
-        presenceService.stopObserving(userID: contactID)
+        guard let contactID = otherUserID, let listenerID = presenceListenerID else { return }
+        
+        presenceService.stopObserving(userID: contactID, listenerID: listenerID)
+        presenceListenerID = nil
         
         // Remove user profile listener
         userListener?.remove()
