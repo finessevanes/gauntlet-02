@@ -2,7 +2,7 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** ✅ 17 Completed | 🎯 7 In Progress/Todo
+**Status:** ✅ 17 Completed | 🎯 8 In Progress/Todo
 
 ---
 
@@ -356,6 +356,20 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
+#### PR #25: presence-service-multi-listener-refactor
+
+**Brief:** Fix critical presence system bugs causing inconsistent online/offline status updates across ChatListView and ChatView. The current PresenceService has listener conflicts where multiple views observing the same user cause status updates to stop working. When ChatRowView and ChatView both attach listeners for the same user, the second listener overwrites the first in the tracking dictionary, causing the first view to lose updates. This refactor implements support for multiple simultaneous listeners per user using UUID-based tracking, eliminates race conditions in listener attachment, ensures crash protection works in all scenarios (login, logout, crash), and adds comprehensive debug logging with emojis for easy troubleshooting. The fix maintains real-time status updates (<3 second latency) while preventing listener conflicts and memory leaks.
+
+**Dependencies:** PR #12 (presence system)
+
+**Complexity:** Medium
+
+**Phase:** 1 (Refactor)
+
+**Status:** 🎯 READY FOR IMPLEMENTATION
+
+---
+
 ## 📊 Summary
 
 ### Project Progress
@@ -365,9 +379,9 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 - **Phase 4 (Polish & Notifications):** 🎯 4/11 Complete
 
 ### Overall Status
-- **Total PRs:** 24
-- **Completed:** 17 (71%)
-- **Remaining:** 7 (29%)
+- **Total PRs:** 25
+- **Completed:** 17 (68%)
+- **Remaining:** 8 (32%)
 
 ---
 
