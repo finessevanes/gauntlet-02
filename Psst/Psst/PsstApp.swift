@@ -9,7 +9,9 @@
 import SwiftUI
 import Firebase
 import FirebaseDatabase
+import FirebaseMessaging
 import GoogleSignIn
+import UserNotifications
 
 @main
 struct PsstApp: App {
@@ -18,6 +20,11 @@ struct PsstApp: App {
     
     @StateObject private var authService = AuthenticationService.shared
     @StateObject private var presenceService = PresenceService()
+    @StateObject private var notificationService = NotificationService()
+    
+    // MARK: - App Delegate
+    
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     
     // MARK: - Environment
     
@@ -43,9 +50,15 @@ struct PsstApp: App {
             RootView()
                 .environmentObject(authService)
                 .environmentObject(presenceService)
+                .environmentObject(notificationService)
                 .onOpenURL { url in
                     // Handle Google Sign-In callback URL
                     GIDSignIn.sharedInstance.handle(url)
+                }
+                .onAppear {
+                    Task {
+                        await notificationService.refreshFCMToken()
+                    }
                 }
                 .onChange(of: scenePhase) { oldPhase, newPhase in
                     handleScenePhaseChange(newPhase)
@@ -111,3 +124,56 @@ struct PsstApp: App {
         }
     }
 }
+
+// MARK: - AppDelegate
+
+class AppDelegate: NSObject, UIApplicationDelegate {
+    func application(_ application: UIApplication, 
+                    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        
+        // Set notification center delegate
+        UNUserNotificationCenter.current().delegate = self
+        
+        return true
+    }
+    
+    func application(_ application: UIApplication,
+                    didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        // Forward to NotificationService
+        print("[AppDelegate] 📱 APNs device token received")
+        
+        // Let FCM SDK know about the token
+        Messaging.messaging().apnsToken = deviceToken
+    }
+    
+    func application(_ application: UIApplication,
+                    didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        print("[AppDelegate] ❌ Failed to register: \(error.localizedDescription)")
+    }
+}
+
+// MARK: - UNUserNotificationCenterDelegate
+
+extension AppDelegate: UNUserNotificationCenterDelegate {
+    /// Handle notifications when app is in foreground
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                               willPresent notification: UNNotification,
+                               withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        print("[AppDelegate] 📬 Notification received in foreground")
+        
+        // Show notification even when app is in foreground
+        completionHandler([.banner, .sound, .badge])
+    }
+    
+    /// Handle notification tap
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                               didReceive response: UNNotificationResponse,
+                               withCompletionHandler completionHandler: @escaping () -> Void) {
+        print("[AppDelegate] 👆 User tapped notification")
+        
+        // Deep linking logic will go here in PR #16
+        
+        completionHandler()
+    }
+}
+

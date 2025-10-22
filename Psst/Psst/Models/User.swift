@@ -31,6 +31,10 @@ struct User: Identifiable, Codable, Equatable {
 
     /// Timestamp of last profile update
     var updatedAt: Date
+    
+    /// Firebase Cloud Messaging device token for push notifications
+    /// Nil if user hasn't granted notification permission or token not yet generated
+    var fcmToken: String?
 
     /// CodingKeys enum to map Swift property names to Firestore field names
     /// Maps 'id' property to 'uid' in Firestore for consistency with Firebase Auth
@@ -41,6 +45,7 @@ struct User: Identifiable, Codable, Equatable {
         case photoURL
         case createdAt
         case updatedAt
+        case fcmToken
     }
 
     /// Initialize User from Firebase Auth User object
@@ -53,6 +58,7 @@ struct User: Identifiable, Codable, Equatable {
         self.photoURL = firebaseUser.photoURL?.absoluteString
         self.createdAt = firebaseUser.metadata.creationDate ?? now
         self.updatedAt = now
+        self.fcmToken = nil
     }
 
     /// Manual initializer for testing or custom user creation
@@ -63,13 +69,15 @@ struct User: Identifiable, Codable, Equatable {
     ///   - photoURL: Profile photo URL string
     ///   - createdAt: Account creation date
     ///   - updatedAt: Last update timestamp
-    init(id: String, email: String, displayName: String, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date()) {
+    ///   - fcmToken: Firebase Cloud Messaging token (optional)
+    init(id: String, email: String, displayName: String, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), fcmToken: String? = nil) {
         self.id = id
         self.email = email
         self.displayName = displayName
         self.photoURL = photoURL
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+        self.fcmToken = fcmToken
     }
 
     /// Convert User model to dictionary for Firestore writes
