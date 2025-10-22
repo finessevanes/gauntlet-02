@@ -16,6 +16,12 @@ struct RootView: View {
 
     /// Authentication view model - observes auth state changes
     @StateObject private var authViewModel = AuthViewModel()
+    
+    /// Notification service - injected from parent (PsstApp)
+    @EnvironmentObject var notificationService: NotificationService
+    
+    /// Track if permission has been requested to avoid duplicate prompts
+    @AppStorage("hasRequestedNotificationPermission") private var hasRequestedPermission = false
 
     // MARK: - Computed Properties
 
@@ -39,6 +45,21 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut, value: isAuthenticated)
+        .onChange(of: isAuthenticated) { oldValue, newValue in
+            // Request notification permission after successful authentication
+            if newValue && !hasRequestedPermission {
+                Task {
+                    do {
+                        let granted = try await notificationService.requestPermission()
+                        hasRequestedPermission = true
+                        print("[RootView] Notification permission: \(granted ? "granted" : "denied")")
+                    } catch {
+                        print("[RootView] Error requesting permission: \(error.localizedDescription)")
+                        hasRequestedPermission = true // Don't ask again even if error
+                    }
+                }
+            }
+        }
     }
 }
 
