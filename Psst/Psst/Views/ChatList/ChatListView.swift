@@ -19,6 +19,9 @@ struct ChatListView: View {
     @State private var selectedChat: Chat?
     @State private var navigateToChat = false
     
+    /// Notification service for deep linking
+    @EnvironmentObject private var notificationService: NotificationService
+    
     // MARK: - Body
     
     var body: some View {
@@ -69,6 +72,19 @@ struct ChatListView: View {
             }
             .onDisappear {
                 viewModel.stopObserving()
+            }
+            .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
+                if let chatId = newChatId {
+                    print("[ChatListView] 🧭 Deep link received for chat: \(chatId)")
+                    
+                    // Find the chat in the current list
+                    if let chat = viewModel.chats.first(where: { $0.id == chatId }) {
+                        selectedChat = chat
+                        navigateToChat = true
+                    } else {
+                        print("[ChatListView] ❌ Chat not found in current list: \(chatId)")
+                    }
+                }
             }
         }
     }

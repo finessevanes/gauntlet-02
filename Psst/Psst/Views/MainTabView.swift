@@ -15,6 +15,12 @@ struct MainTabView: View {
 
     /// Currently selected tab - persisted across app sessions
     @AppStorage("selectedTab") private var selectedTab: Int = 0
+    
+    /// Notification service for deep linking
+    @EnvironmentObject private var notificationService: NotificationService
+    
+    /// Navigation state for deep linking
+    @State private var navigateToChat: String? = nil
 
     // MARK: - Body
 
@@ -40,6 +46,23 @@ struct MainTabView: View {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
                 .tag(2)
+        }
+        .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
+            if let chatId = newChatId {
+                print("[MainTabView] 🧭 Deep link received for chat: \(chatId)")
+                
+                // Switch to conversations tab
+                selectedTab = 0
+                
+                // Set navigation target
+                navigateToChat = chatId
+                
+                // Clear the deep link after processing
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    notificationService.clearDeepLink()
+                    navigateToChat = nil
+                }
+            }
         }
     }
 }
