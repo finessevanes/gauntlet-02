@@ -1,0 +1,14 @@
+{
+  "firestore": {
+    "rules": "firestore.rules"
+  },
+  "database": {
+    "rules": "firebase-realtime-database-rules.json"
+  },
+  "storage": {
+    "rules": "firebase-storage-rules.rules"
+  },
+  "functions": {
+    "source": "functions"
+  }
+}

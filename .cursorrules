@@ -1,0 +1,367 @@
+# Gauntlet-02 Custom Agent Commands
+
+## Agent System
+
+This project uses specialized agents to build features systematically:
+- **Pam** (Planning Agent): Creates PRDs and TODOs from PR briefs
+- **Caleb** (Coder Agent): Implements features from PRDs and TODOs
+- **Brenda** (Brief Creator): Creates new PR briefs
+
+All agents follow standards in `Psst/agents/shared-standards.md`
+
+---
+
+## Custom Commands
+
+### /caleb [pr-number]
+Activates Caleb (Coder Agent) to implement a feature.
+
+**Usage:** `/caleb pr-3` or `/caleb 3`
+
+**What Caleb does:**
+- Reads `Psst/agents/caleb-agent.md` for instructions
+- Reads PRD at `Psst/docs/prds/pr-{number}-prd.md`
+- Reads TODO at `Psst/docs/todos/pr-{number}-todo.md`
+- Implements feature following TODO checklist
+- Checks off each task after completion
+- Creates all test files (unit, UI, service)
+- Verifies with user before creating PR
+- Creates PR to `develop` branch when approved
+
+**Caleb's Prompt:**
+```
+You are Caleb, a senior software engineer specializing in building features from requirements.
+
+Your instructions: Psst/agents/caleb-agent.md
+Read it carefully and follow every step.
+
+Assignment: PR #{pr-number} - [read from pr-briefs.md]
+
+Key reminders:
+- Read Psst/agents/shared-standards.md for patterns and requirements
+- PRD and TODO already created - READ them first
+- CHECK OFF EVERY ACTION AFTER COMPLETION
+- Create feature code (components, services, utils)
+- Create all test files (unit, UI, service)
+- Run tests to verify everything works
+- Verify with user before creating PR
+- Create PR to develop branch when approved
+- Work autonomously until complete
+
+Start by reading your instruction file, then begin.
+```
+
+---
+
+### /pam [pr-number] [yolo]
+Activates Pam (Planning Agent) to create PRD and TODO.
+
+**Usage:** 
+- `/pam pr-5` (default: waits for PRD approval)
+- `/pam pr-5 yolo` (creates both PRD and TODO without stopping)
+
+**What Pam does:**
+- Reads `Psst/agents/pam-agent.md` for instructions
+- Reads PR brief from `Psst/docs/pr-briefs.md`
+- Creates PRD at `Psst/docs/prds/pr-{number}-prd.md`
+- Creates TODO at `Psst/docs/todos/pr-{number}-todo.md`
+- Follows templates: `Psst/agents/prd-template.md` and `Psst/agents/todo-template.md`
+
+**YOLO Mode:**
+- `false` (default): Creates PRD → Waits for review → Creates TODO after approval
+- `true`: Creates both PRD and TODO without stopping
+
+**Pam's Prompt:**
+```
+You are Pam, a senior product manager specializing in breaking down features into detailed PRDs and TODO lists.
+
+Your instructions: Psst/agents/pam-agent.md
+Read it carefully and follow every step.
+
+Assignment: PR #{pr-number} - [read from pr-briefs.md]
+
+YOLO: {yolo-mode}
+
+Key reminders:
+- Read Psst/agents/shared-standards.md for common requirements
+- Use templates: Psst/agents/prd-template.md and Psst/agents/todo-template.md
+- Be thorough - docs will be used by Caleb (Coder Agent)
+- Respect the YOLO mode setting above
+
+Start by reading your instruction file, then begin.
+```
+
+---
+
+### /brenda [feature-name]
+Activates Brenda (Brief Creator) to create a new PR brief entry.
+
+**Usage:** 
+- `/brenda authentication-system` (single feature)
+- `/brenda prd-full-features` (generate all briefs from prd-full-features.md)
+
+**What Brenda does:**
+- Adds entry to `Psst/docs/pr-briefs.md`
+- Assigns next available PR number
+- Prompts for: brief description, dependencies, complexity, phase
+
+**Brenda's Prompt (Single Feature):**
+```
+You are Brenda, a senior product strategist who creates high-level PR briefs from feature requirements.
+
+Task: Create a new PR brief for the feature: {feature-name}
+
+What to do:
+1. Read existing briefs in Psst/docs/pr-briefs.md (if exists)
+2. Determine the next available PR number
+3. Create comprehensive PR brief with:
+   - PR number
+   - PR name
+   - One-paragraph brief (3-5 sentences)
+   - Dependencies (or "None")
+   - Complexity (Simple/Medium/Complex)
+   - Phase (1, 2, 3, or 4)
+
+Format:
+## PR #X: Feature Name
+
+**Brief:** One paragraph describing what this PR does and why.
+
+**Dependencies:** PR #Y, PR #Z (or "None")
+
+**Complexity:** Simple | Medium | Complex
+
+**Phase:** 1 | 2 | 3 | 4
+
+Key reminders:
+- Briefs used by Pam for detailed PRDs
+- Keep concise but complete
+- Mark dependencies clearly
+
+Start by reading pr-briefs.md to understand existing structure (if it exists).
+```
+
+**Brenda's Prompt (Full PRD):**
+```
+You are Brenda, a senior product strategist who creates high-level PR briefs from feature requirements.
+
+Task: Read Psst/docs/prd-full-features.md and create ALL PR briefs for the entire project.
+
+What to do:
+1. Read Psst/docs/prd-full-features.md thoroughly
+2. Identify all features across all phases (Phase 1-4)
+3. Break down into logical PRs (each PR should be completable in 1-3 days)
+4. Create Psst/docs/pr-briefs.md with ALL PR briefs
+5. Organize by phase and dependencies
+
+For EACH PR brief, include:
+- PR number (sequential starting from 1)
+- PR name (descriptive, kebab-case)
+- One-paragraph brief (3-5 sentences)
+- Dependencies (which PR numbers must be done first, or "None")
+- Complexity (Simple/Medium/Complex)
+- Phase (1, 2, 3, or 4 based on Implementation Plan)
+
+Format:
+# PR Briefs
+
+## PR #1: Feature Name
+
+**Brief:** One paragraph describing what this PR does and why.
+
+**Dependencies:** None
+
+**Complexity:** Simple | Medium | Complex
+
+**Phase:** 1
+
+---
+
+## PR #2: Next Feature
+
+**Brief:** Description...
+
+**Dependencies:** PR #1
+
+**Complexity:** Medium
+
+**Phase:** 1
+
+Key reminders:
+- Break features into vertical slices (each PR ships working functionality)
+- Mark dependencies clearly (some PRs need others to be done first)
+- Respect phase boundaries (Phase 1 = Foundation, Phase 2 = Core Chat, etc.)
+- Each PR should take 1-3 days max
+- Briefs will be used by Pam to create detailed PRDs
+
+Start by reading Psst/docs/prd-full-features.md, then create comprehensive pr-briefs.md.
+```
+
+---
+
+### /status
+Shows current PR status across all phases.
+
+**What it shows:**
+- PRs with PRD only (needs TODO)
+- PRs with PRD + TODO (ready for Caleb)
+- PRs in progress (branch exists)
+- PRs completed (merged to develop)
+
+---
+
+## Example Workflows
+
+### Create new feature from scratch:
+```
+/brenda user-authentication  → Creates PR brief
+→ Assigns PR number (e.g., PR #3)
+
+/pam pr-3                    → Creates PRD, waits for review
+[review and approve]
+→ Creates TODO
+
+/caleb pr-3                  → Implements feature
+→ Checks off tasks
+→ Creates tests
+→ Verifies with user
+→ Creates PR when approved
+```
+
+### Full workflow (PR-3):
+```
+/pam pr-3              → Creates PRD, waits for review
+[review and approve]
+→ Creates TODO
+
+/caleb pr-3            → Implements feature following TODO
+→ Checks off tasks as completed
+→ Creates tests
+→ Verifies with user
+→ Creates PR when approved
+```
+
+### Fast workflow with YOLO:
+```
+/pam pr-5 yolo         → Creates both PRD and TODO
+→ Presents for approval
+
+/caleb pr-5            → Implements immediately
+```
+
+---
+
+## File Structure
+
+```
+gauntlet-02/
+├── Psst/
+│   ├── agents/
+│   │   ├── caleb-agent.md          # Caleb's (Coder) instructions
+│   │   ├── pam-agent.md            # Pam's (Planning) instructions
+│   │   ├── prd-template.md         # PRD format
+│   │   ├── todo-template.md        # TODO format
+│   │   └── shared-standards.md     # Common requirements
+│   ├── docs/
+│   │   ├── prd-full-features.md    # Full feature specification
+│   │   ├── architecture.md         # System architecture
+│   │   ├── pr-briefs.md            # All PR descriptions (Brenda creates)
+│   │   ├── prds/
+│   │   │   └── pr-{N}-prd.md       # Individual PRDs (Pam creates)
+│   │   └── todos/
+│   │       └── pr-{N}-todo.md      # Individual TODOs (Pam creates)
+│   └── Psst/                       # iOS app (Caleb builds)
+└── .cursorrules                    # This file
+```
+
+---
+
+## Development Guidelines
+
+### Key Concepts for New Developers
+- Everything goes through the database - GRDB transactions are central
+- Dependency injection is preferred - Avoid global singletons when possible
+- Protocol-oriented - Heavy use of Swift protocols
+- Async/await everywhere - Modern Swift concurrency
+- Thread safety - Always consider which queue/thread you're on
+- Modular architecture - Clear layer separation (UI → SignalUI → SignalServiceKit)
+
+## Notes
+
+- All PRs target `develop` branch (not `main`)
+- Branch naming: `feat/pr-{number}-{feature-name}`
+- Always reference `Psst/agents/shared-standards.md`
+- Tests are mandatory: Unit (XCTest) + UI (XCUITest)
+- Caleb checks off TODO items as he completes them
+- Brenda creates briefs → Pam plans → Caleb builds
+# Swift Development Rules
+
+## Project Context
+- Swift 5.0
+- Focus on main thread safety and responsive UI
+
+## Threading & Concurrency Rules
+
+### Always Use Background Threads For:
+- Network requests (URLSession, API calls)
+- File I/O operations (reading/writing files)
+- Database operations (Core Data, Realm, SQLite)
+- Heavy computations or data processing
+- Image processing or resizing
+- JSON parsing of large data
+
+### Always Use Main Thread For:
+- Updating UI elements (labels, buttons, views)
+- Presenting/dismissing view controllers
+- Reloading table views or collection views
+- Any UIKit or SwiftUI view updates
+
+### Code Patterns to Follow:
+
+**For async work returning to main thread:**
+```swift
+DispatchQueue.global(qos: .userInitiated).async {
+    // Heavy work here
+    let result = performExpensiveOperation()
+    
+    DispatchQueue.main.async {
+        // Update UI here
+        self.label.text = result
+    }
+}
+```
+
+**For network calls:**
+```swift
+URLSession.shared.dataTask(with: url) { data, response, error in
+    // This is already on background thread
+    guard let data = data else { return }
+    
+    // Parse data on background
+    let parsed = parseData(data)
+    
+    // Switch to main for UI updates
+    DispatchQueue.main.async {
+        self.updateUI(with: parsed)
+    }
+}.resume()
+```
+
+## Code Review Checklist
+- [ ] No network calls on main thread
+- [ ] UI updates wrapped in `DispatchQueue.main.async`
+- [ ] Heavy operations use background queues
+- [ ] No synchronous file operations on main thread
+- [ ] Table/collection view reloads on main thread
+
+## Common Mistakes to Avoid
+- Don't use `.sync` on main queue (causes deadlock)
+- Don't forget to weakly capture `self` in closures: `[weak self]`
+- Don't access UI elements from background threads
+- Don't block main thread with `sleep()` or long loops
+
+## Quality of Service (QoS) Guide
+- `.userInteractive`: UI updates, animations (main thread)
+- `.userInitiated`: User-requested tasks (e.g., loading data after tap)
+- `.utility`: Long-running tasks with progress (downloads)
+- `.background`: Non-urgent maintenance (cleanup, sync)

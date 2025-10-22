@@ -1,0 +1,29 @@
+# Firebase Configuration (actual config with API keys - NEVER commit!)
+Psst/GoogleService-Info.plist
+Psst/Psst/GoogleService-Info.plist
+**/GoogleService-Info.plist
+
+# Swift Configuration Files (API keys, secrets)
+Psst/Psst/Config.swift
+**/Config.swift
+!**/Config.example.swift
+
+# Xcode
+*.xcuserstate
+*.xcuserdatad
+.DS_Store
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Build artifacts from run scripts
+build/
+
+# CocoaPods
+Pods/
+*.xcworkspace/xcuserdata/
+
+# Secrets and Environment
+.env
+.env.local
