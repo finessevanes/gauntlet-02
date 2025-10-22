@@ -295,6 +295,30 @@ After completing PR #8, we identified a critical dependency issue in the origina
 
 ---
 
+### PR #20: authentication-ui-redesign-and-color-scheme
+
+**Brief:** Redesign the authentication screens to be cleaner and less cluttered, focusing on two primary sign-in options (email/password and Google) with a simple sign-up option. Implement a cohesive color scheme inspired by modern weather apps with gradient backgrounds that reflect the app's mood and purpose. Simplify the login screen to show only essential elements: app branding, two sign-in buttons (Email and Google), and a subtle sign-up link. Move the detailed sign-up form to a separate screen accessible only when needed. Apply the new color scheme consistently across all authentication screens with smooth gradients, modern typography, and improved visual hierarchy. Remove visual clutter like excessive dividers, redundant buttons, and overwhelming form elements. Ensure the design follows iOS Human Interface Guidelines while creating a distinctive, modern look that sets Psst apart from generic messaging apps.
+
+**Dependencies:** PR #2 (authentication flow)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
+### PR #21: profile-photo-upload-reliability-fix
+
+**Brief:** Fix critical user experience issue where new users are unable to upload profile photos on their first attempt, requiring multiple retries. This affects all new users and occurs with both native camera photos and real fence images. The issue appears to be related to threading problems in ProfilePhotoPicker, compression logic failures in UserService.uploadProfilePhoto(), insufficient error handling that doesn't surface upload failures to users, potential Firebase Storage permission issues for first-time uploads, and lack of network state validation before upload attempts. Implement comprehensive error handling with user-friendly error messages, add network connectivity checks before uploads, improve threading safety in image processing pipeline, add retry mechanisms for failed uploads, enhance compression logic with better error handling, and add detailed logging for debugging upload failures. Ensure the fix works reliably for all image types and sizes while maintaining the existing compression and storage security rules.
+
+**Dependencies:** PR #17 (user profile editing)
+
+**Complexity:** Medium
+
+**Phase:** 4
+
+---
+
 ## Summary
 
 ### Original Plan
