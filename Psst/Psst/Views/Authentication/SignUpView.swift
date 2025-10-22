@@ -43,7 +43,7 @@ struct SignUpView: View {
                     VStack(spacing: 24) {
                         // Logo/Title Section
                         VStack(spacing: 12) {
-                            Image(systemName: "person.crop.circle.fill.badge.plus")
+                            Image(systemName: "person.crop.circle.fill")
                                 .font(.system(size: 72))
                                 .foregroundColor(.blue)
                             

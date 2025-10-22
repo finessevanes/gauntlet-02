@@ -21,6 +21,9 @@ struct SettingsView: View {
     
     /// Show edit profile sheet
     @State private var showEditProfile = false
+    
+    /// Show notification test view
+    @State private var showNotificationTest = false
 
     // MARK: - Body
 
@@ -89,6 +92,25 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal, 24)
                 }
+                
+                // Notification Test Button (Debug only)
+                #if DEBUG
+                Button(action: {
+                    showNotificationTest = true
+                }) {
+                    HStack {
+                        Image(systemName: "bell.fill")
+                        Text("Test Notifications")
+                            .fontWeight(.semibold)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 24)
+                #endif
 
                 // Logout Button
                 Button(action: {
@@ -126,6 +148,9 @@ struct SettingsView: View {
                 if let user = authViewModel.currentUser {
                     EditProfileView(user: user)
                 }
+            }
+            .sheet(isPresented: $showNotificationTest) {
+                NotificationTestView()
             }
         }
     }
