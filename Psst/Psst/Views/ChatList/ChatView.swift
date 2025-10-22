@@ -40,6 +40,9 @@ struct ChatView: View {
     /// User profile listener for real-time updates
     @State private var userListener: ListenerRegistration? = nil
     
+    /// Presence listener ID for cleanup (UUID-based tracking)
+    @State private var presenceListenerID: UUID? = nil
+    
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
@@ -445,8 +448,8 @@ struct ChatView: View {
     private func attachPresenceListener() {
         guard !chat.isGroupChat, let contactID = otherUserID else { return }
         
-        // Attach presence listener
-        _ = presenceService.observePresence(userID: contactID) { isOnline in
+        // Attach presence listener and store UUID for cleanup
+        presenceListenerID = presenceService.observePresence(userID: contactID) { isOnline in
             DispatchQueue.main.async {
                 self.isContactOnline = isOnline
             }
@@ -455,8 +458,10 @@ struct ChatView: View {
     
     /// Detach presence listener to prevent memory leaks
     private func detachPresenceListener() {
-        guard let contactID = otherUserID else { return }
-        presenceService.stopObserving(userID: contactID)
+        guard let contactID = otherUserID, let listenerID = presenceListenerID else { return }
+        
+        presenceService.stopObserving(userID: contactID, listenerID: listenerID)
+        presenceListenerID = nil
         
         // Remove user profile listener
         userListener?.remove()
