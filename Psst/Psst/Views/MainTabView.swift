@@ -27,7 +27,7 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selectedTab) {
             // Tab 1: Conversations (PR #6)
-            ChatListView()
+            ChatListView(selectedTab: $selectedTab)
                 .tabItem {
                     Label("Conversations", systemImage: "message.fill")
                 }
@@ -47,6 +47,7 @@ struct MainTabView: View {
                 }
                 .tag(2)
         }
+        .tint(.blue) // Blue accent color for tab bar (PR #006B)
         .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
             if let chatId = newChatId {
                 print("[MainTabView] 🧭 Deep link received for chat: \(chatId)")

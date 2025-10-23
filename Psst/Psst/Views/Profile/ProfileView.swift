@@ -35,9 +35,9 @@ struct ProfileView: View {
                             imageURL: user.photoURL,
                             selectedImage: nil,
                             isLoading: false,
-                            size: 120
+                            size: 140
                         )
-                        .padding(.top, 20)
+                        .padding(.top, 32)
                         
                         // Display Name
                         Text(user.displayName)
@@ -57,14 +57,10 @@ struct ProfileView: View {
                                 Image(systemName: "pencil")
                                 Text("Edit Profile")
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
                         }
+                        .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, 24)
-                        .padding(.top, 16)
+                        .padding(.top, 24)
                         
                         // Account Info Section
                         VStack(alignment: .leading, spacing: 16) {

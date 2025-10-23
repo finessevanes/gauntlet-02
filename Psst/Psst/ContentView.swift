@@ -35,9 +35,12 @@ struct ContentView: View {
 /// Main app view after authentication
 /// Shows the conversation list (PR #6)
 struct MainAppView: View {
+    // Track selected tab for ChatListView
+    @State private var selectedTab: Int = 0
+
     var body: some View {
         // Show ChatListView as main screen after authentication
-        ChatListView()
+        ChatListView(selectedTab: $selectedTab)
     }
 }
 
