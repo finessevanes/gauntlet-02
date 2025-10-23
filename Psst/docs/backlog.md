@@ -51,6 +51,32 @@
 - Update `ProfilePhotoWithPresence.swift` - Use ProfilePhotoManager
 - Update `UserService.swift` - Delegate to ProfilePhotoManager
 
+### Threading Violation in Message Sending
+**Issue:** Publishing changes from background threads is not allowed; make sure to publish values from the main thread (via operators like receive(on:)) on model updates.
+
+**Root Cause:** 
+- `MessageService.sendMessage()` and `MessageService.sendImageMessage()` call optimistic completion handlers from background threads
+- These completion handlers update `@Published` properties in ViewModels which must happen on main thread
+- Firestore callbacks and async operations run on background threads by default
+
+**Impact:** 
+- SwiftUI warnings about threading violations
+- Potential UI update issues and crashes
+- Poor user experience with inconsistent message status updates
+
+**Reference Image:** ![Error Screenshot](mocks/error-screenshots/error-queued-message.png)
+
+**Proposed Solution:**
+- Wrap all optimistic completion calls in `await MainActor.run { }` 
+- Ensure all `@Published` property updates happen on main thread
+- Add proper thread safety to all ViewModel updates
+- Test offline message queuing scenarios thoroughly
+
+**Files to Modify:**
+- `Psst/Psst/Services/MessageService.swift` - Fix completion handler threading
+- `Psst/Psst/ViewModels/MessageManagementViewModel.swift` - Ensure main thread updates
+- Add comprehensive threading tests
+
 ---
 
 *Items to be added as they are identified*
