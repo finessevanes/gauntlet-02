@@ -151,7 +151,6 @@ class TypingIndicatorService: ObservableObject {
         if let ref = typingRefs[chatID] {
             ref.removeAllObservers()
             typingRefs.removeValue(forKey: chatID)
-            print("[TypingIndicatorService] ✓ Stopped observing typing for chat \(chatID)")
         }
     }
     

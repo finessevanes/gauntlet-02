@@ -60,7 +60,6 @@ class ChatListViewModel: ObservableObject {
                 }
                 
                 self?.chats = filteredChats
-                print("✅ Chats updated: \(filteredChats.count) chats loaded (\(chats.count - filteredChats.count) empty groups filtered)")
             }
         }
     }
@@ -70,7 +69,6 @@ class ChatListViewModel: ObservableObject {
     func stopObserving() {
         listener?.remove()
         listener = nil
-        print("🧹 Stopped observing chats")
     }
     
     // MARK: - Lifecycle

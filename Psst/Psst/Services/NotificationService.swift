@@ -123,7 +123,6 @@ class NotificationService: NSObject, ObservableObject {
     /// Handle FCM token received from Firebase Messaging
     /// - Parameter token: FCM device token
     func didReceiveFCMToken(_ token: String) {
-        Log.d("NotificationService", "FCM token received (redacted): \(token.prefix(8))…")
         
         Task {
             await MainActor.run {
@@ -151,7 +150,6 @@ class NotificationService: NSObject, ObservableObject {
             "fcmToken": token
         ])
         
-        Log.d("NotificationService", "Saved token for user: \(userID.prefix(6))…")
     }
     
     /// Refresh FCM token (called on app launch)
@@ -168,7 +166,6 @@ class NotificationService: NSObject, ObservableObject {
         
         do {
             let token = try await Messaging.messaging().token()
-            Log.d("NotificationService", "Refreshed FCM token (redacted): \(token.prefix(8))…")
             didReceiveFCMToken(token)
         } catch {
             Log.e("NotificationService", "Failed to refresh FCM token: \(error.localizedDescription)")
@@ -212,7 +209,6 @@ extension NotificationService: MessagingDelegate {
     ///   - messaging: Messaging instance
     ///   - fcmToken: Firebase Cloud Messaging token
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        Log.d("NotificationService", "MessagingDelegate: FCM token received")
         
         guard let token = fcmToken else {
             Log.w("NotificationService", "FCM token is nil")

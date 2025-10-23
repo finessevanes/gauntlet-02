@@ -57,7 +57,6 @@ class NetworkMonitor: ObservableObject {
         
         // Start monitor on background queue
         monitor.start(queue: queue)
-        print("✅ NetworkMonitor started")
     }
     
     /// Stop monitoring network state
