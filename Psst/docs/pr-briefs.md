@@ -2,7 +2,25 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** 🎯 9 In Progress/Todo
+**Status:** 🎯 7 Todo | ✅ 4 Completed
+
+---
+
+## ✅ Completed
+
+### Phase 1: MVP Polish & UX Enhancement
+
+#### PR #006E: new-chat-sheet-redesign
+
+**Brief:** Complete redesign of the New Chat sheet for improved usability and visual polish: move search to top (below segmented control instead of bottom), modernize segmented control to current iOS style, add blue checkmark selection indicators with Done button for group creation, implement auto-navigation for 1-on-1 chats (tap user → immediately navigate, no Done button needed), enhance user rows with 56pt avatars and better spacing (72pt height), add tap animations (scale to 0.98, background flash), implement haptic feedback, move user count to section header (remove from nav bar), and create skeleton loading states. This is the fifth and final piece of the app-wide design system overhaul following PR #006A (design system), #006B (main app polish), #006C (settings), and #006D (profile), completing the cohesive modern interface across the entire app.
+
+**Dependencies:** PR #006A (design system), PR #006B (main app polish)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -139,12 +157,17 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 ## 📊 Summary
 
 ### Project Progress
-- **Phase 1 (MVP Polish):** 🎯 0/9 Complete
+- **Phase 1 (MVP Polish):** ✅ 4/11 Complete (36%)
 
 ### Overall Status
-- **Total PRs:** 9
-- **Completed:** 0 (0%)
-- **Remaining:** 9 (100%)
+- **Total PRs:** 11 (PR #006 split into 006A, 006B, 006C, 006D, 006E)
+- **Completed:** 4 (36%) - PR #002, #003, #006E
+- **In Progress/Todo:** 7 (64%) - PR #001, #004, #005, #006 (A/B/C/D), #007, #008, #009
+
+### Recent Completions
+- **PR #006E** ✅ New Chat Sheet Redesign - Search at top, checkmarks, auto-navigation, 56pt avatars, modern UI (Final piece of design system overhaul)
+- **PR #003** ✅ Presence Indicator Redesign & Unread Badges - Halo effects, modern presence indicators
+- **PR #002** ✅ Message Delivery Status Fix - Clean delivery indicators on latest message only
 
 ---
 
