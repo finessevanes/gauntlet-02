@@ -17,6 +17,8 @@ import SwiftUI
 /// Service for managing push notifications, device tokens, and permission requests
 /// Handles APNs registration, FCM token management, and Firestore token storage
 class NotificationService: NSObject, ObservableObject {
+    /// Shared singleton instance for consistent usage across App and AppDelegate
+    static let shared = NotificationService()
     
     // MARK: - Published Properties
     
@@ -61,12 +63,11 @@ class NotificationService: NSObject, ObservableObject {
         }
         
         if granted {
-            print("[NotificationService] ✅ Notification permission granted")
             await MainActor.run {
                 registerForPushNotifications()
             }
         } else {
-            print("[NotificationService] ❌ Notification permission denied")
+            Log.w("NotificationService", "Notification permission denied")
         }
         
         return granted
@@ -82,7 +83,7 @@ class NotificationService: NSObject, ObservableObject {
             self.isPermissionGranted = (status == .authorized)
         }
         
-        print("[NotificationService] Permission status: \(status.rawValue)")
+        Log.d("NotificationService", "Permission status: \(status.rawValue)")
         return status
     }
     
@@ -94,14 +95,14 @@ class NotificationService: NSObject, ObservableObject {
         DispatchQueue.main.async {
             UIApplication.shared.registerForRemoteNotifications()
         }
-        print("[NotificationService] 📲 Registering for remote notifications...")
+        Log.d("NotificationService", "Registering for remote notifications...")
     }
     
     /// Handle successful APNs device token registration
     /// - Parameter token: Device token data from APNs
     func didReceiveAPNsToken(_ token: Data) {
         let tokenString = token.map { String(format: "%02.2hhx", $0) }.joined()
-        print("[NotificationService] 📱 APNs token received: \(tokenString)")
+        Log.d("NotificationService", "APNs token received: \(tokenString)")
         
         // FCM SDK will automatically exchange this for FCM token via MessagingDelegate
     }
@@ -109,11 +110,11 @@ class NotificationService: NSObject, ObservableObject {
     /// Handle APNs registration failure
     /// - Parameter error: Registration error
     func didFailToRegister(error: Error) {
-        print("[NotificationService] ❌ Failed to register for remote notifications: \(error.localizedDescription)")
+        Log.e("NotificationService", "Failed to register for remote notifications: \(error.localizedDescription)")
         
         // Check if running on simulator
         #if targetEnvironment(simulator)
-        print("[NotificationService] ⚠️ Note: Push notifications are not supported on iOS Simulator. Please test on a physical device.")
+        Log.w("NotificationService", "Note: Push notifications are not supported on iOS Simulator. Test on a device.")
         #endif
     }
     
@@ -122,7 +123,7 @@ class NotificationService: NSObject, ObservableObject {
     /// Handle FCM token received from Firebase Messaging
     /// - Parameter token: FCM device token
     func didReceiveFCMToken(_ token: String) {
-        print("[NotificationService] 🔥 FCM token received: \(token)")
+        Log.d("NotificationService", "FCM token received (redacted): \(token.prefix(8))…")
         
         Task {
             await MainActor.run {
@@ -131,9 +132,8 @@ class NotificationService: NSObject, ObservableObject {
             
             do {
                 try await saveFCMTokenToFirestore(token)
-                print("[NotificationService] ✅ FCM token saved to Firestore")
             } catch {
-                print("[NotificationService] ❌ Failed to save FCM token to Firestore: \(error.localizedDescription)")
+                Log.e("NotificationService", "Failed to save FCM token to Firestore: \(error.localizedDescription)")
             }
         }
     }
@@ -143,7 +143,7 @@ class NotificationService: NSObject, ObservableObject {
     /// - Throws: Error if user not authenticated or Firestore write fails
     func saveFCMTokenToFirestore(_ token: String) async throws {
         guard let userID = Auth.auth().currentUser?.uid else {
-            print("[NotificationService] ⚠️ Cannot save token - user not authenticated")
+            Log.w("NotificationService", "Cannot save token - user not authenticated")
             throw NSError(domain: "NotificationService", code: 1, userInfo: [NSLocalizedDescriptionKey: "User not authenticated"])
         }
         
@@ -151,31 +151,31 @@ class NotificationService: NSObject, ObservableObject {
             "fcmToken": token
         ])
         
-        print("[NotificationService] ✅ Saved token for user: \(userID)")
+        Log.d("NotificationService", "Saved token for user: \(userID.prefix(6))…")
     }
     
     /// Refresh FCM token (called on app launch)
     /// Fetches latest token from Firebase Messaging SDK
     func refreshFCMToken() async {
-        print("[NotificationService] 🔄 Refreshing FCM token...")
+        Log.d("NotificationService", "Refreshing FCM token…")
         
         // Check if we have permission first
         let status = await checkPermissionStatus()
         guard status == .authorized else {
-            print("[NotificationService] ⚠️ No notification permission, skipping FCM token refresh")
+            Log.w("NotificationService", "No notification permission, skipping FCM token refresh")
             return
         }
         
         do {
             let token = try await Messaging.messaging().token()
-            print("[NotificationService] 🔥 Refreshed FCM token: \(token)")
+            Log.d("NotificationService", "Refreshed FCM token (redacted): \(token.prefix(8))…")
             didReceiveFCMToken(token)
         } catch {
-            print("[NotificationService] ❌ Failed to refresh FCM token: \(error.localizedDescription)")
+            Log.e("NotificationService", "Failed to refresh FCM token: \(error.localizedDescription)")
             
             // If it's the APNs token error, we'll wait for the APNs token to be set
             if error.localizedDescription.contains("No APNS token") {
-                print("[NotificationService] ⏳ Waiting for APNs token to be registered...")
+                Log.d("NotificationService", "Waiting for APNs token to be registered…")
                 // The FCM token will be automatically refreshed when APNs token is set
             }
         }
@@ -187,16 +187,12 @@ class NotificationService: NSObject, ObservableObject {
     /// - Parameter userInfo: Notification user info dictionary
     /// - Returns: Bool indicating if deep link was processed
     func handleNotificationTap(_ userInfo: [AnyHashable: Any]) -> Bool {
-        print("[NotificationService] 👆 Handling notification tap")
+        Log.d("NotificationService", "Handling notification tap")
         
         // Process deep link data
         let success = deepLinkHandler.processNotificationData(userInfo)
         
-        if success {
-            print("[NotificationService] ✅ Deep link processed successfully")
-        } else {
-            print("[NotificationService] ❌ Failed to process deep link")
-        }
+        if !success { Log.e("NotificationService", "Failed to process deep link") }
         
         return success
     }
@@ -216,10 +212,10 @@ extension NotificationService: MessagingDelegate {
     ///   - messaging: Messaging instance
     ///   - fcmToken: Firebase Cloud Messaging token
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        print("[NotificationService] 📬 MessagingDelegate: FCM token received")
+        Log.d("NotificationService", "MessagingDelegate: FCM token received")
         
         guard let token = fcmToken else {
-            print("[NotificationService] ⚠️ FCM token is nil")
+            Log.w("NotificationService", "FCM token is nil")
             return
         }
         

@@ -3,9 +3,10 @@
 ## Agent System
 
 This project uses specialized agents to build features systematically:
+- **Brenda** (Brief Creator): Creates new PR briefs from feature requirements
 - **Pam** (Planning Agent): Creates PRDs and TODOs from PR briefs
-- **Caleb** (Coder Agent): Implements features from PRDs and TODOs
-- **Brenda** (Brief Creator): Creates new PR briefs
+- **Claudia** (UX Expert): Creates UI/UX specifications, wireframes, and AI frontend prompts
+- **Caleb** (Coder Agent): Implements features from PRDs, TODOs, and UX specs
 
 All agents follow standards in `Psst/agents/shared-standards.md`
 
@@ -199,6 +200,68 @@ Start by reading Psst/docs/prd-full-features.md, then create comprehensive pr-br
 
 ---
 
+### /claudia [pr-number]
+Activates Claudia (UX Expert Agent) to create UI/UX specifications and AI frontend prompts.
+
+**Usage:** `/claudia pr-3` or `/claudia 3`
+
+**What Claudia does:**
+- Reads `Psst/agents/creative-claudia-agent.md` for instructions
+- Reads PRD at `Psst/docs/prds/pr-{number}-prd.md`
+- Creates wireframes and UI/UX specifications
+- Generates AI-powered frontend prompts (for v0, Lovable, etc.)
+- Focuses on user experience, accessibility, and design systems
+- Creates front-end specifications for developers
+
+**Available Commands (prefix with *):**
+- `*help` - Show available commands
+- `*create-front-end-spec` - Create detailed UI/UX specification document
+- `*generate-ui-prompt` - Generate AI frontend generation prompt
+- `*exit` - Exit UX Expert mode
+
+**Claudia's Prompt:**
+```
+You are Claudia, a senior UX designer and UI specialist focused on creating beautiful, intuitive user experiences.
+
+Your instructions: Psst/agents/creative-claudia-agent.md
+Read it carefully and follow every step.
+
+Assignment: PR #{pr-number} - [read from pr-briefs.md]
+
+Your role:
+- User Experience Designer & UI Specialist
+- Empathetic, creative, detail-oriented, user-obsessed
+- Expert in user research, interaction design, visual design, accessibility
+- Skilled at crafting AI UI generation prompts (v0, Lovable)
+
+Core principles:
+- User-Centric above all - Every design decision must serve user needs
+- Simplicity Through Iteration - Start simple, refine based on feedback
+- Delight in the Details - Thoughtful micro-interactions create memorable experiences
+- Design for Real Scenarios - Consider edge cases, errors, and loading states
+- Collaborate, Don't Dictate - Best solutions emerge from cross-functional work
+
+Key reminders:
+- Read Psst/agents/shared-standards.md for design patterns and requirements
+- PRD already created - READ it first to understand feature requirements
+- Create wireframes/mockups for key user flows
+- Define interaction patterns, animations, and micro-interactions
+- Consider accessibility (VoiceOver, Dynamic Type, color contrast)
+- Generate comprehensive AI prompts for frontend generation
+- Verify with user before finalizing specifications
+- Work autonomously with user-centric focus
+
+Commands available (use * prefix):
+- *help - Show available commands
+- *create-front-end-spec - Create detailed front-end specification
+- *generate-ui-prompt - Generate AI frontend prompt (v0/Lovable)
+- *exit - Exit Claudia mode
+
+Start by reading your instruction file and the PRD, then begin.
+```
+
+---
+
 ### /status
 Shows current PR status across all phases.
 
@@ -249,6 +312,24 @@ Shows current PR status across all phases.
 /caleb pr-5            → Implements immediately
 ```
 
+### UX-focused workflow with Claudia:
+```
+/pam pr-8              → Creates PRD, waits for review
+[review and approve]
+→ Creates TODO
+
+/claudia pr-8          → Creates UI/UX specifications
+→ Creates wireframes and user flows
+→ Generates AI frontend prompt
+→ Verifies design with user
+
+/caleb pr-8            → Implements with UX specs
+→ Follows design specifications
+→ Implements UI components
+→ Creates tests
+→ Creates PR when approved
+```
+
 ---
 
 ## File Structure
@@ -257,21 +338,24 @@ Shows current PR status across all phases.
 gauntlet-02/
 ├── Psst/
 │   ├── agents/
-│   │   ├── caleb-agent.md          # Caleb's (Coder) instructions
-│   │   ├── pam-agent.md            # Pam's (Planning) instructions
-│   │   ├── prd-template.md         # PRD format
-│   │   ├── todo-template.md        # TODO format
-│   │   └── shared-standards.md     # Common requirements
+│   │   ├── caleb-agent.md               # Caleb's (Coder) instructions
+│   │   ├── pam-agent.md                 # Pam's (Planning) instructions
+│   │   ├── creative-claudia-agent.md    # Claudia's (UX) instructions
+│   │   ├── prd-template.md              # PRD format
+│   │   ├── todo-template.md             # TODO format
+│   │   └── shared-standards.md          # Common requirements
 │   ├── docs/
-│   │   ├── prd-full-features.md    # Full feature specification
-│   │   ├── architecture.md         # System architecture
-│   │   ├── pr-briefs.md            # All PR descriptions (Brenda creates)
+│   │   ├── prd-full-features.md         # Full feature specification
+│   │   ├── architecture.md              # System architecture
+│   │   ├── pr-briefs.md                 # All PR descriptions (Brenda creates)
 │   │   ├── prds/
-│   │   │   └── pr-{N}-prd.md       # Individual PRDs (Pam creates)
-│   │   └── todos/
-│   │       └── pr-{N}-todo.md      # Individual TODOs (Pam creates)
-│   └── Psst/                       # iOS app (Caleb builds)
-└── .cursorrules                    # This file
+│   │   │   └── pr-{N}-prd.md            # Individual PRDs (Pam creates)
+│   │   ├── todos/
+│   │   │   └── pr-{N}-todo.md           # Individual TODOs (Pam creates)
+│   │   └── ux-specs/
+│   │       └── pr-{N}-ux-spec.md        # UI/UX specifications (Claudia creates)
+│   └── Psst/                            # iOS app (Caleb builds)
+└── .cursorrules                         # This file
 ```
 
 ---
@@ -293,7 +377,8 @@ gauntlet-02/
 - Always reference `Psst/agents/shared-standards.md`
 - Tests are mandatory: Unit (XCTest) + UI (XCUITest)
 - Caleb checks off TODO items as he completes them
-- Brenda creates briefs → Pam plans → Caleb builds
+- Agent workflow: Brenda creates briefs → Pam plans → Claudia designs → Caleb builds
+- Claudia is optional but recommended for UI-heavy features
 # Swift Development Rules
 
 ## Project Context

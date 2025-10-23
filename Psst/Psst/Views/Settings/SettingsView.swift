@@ -28,6 +28,8 @@ struct SettingsView: View {
     /// Error message for logout failures
     @State private var errorMessage = ""
     
+    /// Show notification test view
+    @State private var showNotificationTest = false
     // MARK: - Body
     
     var body: some View {
@@ -54,6 +56,21 @@ struct SettingsView: View {
                     }
                 }
                 
+                // Notification Test Button (Debug only)
+                #if DEBUG
+                Section(header: Text("DEBUG")) {
+                    Button(action: {
+                        showNotificationTest = true
+                    }) {
+                        HStack {
+                            Image(systemName: "bell.fill")
+                            Text("Test Notifications")
+                                .fontWeight(.semibold)
+                        }
+                    }
+                }
+                #endif
+                
                 // Logout Button Section
                 Section {
                     logoutButton
@@ -68,6 +85,9 @@ struct SettingsView: View {
                 }
             } message: {
                 Text(errorMessage)
+            }
+            .sheet(isPresented: $showNotificationTest) {
+                NotificationTestView()
             }
         }
     }
