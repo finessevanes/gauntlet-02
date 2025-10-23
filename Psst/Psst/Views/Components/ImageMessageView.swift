@@ -18,6 +18,7 @@ struct ImageMessageView: View {
     
     @State private var hasFailed = false
     @State private var useThumbnail = false
+    @State private var showFullScreen = false
     
     private var aspectRatio: CGFloat? {
         guard let w = width, let h = height, w > 0, h > 0 else { return nil }
@@ -40,6 +41,18 @@ struct ImageMessageView: View {
                     },
                     onFailure: handleImageFailure
                 )
+                .onTapGesture {
+                    showFullScreen = true
+                }
+                .fullScreenCover(isPresented: $showFullScreen) {
+                    FullScreenImageView(
+                        imageURL: imageURL,
+                        thumbnailURL: thumbnailURL,
+                        width: width,
+                        height: height,
+                        isPresented: $showFullScreen
+                    )
+                }
             } else {
                 ImageStateView.error(aspectRatio: aspectRatio)
                     .onAppear {
