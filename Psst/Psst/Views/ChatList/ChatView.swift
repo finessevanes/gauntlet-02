@@ -53,6 +53,12 @@ struct ChatView: View {
     /// Scroll proxy for programmatic scrolling
     @State private var scrollProxy: ScrollViewProxy?
     
+    /// Track if this is the initial load to prevent unwanted scrolling
+    @State private var isInitialLoad: Bool = true
+    
+    /// Track keyboard state for proper scrolling
+    @State private var isKeyboardVisible: Bool = false
+    
     /// Cache for sender names (userID -> displayName) for group chats
     @State private var senderNames: [String: String] = [:]
     
@@ -239,6 +245,8 @@ struct ChatView: View {
             }
             // Mark messages as read when chat opens (PR #14)
             markMessagesAsRead()
+            // Set up keyboard notifications
+            setupKeyboardNotifications()
         }
         .onDisappear {
             print("📱 [CHAT VIEW] User left chat: \(chat.id)")
@@ -254,6 +262,8 @@ struct ChatView: View {
             if chat.isGroupChat {
                 detachGroupPresenceListeners()
             }
+            // Remove keyboard notifications
+            removeKeyboardNotifications()
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected
@@ -348,16 +358,35 @@ struct ChatView: View {
                 .padding(.bottom, 8)
             }
             .onAppear {
-                // Store proxy for keyboard handling and scroll to bottom on initial load
+                // Store proxy for keyboard handling
                 scrollProxy = proxy
-                scrollToBottom(proxy: proxy)
+                // If messages are already loaded, scroll to bottom immediately
+                if messages.count > 0 {
+                    scrollToBottomImmediately(proxy: proxy)
+                }
             }
             .onChange(of: messages.count) { _, _ in
-                // Scroll to bottom when new messages arrive
-                scrollToBottom(proxy: proxy)
+                // Always scroll to bottom when messages are loaded
+                if messages.count > 0 {
+                    if isInitialLoad {
+                        // First load - scroll immediately without delay
+                        scrollToBottomImmediately(proxy: proxy)
+                        isInitialLoad = false
+                    } else {
+                        // New messages - scroll with small delay
+                        scrollToBottom(proxy: proxy)
+                    }
+                }
                 
                 // Mark new messages as read (for messages that arrive while chat is open)
                 markMessagesAsRead()
+            }
+            .onChange(of: isKeyboardVisible) { _, newValue in
+                // Ensure latest message and status are visible when keyboard state changes
+                if newValue {
+                    // Keyboard appeared - scroll to bottom to keep latest message visible
+                    scrollToBottom(proxy: proxy)
+                }
             }
         }
     }
@@ -504,13 +533,20 @@ struct ChatView: View {
         queueCount = MessageQueue.shared.getQueueCount(for: chat.id)
     }
     
-    /// Scroll to bottom of message list
+    /// Scroll to bottom of message list (for new messages)
     private func scrollToBottom(proxy: ScrollViewProxy) {
         // Small delay to ensure layout updates complete
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                proxy.scrollTo("bottom", anchor: .bottom)
-            }
+            // Remove animation to prevent "weird scrolling thing"
+            proxy.scrollTo("bottom", anchor: .bottom)
+        }
+    }
+    
+    /// Scroll to bottom immediately (for initial load)
+    private func scrollToBottomImmediately(proxy: ScrollViewProxy) {
+        // Small delay to ensure layout is ready
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+            proxy.scrollTo("bottom", anchor: .bottom)
         }
     }
     
@@ -811,6 +847,41 @@ struct ChatView: View {
                 print("❌ Failed to mark messages as read: \(error.localizedDescription)")
             }
         }
+    }
+    
+    // MARK: - Keyboard Handling
+    
+    /// Set up keyboard notifications to handle scrolling when keyboard appears/disappears
+    private func setupKeyboardNotifications() {
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillShowNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            isKeyboardVisible = true
+            // Scroll to bottom when keyboard appears to keep latest message visible
+            if let proxy = scrollProxy {
+                scrollToBottom(proxy: proxy)
+            }
+        }
+        
+        NotificationCenter.default.addObserver(
+            forName: UIResponder.keyboardWillHideNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            isKeyboardVisible = false
+            // Scroll to bottom when keyboard disappears to ensure latest message is visible
+            if let proxy = scrollProxy {
+                scrollToBottom(proxy: proxy)
+            }
+        }
+    }
+    
+    /// Remove keyboard notifications to prevent memory leaks
+    private func removeKeyboardNotifications() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
     }
 }
 
