@@ -11,6 +11,7 @@ import FirebaseFirestore
 import FirebaseAuth
 import FirebaseStorage
 import UIKit
+ 
 
 /// Service for managing user profile data in Firestore
 /// Handles CRUD operations, caching, and real-time listeners for the users collection
@@ -74,19 +75,21 @@ class UserService {
 
         // Save to Firestore
         let start = Date()
+        let sw = Stopwatch()
+        Log.i("UserService", "createUser start id=\(id)")
         do {
             try await db.collection(usersCollection).document(id).setData(user.toDictionary())
 
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] Created user \(id) in \(Int(duration))ms")
+            Log.i("UserService", "Created user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Cache the user
             userCache[id] = user
 
             return user
         } catch {
-            print("[UserService] ❌ Failed to create user \(id): \(error.localizedDescription)")
+            Log.e("UserService", "Failed to create user id=\(id): \(error.localizedDescription)")
             throw UserServiceError.createFailed(error)
         }
     }
@@ -98,12 +101,13 @@ class UserService {
     func getUser(id: String) async throws -> User {
         // Check cache first
         if let cachedUser = userCache[id] {
-            print("[UserService] Cache hit for user \(id)")
+            Log.i("UserService", "User cache hit id=\(id)")
             return cachedUser
         }
 
         // Fetch from Firestore
         let start = Date()
+        let sw = Stopwatch()
         do {
             let document = try await db.collection(usersCollection).document(id).getDocument()
 
@@ -115,7 +119,7 @@ class UserService {
 
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] Fetched user \(id) in \(Int(duration))ms")
+            Log.i("UserService", "Fetched user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Cache the user
             userCache[id] = user
@@ -124,7 +128,7 @@ class UserService {
         } catch let error as UserServiceError {
             throw error
         } catch {
-            print("[UserService] ❌ Failed to fetch user \(id): \(error.localizedDescription)")
+            Log.e("UserService", "Failed to fetch user id=\(id): \(error.localizedDescription)")
             throw UserServiceError.fetchFailed(error)
         }
     }
@@ -141,7 +145,7 @@ class UserService {
                 let user = try await getUser(id: id)
                 users.append(user)
             } catch {
-                print("[UserService] ⚠️ Failed to fetch user \(id) in batch: \(error.localizedDescription)")
+                Log.w("UserService", "Failed to fetch user id=\(id) in batch: \(error.localizedDescription)")
                 // Continue fetching other users
             }
         }
@@ -154,6 +158,7 @@ class UserService {
     /// - Throws: Firestore errors if query fails
     func fetchAllUsers() async throws -> [User] {
         let start = Date()
+        let sw = Stopwatch()
         
         do {
             let snapshot = try await db.collection(usersCollection).getDocuments()
@@ -162,18 +167,18 @@ class UserService {
                 do {
                     return try document.data(as: User.self)
                 } catch {
-                    print("[UserService] ⚠️ Error decoding user \(document.documentID): \(error.localizedDescription)")
+                    Log.w("UserService", "Error decoding user id=\(document.documentID): \(error.localizedDescription)")
                     return nil
                 }
             }
             
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] Fetched \(users.count) users in \(Int(duration))ms")
+            Log.i("UserService", "Fetched users count=\(users.count) in \(Int(duration))ms (\(sw.ms)ms)")
             
             return users
         } catch {
-            print("[UserService] ❌ Failed to fetch all users: \(error.localizedDescription)")
+            Log.e("UserService", "Failed to fetch all users: \(error.localizedDescription)")
             throw UserServiceError.fetchFailed(error)
         }
     }
@@ -202,18 +207,19 @@ class UserService {
 
         // Update in Firestore
         let start = Date()
+        let sw = Stopwatch()
         do {
             try await db.collection(usersCollection).document(id).updateData(updateData)
 
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] Updated user \(id) in \(Int(duration))ms")
+            Log.i("UserService", "Updated user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Invalidate cache for this user
             userCache.removeValue(forKey: id)
 
         } catch {
-            print("[UserService] ❌ Failed to update user \(id): \(error.localizedDescription)")
+            Log.e("UserService", "Failed to update user id=\(id): \(error.localizedDescription)")
             throw UserServiceError.updateFailed(error)
         }
     }
@@ -226,7 +232,7 @@ class UserService {
     func observeUser(id: String, completion: @escaping (Result<User, Error>) -> Void) -> ListenerRegistration {
         return db.collection(usersCollection).document(id).addSnapshotListener { [weak self] snapshot, error in
             if let error = error {
-                print("[UserService] ❌ Listener error for user \(id): \(error.localizedDescription)")
+                Log.e("UserService", "Listener error userID=\(id): \(error.localizedDescription)")
                 completion(.failure(UserServiceError.fetchFailed(error)))
                 return
             }
@@ -244,7 +250,7 @@ class UserService {
 
                 completion(.success(user))
             } catch {
-                print("[UserService] ❌ Failed to decode user \(id): \(error.localizedDescription)")
+                Log.e("UserService", "Failed to decode user id=\(id): \(error.localizedDescription)")
                 completion(.failure(UserServiceError.fetchFailed(error)))
             }
         }
@@ -253,7 +259,7 @@ class UserService {
     /// Clears the in-memory user cache
     func clearCache() {
         userCache.removeAll()
-        print("[UserService] Cache cleared")
+        Log.i("UserService", "Cache cleared")
     }
     
     // MARK: - Profile Editing Methods (PR #17)
@@ -266,6 +272,7 @@ class UserService {
     /// - Throws: UserServiceError if validation fails or update fails
     func updateUserProfile(uid: String, displayName: String?, profilePhotoURL: String?) async throws {
         let start = Date()
+        let sw = Stopwatch()
         
         // Validate uid
         guard !uid.isEmpty else {
@@ -295,7 +302,7 @@ class UserService {
         
         // Ensure we have at least one field to update
         guard updateData.count > 1 else { // >1 because updatedAt is always included
-            print("[UserService] ⚠️ No fields to update for user \(uid)")
+            Log.w("UserService", "No fields to update uid=\(uid)")
             return
         }
         
@@ -305,13 +312,13 @@ class UserService {
             
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] Updated profile for user \(uid) in \(Int(duration))ms")
+            Log.i("UserService", "Updated profile for user id=\(uid) in \(Int(duration))ms")
             
             // Invalidate cache
             userCache.removeValue(forKey: uid)
             
         } catch {
-            print("[UserService] ❌ Failed to update profile for user \(uid): \(error.localizedDescription)")
+            Log.e("UserService", "Failed to update profile for user id=\(uid): \(error.localizedDescription)")
             throw UserServiceError.updateFailed(error)
         }
     }
@@ -324,6 +331,7 @@ class UserService {
     /// - Throws: ProfilePhotoError with specific error details
     func uploadProfilePhoto(uid: String, imageData: Data) async throws -> String {
         let start = Date()
+        let sw = Stopwatch()
         
         // Validate uid
         guard !uid.isEmpty else {
@@ -332,26 +340,27 @@ class UserService {
         
         // Check network connectivity first
         guard await checkNetworkConnectivity() else {
-            print("[UserService] ❌ Upload blocked: No network connection")
+            Log.e("UserService", "Upload blocked: No network connection")
             throw ProfilePhotoError.networkUnavailable
         }
         
-        print("[UserService] Starting profile photo upload for user \(uid), original size: \(imageData.count) bytes")
+        Log.i("UserService", "Upload start uid=\(uid) origBytes=\(imageData.count)")
         
         // Convert to UIImage first
         guard let image = UIImage(data: imageData) else {
-            print("[UserService] ❌ Invalid image data")
+            Log.e("UserService", "Invalid image data")
             throw ProfilePhotoError.invalidImageData
         }
         
         // Attempt compression FIRST (this handles large images)
         // Target: 1500KB (increased from 1000KB for better image quality)
         let compressedData: Data
+        let compressSW = Stopwatch()
         do {
             compressedData = try await compressImage(image, maxSizeKB: 1500)
-            print("[UserService] ✅ Compression complete: \(compressedData.count) bytes")
+            Log.i("UserService", "Compression complete bytes=\(compressedData.count) took=\(compressSW.ms)ms")
         } catch {
-            print("[UserService] ❌ Compression failed: \(error.localizedDescription)")
+            Log.e("UserService", "Compression failed: \(error.localizedDescription)")
             throw error
         }
         
@@ -359,7 +368,7 @@ class UserService {
         do {
             try validateImageData(compressedData)
         } catch {
-            print("[UserService] ❌ Compressed image still too large: \(error.localizedDescription)")
+            Log.e("UserService", "Compressed image still too large: \(error.localizedDescription)")
             throw error
         }
         
@@ -375,40 +384,39 @@ class UserService {
         
         do {
             // Upload the image
-            print("[UserService] Uploading to path: \(filePath)")
-            print("[UserService] Upload size: \(compressedData.count) bytes")
+            Log.i("UserService", "Uploading path=\(filePath) size=\(compressedData.count)B")
+            let uploadSW = Stopwatch()
             
             let uploadMetadata = try await fileRef.putData(compressedData, metadata: metadata)
             
-            print("[UserService] ✅ Upload completed successfully")
-            print("[UserService] Upload metadata: \(uploadMetadata)")
+            Log.i("UserService", "Upload completed took=\(uploadSW.ms)ms meta=\(uploadMetadata)")
             
             // Get download URL after successful upload with retry logic
             // Firebase Storage sometimes has a brief propagation delay
-            print("[UserService] Fetching download URL...")
+            Log.i("UserService", "Fetching download URL...")
+            let urlSW = Stopwatch()
             let downloadURL = try await fetchDownloadURLWithRetry(fileRef: fileRef, maxAttempts: 5)
+            Log.i("UserService", "Download URL fetched took=\(urlSW.ms)ms")
             
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
-            print("[UserService] ✅ Uploaded profile photo for user \(uid) in \(Int(duration))ms")
-            print("[UserService] Download URL: \(downloadURL.absoluteString)")
+            Log.i("UserService", "Uploaded profile photo uid=\(uid) total=\(Int(duration))ms (\(sw.ms)ms)")
+            Log.i("UserService", "Download URL=\(downloadURL.absoluteString)")
             
             // Invalidate cache for this user so new photo will be fetched
+            let invSW = Stopwatch()
             await ImageCacheService.shared.invalidateProfilePhotoCache(userID: uid)
+            Log.i("UserService", "Cache invalidated uid=\(uid) took=\(invSW.ms)ms")
             
             return downloadURL.absoluteString
             
         } catch let error as NSError {
-            print("[UserService] ❌ Failed to upload profile photo for user \(uid)")
-            print("[UserService] Error domain: \(error.domain)")
-            print("[UserService] Error code: \(error.code)")
-            print("[UserService] Error description: \(error.localizedDescription)")
-            print("[UserService] Error details: \(error)")
-            print("[UserService] User info: \(error.userInfo)")
+            Log.e("UserService", "Failed upload uid=\(uid)")
+            Log.e("UserService", "Error domain=\(error.domain) code=\(error.code) desc=\(error.localizedDescription)")
             
             // Check for specific Firebase Storage errors
             if error.domain == "FIRStorageErrorDomain" {
-                print("[UserService] Firebase Storage Error Code: \(error.code)")
+                Log.e("UserService", "Firebase Storage Error Code=\(error.code)")
                 
                 // Error code -13021 is permission denied
                 if error.code == -13021 {
@@ -455,7 +463,7 @@ class UserService {
             throw ProfilePhotoError.invalidFormat(format: format)
         }
         
-        print("[UserService] ✅ Image validation passed (\(data.count) bytes)")
+        Log.i("UserService", "Image validation passed bytes=\(data.count)")
     }
     
     /// Compresses an image to target size with quality fallback
@@ -472,7 +480,7 @@ class UserService {
                 var compressionQuality: CGFloat = 0.8
                 var compressedData: Data?
                 
-                print("[UserService] Starting compression (target: \(maxSizeKB)KB)...")
+                Log.i("UserService", "Compression start target=\(maxSizeKB)KB")
                 
                 // Try to compress with decreasing quality until size is acceptable
                 var attempts = 0
@@ -482,16 +490,16 @@ class UserService {
                     attempts += 1
                     
                     guard let data = image.jpegData(compressionQuality: compressionQuality) else {
-                        print("[UserService] ❌ Failed to create JPEG data at quality \(compressionQuality)")
+                    Log.e("UserService", "Failed to create JPEG at quality=\(compressionQuality)")
                         compressionQuality -= 0.1
                         continue
                     }
                     
-                    print("[UserService] Attempt \(attempts): \(data.count) bytes at quality \(String(format: "%.1f", compressionQuality))")
+                    Log.i("UserService", "Compress attempt=\(attempts) size=\(data.count)B quality=\(String(format: "%.1f", compressionQuality))")
                     
                     if data.count <= maxSizeBytes {
                         compressedData = data
-                        print("[UserService] ✅ Compression successful: \(data.count) bytes")
+                        Log.i("UserService", "Compression successful bytes=\(data.count)")
                         break
                     }
                     
@@ -501,7 +509,7 @@ class UserService {
                 // If still too large, use the last compressed version
                 if compressedData == nil {
                     compressedData = image.jpegData(compressionQuality: 0.3)
-                    print("[UserService] ⚠️ Using minimum compression quality")
+                    Log.i("UserService", "Using minimum compression quality")
                 }
                 
                 guard let finalData = compressedData else {
@@ -527,7 +535,7 @@ class UserService {
     func loadProfilePhoto(userID: String) async throws -> UIImage {
         // Check cache first
         if let cachedImage = await ImageCacheService.shared.getCachedProfilePhoto(userID: userID) {
-            print("[UserService] Loaded profile photo from cache for user \(userID)")
+            Log.i("UserService", "Loaded profile photo from cache userID=\(userID)")
             
             // Background refresh: fetch latest photo from Firestore in background
             Task {
@@ -538,7 +546,7 @@ class UserService {
         }
         
         // Cache miss - fetch from network
-        print("[UserService] Cache miss, fetching from network for user \(userID)")
+        Log.i("UserService", "Cache miss, fetching from network userID=\(userID)")
         
         // Get user to get photo URL
         let user = try await getUser(id: userID)
@@ -558,7 +566,7 @@ class UserService {
         // Cache the downloaded image
         await ImageCacheService.shared.cacheProfilePhoto(image, userID: userID)
         
-        print("[UserService] ✅ Downloaded and cached profile photo for user \(userID)")
+        Log.i("UserService", "Downloaded and cached profile photo userID=\(userID)")
         
         return image
     }
@@ -585,10 +593,10 @@ class UserService {
             // Update cache with latest image
             await ImageCacheService.shared.cacheProfilePhoto(image, userID: userID)
             
-            print("[UserService] ✅ Background refresh complete for user \(userID)")
+            Log.i("UserService", "Background refresh complete userID=\(userID)")
             
         } catch {
-            print("[UserService] ⚠️ Background refresh failed for user \(userID): \(error.localizedDescription)")
+            Log.w("UserService", "Background refresh failed userID=\(userID): \(error.localizedDescription)")
         }
     }
     
@@ -601,6 +609,115 @@ class UserService {
         }
         
         return try await getUser(id: currentUser.uid)
+    }
+    
+    /// Updates user's profile photo with a new image
+    /// - Parameters:
+    ///   - uid: User's unique identifier
+    ///   - imageData: New image data to upload
+    /// - Returns: Download URL string for the new uploaded photo
+    /// - Throws: ProfilePhotoError with specific error details
+    /// - Note: Deletes old photo after new photo upload succeeds (prevents data loss on failure)
+    func updateProfilePhoto(uid: String, imageData: Data) async throws -> String {
+        let start = Date()
+        
+        Log.i("UserService", "Starting profile photo update uid=\(uid)")
+        
+        // Get current user to check for existing photo
+        let user = try await getUser(id: uid)
+        let oldPhotoURL = user.photoURL
+        
+        // Upload new photo first (keeps old photo as backup)
+        let newPhotoURL = try await uploadProfilePhoto(uid: uid, imageData: imageData)
+        
+        Log.i("UserService", "New photo uploaded url=\(newPhotoURL)")
+        
+        // If there was an old photo, delete it from Storage
+        if let oldPhotoURL = oldPhotoURL, !oldPhotoURL.isEmpty {
+            do {
+                // Extract path from old photo URL and delete
+                let storage = Storage.storage()
+                let storageRef = storage.reference(forURL: oldPhotoURL)
+                try await storageRef.delete()
+                
+                Log.i("UserService", "Deleted old photo from Storage")
+            } catch {
+                // Log warning but don't fail the update (new photo is already uploaded)
+                Log.w("UserService", "Failed to delete old photo: \(error.localizedDescription)")
+                Log.w("UserService", "Old photo URL: \(oldPhotoURL)")
+            }
+        }
+        
+        // Invalidate cache so new photo will be loaded
+        await ImageCacheService.shared.invalidateProfilePhotoCache(userID: uid)
+        
+        let duration = Date().timeIntervalSince(start) * 1000
+        Log.i("UserService", "Updated profile photo uid=\(uid) in \(Int(duration))ms")
+        
+        return newPhotoURL
+    }
+    
+    /// Deletes user's profile photo from Firebase Storage and Firestore
+    /// - Parameter uid: User's unique identifier
+    /// - Throws: ProfilePhotoError if deletion fails
+    /// - Note: Transactional delete (both Storage and Firestore must succeed)
+    func deleteProfilePhoto(uid: String) async throws {
+        let start = Date()
+        
+        Log.i("UserService", "Starting profile photo deletion uid=\(uid)")
+        
+        // Check network connectivity first
+        guard await checkNetworkConnectivity() else {
+            Log.e("UserService", "Delete blocked: No network connection")
+            throw ProfilePhotoError.networkUnavailable
+        }
+        
+        // Get current user to verify photo exists
+        let user = try await getUser(id: uid)
+        
+        guard let photoURL = user.photoURL, !photoURL.isEmpty else {
+            Log.e("UserService", "No profile photo to delete uid=\(uid)")
+            throw ProfilePhotoError.noPhotoToDelete
+        }
+        
+        Log.i("UserService", "Deleting photo from Storage url=\(photoURL)")
+        
+        // Delete from Firebase Storage
+        do {
+            let storage = Storage.storage()
+            let storageRef = storage.reference(forURL: photoURL)
+            try await storageRef.delete()
+            
+            Log.i("UserService", "Deleted photo from Storage")
+        } catch let error as NSError {
+            Log.e("UserService", "Failed to delete from Storage: \(error.localizedDescription)")
+            Log.e("UserService", "Error domain=\(error.domain) code=\(error.code)")
+            throw ProfilePhotoError.deleteFailed(reason: error.localizedDescription)
+        }
+        
+        // Clear photoURL from Firestore
+        do {
+            try await db.collection(usersCollection).document(uid).updateData([
+                "photoURL": FieldValue.delete(),
+                "updatedAt": FieldValue.serverTimestamp()
+            ])
+            
+            Log.i("UserService", "Cleared photoURL from Firestore")
+        } catch let error as NSError {
+            Log.e("UserService", "Failed to update Firestore: \(error.localizedDescription)")
+            // Photo is already deleted from Storage, but Firestore update failed
+            // This leaves a stale URL in Firestore but no actual photo in Storage
+            throw ProfilePhotoError.deleteFailed(reason: "Storage deletion succeeded but Firestore update failed: \(error.localizedDescription)")
+        }
+        
+        // Invalidate cache
+        await ImageCacheService.shared.invalidateProfilePhotoCache(userID: uid)
+        
+        // Invalidate user cache so next fetch gets updated user
+        userCache.removeValue(forKey: uid)
+        
+        let duration = Date().timeIntervalSince(start) * 1000
+        Log.i("UserService", "Deleted profile photo uid=\(uid) in \(Int(duration))ms")
     }
     
     // MARK: - Private Helper Methods
@@ -621,7 +738,7 @@ class UserService {
             do {
                 let url = try await fileRef.downloadURL()
                 if attempt > 1 {
-                    print("[UserService] ✅ Download URL fetched on attempt \(attempt)")
+            Log.i("UserService", "Download URL fetched on attempt \(attempt)")
                 }
                 return url
             } catch let error as NSError {
@@ -631,7 +748,7 @@ class UserService {
                 if error.domain == "FIRStorageErrorDomain" && error.code == -13010 {
                     if attempt < maxAttempts {
                         let delay = Double(attempt) * 0.5 // Exponential backoff: 0.5s, 1s, 1.5s, 2s
-                        print("[UserService] ⚠️ Download URL not ready (attempt \(attempt)/\(maxAttempts)), retrying in \(delay)s...")
+                        Log.w("UserService", "Download URL not ready (attempt \(attempt)/\(maxAttempts)), retrying in \(delay)s…")
                         try await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
                     }
                 } else {
@@ -642,7 +759,7 @@ class UserService {
         }
         
         // All retries failed
-        print("[UserService] ❌ Failed to fetch download URL after \(maxAttempts) attempts")
+        Log.e("UserService", "Failed to fetch download URL after \(maxAttempts) attempts")
         throw lastError ?? ProfilePhotoError.uploadFailed(reason: "Could not fetch download URL")
     }
 }
