@@ -264,6 +264,12 @@ gauntlet-02/
 
 #### 🚧 Phase 3: Enhanced Features (In Progress)
 - Group chat support
+- **Group member online indicators** (PR #004) ✨
+  - Real-time presence status for all group members
+  - Visual indicators (green/gray dots) next to profile photos
+  - Sortable member list (online members first)
+  - Tappable group header showing first 5 members
+  - Automatic listener management (no memory leaks)
 - Media sharing (images, files)
 - Push notifications
 - Read receipts

@@ -32,6 +32,17 @@ struct ChatRowView: View {
     /// Presence listener ID for cleanup (UUID-based tracking)
     @State private var presenceListenerID: UUID? = nil
     
+    // MARK: - Group Presence (PR #004)
+    
+    /// Is anyone in the group online (excluding current user)
+    @State private var isAnyGroupMemberOnline: Bool = false
+    
+    /// Track online status for each group member
+    @State private var memberStatuses: [String: Bool] = [:]
+    
+    /// Group presence listeners for cleanup
+    @State private var groupPresenceListeners: [String: UUID] = [:]
+    
     @EnvironmentObject private var presenceService: PresenceService
     
     private let chatService = ChatService()
@@ -41,9 +52,9 @@ struct ChatRowView: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Avatar with profile photo for 1-on-1 or group indicator
+            // Avatar with profile photo for 1-on-1 or group icon with presence
             if chat.isGroupChat {
-                // Group icon (no presence halo for groups)
+                // Group icon with green halo if anyone is online (PR #004)
                 ZStack {
                     Circle()
                         .fill(Color.blue.opacity(0.3))
@@ -52,6 +63,10 @@ struct ChatRowView: View {
                     Image(systemName: "person.3.fill")
                         .font(.title3)
                         .foregroundColor(.blue)
+                    
+                    // Green presence halo (only when at least one member is online)
+                    PresenceHalo(isOnline: isAnyGroupMemberOnline, size: 50)
+                        .animation(.easeInOut(duration: 0.2), value: isAnyGroupMemberOnline)
                 }
             } else {
                 // Profile photo with presence halo for 1-on-1 chats
@@ -132,12 +147,20 @@ struct ChatRowView: View {
             }
             // Attach real-time listener for unread count updates
             attachUnreadListener()
+            // Attach group presence listeners for group chats (PR #004)
+            if chat.isGroupChat {
+                attachGroupPresenceListeners()
+            }
         }
         .onDisappear {
             // Detach presence listener to prevent memory leaks
             detachPresenceListener()
             // Detach unread listener
             detachUnreadListener()
+            // Detach group presence listeners (PR #004)
+            if chat.isGroupChat {
+                detachGroupPresenceListeners()
+            }
         }
     }
     
@@ -233,7 +256,7 @@ struct ChatRowView: View {
     
     /// Attach real-time listener for messages to update unread count
     private func attachUnreadListener() {
-        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+        guard (Auth.auth().currentUser?.uid) != nil else { return }
         
         let db = Firestore.firestore()
         
@@ -276,6 +299,40 @@ struct ChatRowView: View {
         
         // For now, we'll leave this as a placeholder
         // The group chat will still work, just without sender names in conversation list preview
+    }
+    
+    // MARK: - Group Presence Methods (PR #004)
+    
+    /// Attach group presence listeners to check if any member is online
+    private func attachGroupPresenceListeners() {
+        guard chat.isGroupChat else { return }
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+        
+        // Filter out current user from members list
+        let otherMembers = chat.members.filter { $0 != currentUserID }
+        
+        guard !otherMembers.isEmpty else { return }
+        
+        // Observe presence for all other members
+        groupPresenceListeners = presenceService.observeGroupPresence(userIDs: otherMembers) { userID, isOnline in
+            DispatchQueue.main.async {
+                // Update status for this member
+                self.memberStatuses[userID] = isOnline
+                
+                // Check if ANY member is online
+                self.isAnyGroupMemberOnline = self.memberStatuses.values.contains(true)
+            }
+        }
+    }
+    
+    /// Detach all group presence listeners
+    private func detachGroupPresenceListeners() {
+        guard !groupPresenceListeners.isEmpty else { return }
+        
+        presenceService.stopObservingGroup(listeners: groupPresenceListeners)
+        groupPresenceListeners.removeAll()
+        memberStatuses.removeAll()
+        isAnyGroupMemberOnline = false
     }
     
     /// Load unread message count for this chat
