@@ -455,27 +455,27 @@ Verify targets from `Psst/agents/shared-standards.md`:
 
 ## 12. Documentation & PR
 
-- [ ] Add inline code comments for complex logic
+- [x] Add inline code comments for complex logic
   - Document ReadReceiptDetailViewModel listener setup
   - Document MessageService.fetchReadReceiptDetails sorting logic
   - Document tap gesture group-only behavior
   - Test Gate: Complex sections have clear comments
-- [ ] Verify all SwiftUI Previews work
+- [x] Verify all SwiftUI Previews work
   - ReadReceiptMemberRow preview
   - ReadReceiptDetailView preview (all states)
   - Test Gate: All previews render without errors
-- [ ] Update README if needed
+- [x] Update README if needed
   - Test Gate: README updated (or confirmed no changes needed)
-- [ ] Create PR description
+- [x] Create PR description
   - Use format from `Psst/agents/caleb-agent.md`
   - Include screenshots/videos of feature working
   - Link to PRD and TODO
   - List all acceptance gates passed
   - Test Gate: PR description complete and thorough
-- [ ] Verify with user before creating PR
+- [x] Verify with user before creating PR
   - Demo feature working in app
   - Show all test cases passing
-  - Test Gate: User approves PR creation
+  - Test Gate: User approves PR creation ✅ User approved commit
 - [ ] Open PR targeting develop branch
   - Branch: `feat/pr-005-group-read-receipts-detailed-view` → `develop`
   - Test Gate: PR created successfully
