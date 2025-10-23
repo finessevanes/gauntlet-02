@@ -20,7 +20,7 @@ struct PsstApp: App {
     
     @StateObject private var authService = AuthenticationService.shared
     @StateObject private var presenceService = PresenceService()
-    @StateObject private var notificationService = NotificationService()
+    @StateObject private var notificationService = NotificationService.shared
     
     // MARK: - App Delegate
     
@@ -39,6 +39,8 @@ struct PsstApp: App {
     // MARK: - Initialization
     
     init() {
+        // Configure logging level (errors only)
+        Log.minLevel = .error
         // Configure Firebase with GoogleService-Info.plist
         FirebaseService.shared.configure()
         
@@ -60,16 +62,8 @@ struct PsstApp: App {
                     // Handle Google Sign-In callback URL
                     GIDSignIn.sharedInstance.handle(url)
                 }
-                .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
-                    if let chatId = newChatId {
-                        print("[PsstApp] 🧭 Deep link target chat: \(chatId)")
-                        // Navigation will be handled by the UI layer
-                    }
-                }
-                .onAppear {
-                    // FCM token will be refreshed after APNs token is received
-                    print("[PsstApp] 📱 App appeared, waiting for APNs token...")
-                }
+                .onChange(of: notificationService.deepLinkHandler.targetChatId) { _, _ in }
+                .onAppear { }
                 .onChange(of: scenePhase) { oldPhase, newPhase in
                     handleScenePhaseChange(newPhase)
                 }
@@ -97,10 +91,8 @@ struct PsstApp: App {
             Task {
                 do {
                     try await presenceService.setOnlineStatus(userID: userID, isOnline: true)
-                    let email = authService.currentUser?.email ?? "user_\(String(userID.suffix(8)))"
-                    print("[PsstApp] User \(email) is now online")
                 } catch {
-                    print("[PsstApp] Error setting online status: \(error.localizedDescription)")
+                    Log.e("PsstApp", "Error setting online status: \(error.localizedDescription)")
                 }
             }
             
@@ -109,10 +101,8 @@ struct PsstApp: App {
             Task {
                 do {
                     try await presenceService.setOnlineStatus(userID: userID, isOnline: false)
-                    let email = authService.currentUser?.email ?? "user_\(String(userID.suffix(8)))"
-                    print("[PsstApp] User \(email) is now offline")
                 } catch {
-                    print("[PsstApp] Error setting offline status: \(error.localizedDescription)")
+                    Log.e("PsstApp", "Error setting offline status: \(error.localizedDescription)")
                 }
             }
             
@@ -132,18 +122,14 @@ struct PsstApp: App {
             Task {
                 do {
                     try await presenceService.setOnlineStatus(userID: user.id, isOnline: true)
-                    let email = user.email
-                    print("[PsstApp] User \(email) logged in and set to online")
                 } catch {
-                    print("[PsstApp] Error setting online status on login: \(error.localizedDescription)")
+                    Log.e("PsstApp", "Error setting online status on login: \(error.localizedDescription)")
                 }
             }
         } else if let oldUser = oldUser {
             // User logged out → Just clean up listeners
             // (Offline status was already set via onDisconnect() hook in AuthViewModel)
             presenceService.stopAllObservers()
-            print("[PsstApp] User logged out, presence listeners cleaned up")
-            print("[PsstApp] Offline status was set via Firebase onDisconnect() hook")
         }
     }
 }
@@ -163,20 +149,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         // Forward to NotificationService
-        print("[AppDelegate] 📱 APNs device token received")
         
         // Let FCM SDK know about the token
         Messaging.messaging().apnsToken = deviceToken
         
         // Now that we have the APNs token, refresh the FCM token
         Task {
-            await NotificationService().refreshFCMToken()
+            await NotificationService.shared.refreshFCMToken()
         }
     }
     
     func application(_ application: UIApplication,
                     didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("[AppDelegate] ❌ Failed to register: \(error.localizedDescription)")
+        Log.e("AppDelegate", "Failed to register: \(error.localizedDescription)")
     }
 }
 
@@ -187,7 +172,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                willPresent notification: UNNotification,
                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
-        print("[AppDelegate] 📬 Notification received in foreground")
+        Log.d("AppDelegate", "Notification received in foreground")
         
         // Show notification even when app is in foreground
         completionHandler([.banner, .sound])
@@ -197,17 +182,14 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                didReceive response: UNNotificationResponse,
                                withCompletionHandler completionHandler: @escaping () -> Void) {
-        print("[AppDelegate] 👆 User tapped notification")
+        Log.d("AppDelegate", "User tapped notification")
         
         // Process deep link through NotificationService
         let userInfo = response.notification.request.content.userInfo
-        let notificationService = NotificationService()
-        let success = notificationService.handleNotificationTap(userInfo)
+        let success = NotificationService.shared.handleNotificationTap(userInfo)
         
-        if success {
-            print("[AppDelegate] ✅ Deep link processed successfully")
-        } else {
-            print("[AppDelegate] ❌ Failed to process deep link")
+        if !success {
+            Log.e("AppDelegate", "Failed to process deep link")
         }
         
         completionHandler()
