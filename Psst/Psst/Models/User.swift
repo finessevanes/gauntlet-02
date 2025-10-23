@@ -47,6 +47,21 @@ struct User: Identifiable, Codable, Equatable {
         case updatedAt
         case fcmToken
     }
+    
+    /// Custom decoder to handle missing timestamp fields gracefully
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        email = try container.decode(String.self, forKey: .email)
+        displayName = try container.decode(String.self, forKey: .displayName)
+        photoURL = try container.decodeIfPresent(String.self, forKey: .photoURL)
+        fcmToken = try container.decodeIfPresent(String.self, forKey: .fcmToken)
+        
+        // Decode timestamps with fallback to current date if missing
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+    }
 
     /// Initialize User from Firebase Auth User object
     /// - Parameter firebaseUser: Firebase Auth User object
