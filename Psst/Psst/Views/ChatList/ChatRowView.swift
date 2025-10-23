@@ -29,9 +29,6 @@ struct ChatRowView: View {
     @State private var unreadCount: Int = 0
     @State private var messageListener: ListenerRegistration? = nil
     
-    /// Presence listener ID for cleanup (UUID-based tracking)
-    @State private var presenceListenerID: UUID? = nil
-    
     // MARK: - Group Presence (PR #004)
     
     /// Is anyone in the group online (excluding current user)
@@ -73,6 +70,7 @@ struct ChatRowView: View {
                 ZStack {
                     ProfilePhotoPreview(
                         imageURL: otherUser?.photoURL,
+                        userID: otherUser?.id,
                         selectedImage: nil,
                         isLoading: false,
                         size: 56
@@ -140,8 +138,6 @@ struct ChatRowView: View {
             await loadDisplayName()
         }
         .onAppear {
-            // Attach presence listener for 1-on-1 chats
-            attachPresenceListener()
             // Load unread count (refreshes every time row appears)
             Task {
                 await loadUnreadCount()
@@ -154,8 +150,9 @@ struct ChatRowView: View {
             }
         }
         .onDisappear {
-            // Detach presence listener to prevent memory leaks
-            detachPresenceListener()
+            // Remove user profile listener
+            userListener?.remove()
+            userListener = nil
             // Detach unread listener
             detachUnreadListener()
             // Detach group presence listeners (PR #004)
@@ -163,6 +160,15 @@ struct ChatRowView: View {
                 detachGroupPresenceListeners()
             }
         }
+        // Observe presence for 1-on-1 chats (using PresenceObserverModifier)
+        .background(
+            Group {
+                if !chat.isGroupChat, let contactID = otherUserID {
+                    Color.clear
+                        .observePresence(userID: contactID, isOnline: $isContactOnline)
+                }
+            }
+        )
     }
     
     // MARK: - Private Methods
@@ -215,44 +221,6 @@ struct ChatRowView: View {
                 }
             }
         }
-    }
-    
-    /// Attach presence listener for the contact in this chat
-    private func attachPresenceListener() {
-        // Only attach for 1-on-1 chats
-        guard !chat.isGroupChat else { return }
-        
-        // Wait for otherUserID to be set (loadDisplayName runs asynchronously)
-        // Listener will be attached when otherUserID is available
-        Task {
-            // Poll until otherUserID is set (simple approach for async coordination)
-            while otherUserID == nil && !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 50_000_000) // 0.05 seconds
-            }
-            
-            guard let contactID = otherUserID, !Task.isCancelled else { return }
-            
-            // Attach presence listener on main thread and store UUID
-            await MainActor.run {
-                presenceListenerID = presenceService.observePresence(userID: contactID) { isOnline in
-                    DispatchQueue.main.async {
-                        self.isContactOnline = isOnline
-                    }
-                }
-            }
-        }
-    }
-    
-    /// Detach presence listener to prevent memory leaks
-    private func detachPresenceListener() {
-        guard let contactID = otherUserID, let listenerID = presenceListenerID else { return }
-        
-        presenceService.stopObserving(userID: contactID, listenerID: listenerID)
-        presenceListenerID = nil
-        
-        // Remove user profile listener
-        userListener?.remove()
-        userListener = nil
     }
     
     /// Attach real-time listener for messages to update unread count

@@ -112,7 +112,7 @@ struct ProfilePhotoPreview: View {
         .task {
             // Load from cache on appear if userID is provided and not forced placeholder
             if !forcePlaceholder, let userID = userID, selectedImage == nil {
-                await loadFromCache(userID: userID)
+                await loadImage(userID: userID)
             }
         }
         .onChange(of: forcePlaceholder) { _, newValue in
@@ -125,6 +125,14 @@ struct ProfilePhotoPreview: View {
             // If URL changes or becomes nil, clear cached image to avoid mismatch
             if oldValue != newValue {
                 cachedImage = nil
+            }
+        }
+        .onChange(of: userID) { oldValue, newValue in
+            // If userID changes from nil to a value, trigger image loading
+            if oldValue == nil, let newUserID = newValue {
+                Task {
+                    await loadImage(userID: newUserID)
+                }
             }
         }
     }
@@ -147,14 +155,17 @@ struct ProfilePhotoPreview: View {
     
     // MARK: - Helper Methods
     
-    /// Loads image from cache
+    /// Loads image from cache or network via UserService
     /// - Parameter userID: User ID to load cached image for
-    private func loadFromCache(userID: String) async {
+    private func loadImage(userID: String) async {
         isLoadingImage = true
         
-        // Check cache first
-        if let cached = await ImageCacheService.shared.getCachedProfilePhoto(userID: userID) {
-            cachedImage = cached
+        // Use UserService to load image (handles cache + network)
+        do {
+            let image = try await UserService.shared.loadProfilePhoto(userID: userID)
+            cachedImage = image
+        } catch {
+            // Handle error silently - will show placeholder
         }
         
         isLoadingImage = false

@@ -25,10 +25,7 @@ struct UserRow: View {
     /// User's online status
     @State private var isUserOnline: Bool = false
     
-    /// Presence listener ID for cleanup (UUID-based tracking)
-    @State private var presenceListenerID: UUID? = nil
-    
-    /// Presence service for online/offline status
+    /// Presence service for online/offline status (required by PresenceObserverModifier)
     @EnvironmentObject private var presenceService: PresenceService
     
     // MARK: - Body
@@ -39,6 +36,7 @@ struct UserRow: View {
             ZStack {
                 ProfilePhotoPreview(
                     imageURL: user.photoURL,
+                    userID: user.id,
                     selectedImage: nil,
                     isLoading: false,
                     size: 40
@@ -71,51 +69,7 @@ struct UserRow: View {
         }
         .padding(.vertical, 8)
         .background(isSelected ? Color.blue.opacity(0.1) : Color.clear)
-        .onAppear {
-            // Attach presence listener for this user
-            attachPresenceListener()
-        }
-        .onDisappear {
-            // Detach presence listener to prevent memory leaks
-            detachPresenceListener()
-        }
-    }
-    
-    // MARK: - Helper Methods
-    
-    /// Extract initials from display name (max 2 characters)
-    /// - Parameter name: Full display name
-    /// - Returns: Initials (e.g., "John Doe" -> "JD")
-    private func getInitials(from name: String) -> String {
-        let components = name.split(separator: " ")
-        if components.count >= 2 {
-            // First letter of first name + first letter of last name
-            let first = String(components[0].prefix(1))
-            let last = String(components[1].prefix(1))
-            return "\(first)\(last)".uppercased()
-        } else if let first = components.first {
-            // Just first letter of single name
-            return String(first.prefix(1)).uppercased()
-        } else {
-            // Fallback for empty name
-            return "?"
-        }
-    }
-    
-    /// Attach presence listener for this user
-    private func attachPresenceListener() {
-        presenceListenerID = presenceService.observePresence(userID: user.id) { isOnline in
-            DispatchQueue.main.async {
-                self.isUserOnline = isOnline
-            }
-        }
-    }
-    
-    /// Detach presence listener to prevent memory leaks
-    private func detachPresenceListener() {
-        guard let listenerID = presenceListenerID else { return }
-        presenceService.stopObserving(userID: user.id, listenerID: listenerID)
-        presenceListenerID = nil
+        .observePresence(userID: user.id, isOnline: $isUserOnline)
     }
 }
 

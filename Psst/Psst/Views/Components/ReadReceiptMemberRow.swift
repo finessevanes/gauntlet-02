@@ -44,34 +44,13 @@ struct ReadReceiptMemberRow: View {
     
     /// Profile photo with fallback to initials
     private var profilePhoto: some View {
-        Group {
-            if let photoURL = detail.userPhotoURL, let url = URL(string: photoURL) {
-                // Load photo from URL
-                AsyncImage(url: url) { phase in
-                    switch phase {
-                    case .empty:
-                        // Loading placeholder
-                        ProgressView()
-                            .frame(width: 40, height: 40)
-                    case .success(let image):
-                        // Display loaded image
-                        image
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(width: 40, height: 40)
-                            .clipShape(Circle())
-                    case .failure:
-                        // Fallback to initials on load failure
-                        initialsView
-                    @unknown default:
-                        initialsView
-                    }
-                }
-            } else {
-                // No photo URL - show initials
-                initialsView
-            }
-        }
+        ProfilePhotoPreview(
+            imageURL: detail.userPhotoURL,
+            userID: detail.userID,
+            selectedImage: nil,
+            isLoading: false,
+            size: 40
+        )
     }
     
     /// Initials fallback view (first letter of userName)

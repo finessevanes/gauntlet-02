@@ -89,6 +89,7 @@ class ImageCacheService {
                         ofItemAtPath: fileURL.path
                     )
                     
+                    Log.i("ImageCacheService", "cache done userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
                     
                     // Clean up cache if needed
                     Task {
@@ -110,6 +111,7 @@ class ImageCacheService {
     func getCachedProfilePhoto(userID: String) async -> UIImage? {
         // Check memory cache first (fastest)
         if let cachedImage = memoryCache.object(forKey: userID as NSString) {
+            Log.i("ImageCacheService", "memory hit userID=\(userID)")
             return cachedImage
         }
         
@@ -137,6 +139,7 @@ class ImageCacheService {
                     return
                 }
                 
+                Log.i("ImageCacheService", "disk hit userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
                 
                 // Cache in memory for faster future access
                 self.memoryCache.setObject(image, forKey: userID as NSString)

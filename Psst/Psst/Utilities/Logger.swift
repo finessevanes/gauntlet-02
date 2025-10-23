@@ -69,24 +69,6 @@ enum Log {
         let ts = formatter.string(from: Date())
         print("[\(ts)] [\(category)] ❌ \(message)")
     }
-    
-    /// Logs a warning message with a category prefix
-    /// - Parameters:
-    ///   - category: Component or service name
-    ///   - message: Message to print
-    static func w(_ category: String, _ message: String) {
-        let ts = formatter.string(from: Date())
-        print("[\(ts)] [\(category)] ⚠️ \(message)")
-    }
-    
-    /// Logs a debug message with a category prefix
-    /// - Parameters:
-    ///   - category: Component or service name
-    ///   - message: Message to print
-    static func d(_ category: String, _ message: String) {
-        let ts = formatter.string(from: Date())
-        print("[\(ts)] [\(category)] 🔍 \(message)")
-    }
 }
 
 /// Helper to measure durations
@@ -103,5 +85,3 @@ struct Stopwatch {
         return Int(Double(nano) / 1_000_000.0)
     }
 }
-
-

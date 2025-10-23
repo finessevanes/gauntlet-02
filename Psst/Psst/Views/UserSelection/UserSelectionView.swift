@@ -496,6 +496,7 @@ struct RedesignedUserRow: View {
             ZStack(alignment: .bottomTrailing) {
                 ProfilePhotoPreview(
                     imageURL: user.photoURL,
+                    userID: user.id,
                     selectedImage: nil,
                     isLoading: false,
                     size: 56
