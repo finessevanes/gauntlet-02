@@ -26,6 +26,8 @@ struct ChatRowView: View {
     @State private var lastMessageSenderName: String? = nil
     @State private var otherUser: User? = nil
     @State private var userListener: ListenerRegistration? = nil
+    @State private var unreadCount: Int = 0
+    @State private var messageListener: ListenerRegistration? = nil
     
     /// Presence listener ID for cleanup (UUID-based tracking)
     @State private var presenceListenerID: UUID? = nil
@@ -41,7 +43,7 @@ struct ChatRowView: View {
         HStack(alignment: .top, spacing: 12) {
             // Avatar with profile photo for 1-on-1 or group indicator
             if chat.isGroupChat {
-                // Group icon
+                // Group icon (no presence halo for groups)
                 ZStack {
                     Circle()
                         .fill(Color.blue.opacity(0.3))
@@ -52,23 +54,28 @@ struct ChatRowView: View {
                         .foregroundColor(.blue)
                 }
             } else {
-                // Profile photo for 1-on-1 chats
-                ProfilePhotoPreview(
-                    imageURL: otherUser?.photoURL,
-                    selectedImage: nil,
-                    isLoading: false,
-                    size: 50
-                )
+                // Profile photo with presence halo for 1-on-1 chats
+                ZStack {
+                    ProfilePhotoPreview(
+                        imageURL: otherUser?.photoURL,
+                        selectedImage: nil,
+                        isLoading: false,
+                        size: 50
+                    )
+                    
+                    // Green presence halo (only when online)
+                    PresenceHalo(isOnline: isContactOnline, size: 50)
+                        .animation(.easeInOut(duration: 0.2), value: isContactOnline)
+                }
             }
             
             // Chat info
             VStack(alignment: .leading, spacing: 4) {
-                // Name with presence indicator
+                // Name with unread dot indicator
                 HStack {
-                    // Presence indicator (only for 1-on-1 chats)
-                    if !chat.isGroupChat {
-                        PresenceIndicator(isOnline: isContactOnline)
-                    }
+                    // Blue dot for unread messages (all chat types)
+                    UnreadDotIndicator(hasUnread: unreadCount > 0)
+                        .animation(.easeInOut(duration: 0.3), value: unreadCount > 0)
                     
                     if isLoadingName {
                         Text("Loading...")
@@ -119,10 +126,18 @@ struct ChatRowView: View {
         .onAppear {
             // Attach presence listener for 1-on-1 chats
             attachPresenceListener()
+            // Load unread count (refreshes every time row appears)
+            Task {
+                await loadUnreadCount()
+            }
+            // Attach real-time listener for unread count updates
+            attachUnreadListener()
         }
         .onDisappear {
             // Detach presence listener to prevent memory leaks
             detachPresenceListener()
+            // Detach unread listener
+            detachUnreadListener()
         }
     }
     
@@ -216,6 +231,35 @@ struct ChatRowView: View {
         userListener = nil
     }
     
+    /// Attach real-time listener for messages to update unread count
+    private func attachUnreadListener() {
+        guard let currentUserID = Auth.auth().currentUser?.uid else { return }
+        
+        let db = Firestore.firestore()
+        
+        // Listen to messages subcollection for changes
+        messageListener = db.collection("chats")
+            .document(chat.id)
+            .collection("messages")
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("❌ Error listening to messages: \(error.localizedDescription)")
+                    return
+                }
+                
+                // When messages change, reload unread count
+                Task {
+                    await self.loadUnreadCount()
+                }
+            }
+    }
+    
+    /// Detach unread listener to prevent memory leaks
+    private func detachUnreadListener() {
+        messageListener?.remove()
+        messageListener = nil
+    }
+    
     /// Fetch sender name for the last message in a group chat
     /// This requires querying the messages sub-collection to get the last message's senderID
     private func fetchLastMessageSenderName() async {
@@ -232,6 +276,33 @@ struct ChatRowView: View {
         
         // For now, we'll leave this as a placeholder
         // The group chat will still work, just without sender names in conversation list preview
+    }
+    
+    /// Load unread message count for this chat
+    /// Queries Firestore messages where currentUserID is NOT in readBy array
+    private func loadUnreadCount() async {
+        guard let currentUserID = Auth.auth().currentUser?.uid else {
+            print("⚠️ Cannot load unread count: user not authenticated")
+            return
+        }
+        
+        do {
+            let count = try await chatService.getUnreadMessageCount(
+                chatID: chat.id,
+                currentUserID: currentUserID
+            )
+            
+            // Update state on main thread
+            await MainActor.run {
+                self.unreadCount = count
+            }
+        } catch {
+            print("❌ Error loading unread count for chat \(chat.id): \(error.localizedDescription)")
+            // Default to 0 on error
+            await MainActor.run {
+                self.unreadCount = 0
+            }
+        }
     }
 }
 
