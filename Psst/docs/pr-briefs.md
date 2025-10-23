@@ -2,13 +2,13 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** 🎯 9 In Progress/Todo
+**Status:** 🎯 1 In Progress | ✅ 13 Completed
 
 ---
 
-## 🎯 Todo / In Progress
+## ✅ Completed
 
-### Phase 1: MVP Polish & UX Enhancement (Ordered by Criticality)
+### Phase 1: MVP Polish & UX Enhancement
 
 #### PR #001: profile-photo-upload-reliability-fix
 
@@ -80,45 +80,67 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-#### PR #006A: authentication-redesign-clean-ios-patterns
+#### PR #006: App-Wide Design System Overhaul (Split into 5 Sub-PRs)
 
-**Brief:** Redesign all authentication screens (LoginView, SignUpView, EmailSignInView) to use clean iOS patterns instead of elaborate gradients and weather-app styling. Remove all custom gradient backgrounds, card containers, decorative shadows, and colored icon circles. Replace with clean white backgrounds using iOS system colors, standard text fields, and consistent button styling. Create a unified auth design system that matches the main app aesthetic with Signal-like simplicity. This sets the foundation for consistent design patterns across the entire app. All existing functionality remains - just presented with a cleaner, more trustworthy iOS-native appearance.
+**Brief:** Complete redesign of the app's visual identity and user interface to create a modern, cohesive experience. This PR was split into five focused sub-PRs for better implementation and testing.
 
-**Dependencies:** PR #2 (authentication flow)
+**Dependencies:** Various (see sub-PRs below)
 
-**Complexity:** Medium
-
-**Phase:** 1 (MVP Polish)
-
-**Status:** 🎯 IN PROGRESS
-
----
-
-#### PR #006B: main-app-ui-polish-conversations-profile
-
-**Brief:** Polish the main app experience (Conversations tab and Profile tab) with improved visual hierarchy and better UX patterns. In Conversations: move "new message" button from nav bar to a Floating Action Button (FAB) for better discoverability and thumb-friendliness, increase avatar sizes (50pt → 56pt), add user avatar to nav bar, improve spacing and layout while keeping all existing features (online status, unread badges, sender names) functional. In Profile: increase profile photo size (120pt → 140pt), improve layout and visual hierarchy, ensure button styling matches new design system. Update tab bar with consistent blue accent color. The result is a more polished, professional main app experience following modern messaging app patterns.
-
-**Dependencies:** PR #006A (authentication redesign - establishes design system)
-
-**Complexity:** Medium
+**Complexity:** Complex (High - split for manageability)
 
 **Phase:** 1 (MVP Polish)
 
-**Status:** 🎯 TODO
+**Status:** ✅ COMPLETED (All sub-PRs complete)
 
----
+##### PR #006A: Design System Foundation
 
-#### PR #006C: settings-redesign-ios-grouped-list
+**Brief:** Establish the core design system including color schemes, typography scales, spacing grid, button styles, and reusable component patterns. Create ColorScheme.swift, Typography.swift, and ButtonStyles.swift with modern iOS design tokens. This foundational work enables consistent styling across all subsequent redesign work.
 
-**Brief:** Complete redesign of the Settings tab from basic centered placeholder to professional iOS-style grouped list following native iOS Settings app patterns. Implement user info section at top with profile photo and email, create "Account" section with Edit Profile and Notifications links, add "Support" section with Help & Support and About links, and keep red destructive-style Log Out button. Use iOS List with grouped style, NavigationLink for navigation, Label with SF Symbols for icons, and proper section headers. This completes the app-wide design system overhaul by bringing Settings up to the same professional standard as the rest of the app.
-
-**Dependencies:** PR #006B (main app polish - establishes tab bar styling)
+**Dependencies:** None (foundation layer)
 
 **Complexity:** Medium
 
-**Phase:** 1 (MVP Polish)
+**Status:** ✅ COMPLETED
 
-**Status:** 🎯 TODO
+##### PR #006B: Main App UI Polish
+
+**Brief:** Apply design system to main conversation list, chat bubbles, and navigation. Modernize conversation rows, update chat interface with new colors and typography, polish navigation bars, and ensure visual consistency across primary user flows.
+
+**Dependencies:** PR #006A (design system)
+
+**Complexity:** Medium
+
+**Status:** ✅ COMPLETED
+
+##### PR #006C: Settings Screen Redesign
+
+**Brief:** Redesign settings interface with modern grouped list style, improved visual hierarchy, consistent spacing using design system tokens, and better organization of settings options. Apply new color scheme and typography throughout.
+
+**Dependencies:** PR #006A (design system)
+
+**Complexity:** Simple
+
+**Status:** ✅ COMPLETED
+
+##### PR #006D: Profile Screen Polish
+
+**Brief:** Update user profile screens with modern design, improved photo display, better information hierarchy, and consistent use of design system. Enhance profile editing experience with cleaner forms and better visual feedback.
+
+**Dependencies:** PR #006A (design system)
+
+**Complexity:** Simple
+
+**Status:** ✅ COMPLETED
+
+##### PR #006E: New Chat Sheet Redesign
+
+**Brief:** Complete redesign of the New Chat sheet for improved usability and visual polish: move search to top (below segmented control instead of bottom), modernize segmented control to current iOS style, add blue checkmark selection indicators with Done button for group creation, implement auto-navigation for 1-on-1 chats (tap user → immediately navigate, no Done button needed), enhance user rows with 56pt avatars and better spacing (72pt height), add tap animations (scale to 0.98, background flash), implement haptic feedback, move user count to section header (remove from nav bar), and create skeleton loading states.
+
+**Dependencies:** PR #006A (design system), PR #006B (main app polish)
+
+**Complexity:** Medium
+
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -132,7 +154,7 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 1 (MVP Polish)
 
-**Status:** 🎯 TODO
+**Status:** ✅ COMPLETED
 
 ---
 
@@ -146,9 +168,15 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 1 (MVP Polish)
 
-**Status:** 🎯 TODO
+**Status:** ✅ COMPLETED
 
 ---
+
+## 🎯 In Progress
+
+### Phase 1: MVP Polish & UX Enhancement
+
+
 
 #### PR #009: basic-media-support-and-image-messaging
 
@@ -160,19 +188,43 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 **Phase:** 1 (MVP Polish)
 
-**Status:** 🎯 TODO
+**Status:** 🎯 IN PROGRESS
 
 ---
 
 ## 📊 Summary
 
 ### Project Progress
-- **Phase 1 (MVP Polish):** 🎯 0/9 Complete
+- **Phase 1 (MVP Polish):** ✅ 13/14 Complete (93%)
 
 ### Overall Status
-- **Total PRs:** 9
-- **Completed:** 0 (0%)
-- **Remaining:** 9 (100%)
+- **Total PRs:** 14 (PR #006 split into 006A, 006B, 006C, 006D, 006E)
+- **Completed:** 13 (93%)
+  - PR #001: Profile Photo Upload Reliability Fix
+  - PR #002: Message Delivery Status Indicator Fix
+  - PR #003: Presence Indicator Redesign & Unread Badges
+  - PR #004: Group Online Indicators & Member Status
+  - PR #005: Group Read Receipts Detailed View
+  - PR #006: App-Wide Design System Overhaul (All 5 sub-PRs: 006A-E)
+    - PR #006A: Design System Foundation
+    - PR #006B: Main App UI Polish
+    - PR #006C: Settings Screen Redesign
+    - PR #006D: Profile Screen Polish
+    - PR #006E: New Chat Sheet Redesign
+  - PR #007: App Launch Loading Screen & Skeleton
+  - PR #008: Message Timestamp Tap-to-Reveal
+- **In Progress:** 1 (7%)
+  - PR #009: Basic Media Support & Image Messaging
+
+### Recent Completions
+- **PR #008** ✅ Message Timestamp Tap-to-Reveal - Intuitive tap interaction for timestamps
+- **PR #007** ✅ App Launch Loading Screen - Smooth authentication flow
+- **PR #006** ✅ Complete Design System Overhaul (All 5 sub-PRs) - Modern, cohesive UI across entire app
+- **PR #005** ✅ Group Read Receipts Detailed View - Per-member read status
+- **PR #004** ✅ Group Online Indicators - Real-time member status
+- **PR #003** ✅ Presence Indicator Redesign - Halo effects, unread badges
+- **PR #002** ✅ Message Delivery Status Fix - Clean delivery indicators
+- **PR #001** ✅ Profile Photo Upload Reliability - Robust upload system
 
 ---
 

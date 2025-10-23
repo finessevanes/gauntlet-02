@@ -22,31 +22,60 @@ struct ChatListView: View {
     /// Notification service for deep linking
     @EnvironmentObject private var notificationService: NotificationService
     
+    /// Auth view model for current user
+    @EnvironmentObject private var authViewModel: AuthViewModel
+    
+    /// Selected tab binding for navigation
+    @Binding var selectedTab: Int
+    
     // MARK: - Body
     
     var body: some View {
         NavigationView {
             ZStack {
-                if viewModel.isLoading && viewModel.chats.isEmpty {
-                    // Loading state
-                    ProgressView("Loading chats...")
-                        .progressViewStyle(CircularProgressViewStyle())
-                } else if viewModel.chats.isEmpty {
-                    // Empty state
-                    emptyStateView
-                } else {
-                    // Chat list
-                    chatListView
+                // Main content
+                ZStack {
+                    if viewModel.isLoading && viewModel.chats.isEmpty {
+                        // Loading state
+                        ProgressView("Loading chats...")
+                            .progressViewStyle(CircularProgressViewStyle())
+                    } else if viewModel.chats.isEmpty {
+                        // Empty state
+                        emptyStateView
+                    } else {
+                        // Chat list
+                        chatListView
+                    }
+                }
+                
+                // Floating Action Button - positioned bottom-right
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        FloatingActionButton {
+                            showingNewChatView = true
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                    }
                 }
             }
             .navigationTitle("Messages")
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        showingNewChatView = true
-                    } label: {
-                        Image(systemName: "square.and.pencil")
-                            .foregroundColor(.blue)
+                // User avatar on left - taps to navigate to Profile tab
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let user = authViewModel.currentUser {
+                        Button {
+                            selectedTab = 1 // Navigate to Profile tab
+                        } label: {
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32
+                            )
+                        }
                     }
                 }
             }
@@ -99,7 +128,7 @@ struct ChatListView: View {
     /// Empty state view when no chats exist
     private var emptyStateView: some View {
         VStack(spacing: 20) {
-            Image(systemName: "bubble.left.and.bubble.right")
+            Image(systemName: "message")
                 .font(.system(size: 64))
                 .foregroundColor(.gray)
             
@@ -107,7 +136,7 @@ struct ChatListView: View {
                 .font(.title2)
                 .fontWeight(.semibold)
             
-            Text("Tap the compose button above to start chatting")
+            Text("Tap + to start messaging")
                 .font(.subheadline)
                 .foregroundColor(.secondary)
                 .multilineTextAlignment(.center)
@@ -124,6 +153,8 @@ struct ChatListView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .padding(.bottom, 72) // Prevent FAB from overlapping last chat row
         .refreshable {
             // Pull to refresh triggers re-observation
             viewModel.observeChats()
@@ -134,6 +165,7 @@ struct ChatListView: View {
 // MARK: - Preview
 
 #Preview {
-    ChatListView()
+    ChatListView(selectedTab: .constant(0))
+        .environmentObject(AuthViewModel())
 }
 

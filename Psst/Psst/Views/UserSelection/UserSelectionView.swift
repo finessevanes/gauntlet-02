@@ -3,14 +3,15 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #9
-//  Main contact selection screen with search functionality
+//  Updated by Caleb (Coder Agent) - PR #006E
+//  New Chat sheet with redesigned UI/UX: search at top, checkmarks, auto-navigation
 //
 
 import SwiftUI
 import FirebaseAuth
 
 /// User selection screen for creating new chats
-/// Displays all users with real-time search and handles chat creation
+/// Displays all users with search at top, selection checkmarks, and smart 1-on-1 auto-navigation
 struct UserSelectionView: View {
     // MARK: - Properties
     
@@ -30,11 +31,18 @@ struct UserSelectionView: View {
     @State private var isCreatingChat: Bool = false
     @State private var showError: Bool = false
     
-    // Group mode state
-    @State private var isGroupMode: Bool = false
+    // Chat type state (1-on-1 vs Group)
+    @State private var chatType: ChatType = .oneOnOne
     @State private var selectedUserIDs: Set<String> = []
     @State private var showGroupNamingSheet: Bool = false
     @State private var groupName: String = ""
+    
+    // MARK: - Chat Type Enum
+    
+    enum ChatType: String, CaseIterable {
+        case oneOnOne = "1-on-1"
+        case group = "Group"
+    }
     
     // MARK: - Service Instances
     
@@ -69,30 +77,35 @@ struct UserSelectionView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
-                // Mode toggle (1-on-1 vs Group)
-                Picker("Chat Type", selection: $isGroupMode) {
-                    Text("1-on-1").tag(false)
-                    Text("Group").tag(true)
+                // Segmented Control (1-on-1 vs Group)
+                Picker("Chat Type", selection: $chatType) {
+                    ForEach(ChatType.allCases, id: \.self) { type in
+                        Text(type.rawValue).tag(type)
+                    }
                 }
-                .pickerStyle(SegmentedPickerStyle())
-                .padding()
-                .onChange(of: isGroupMode) { _, _ in
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16)
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+                .onChange(of: chatType) { _, _ in
                     // Clear selection when switching modes
                     selectedUserIDs.removeAll()
                 }
                 
+                // Search Bar (NEW: Moved to top, below segmented control)
+                searchBarView
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 12)
+                
+                // Content (Loading, Empty, or User List)
                 ZStack {
                     if isLoading {
-                        // Loading state
                         loadingView
                     } else if users.isEmpty {
-                        // Empty state - no users in database
                         emptyStateView
                     } else if filteredUsers.isEmpty {
-                        // Empty state - no search results
                         noResultsView
                     } else {
-                        // User list
                         userListView
                     }
                 }
@@ -106,19 +119,16 @@ struct UserSelectionView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    if isGroupMode {
-                        Text("\(selectedUserIDs.count) selected")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    } else {
-                        Text("\(filteredUsers.count) users")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                // Done button (only in Group mode with 2+ users selected)
+                if chatType == .group && selectedUserIDs.count >= 2 {
+                    ToolbarItem(placement: .navigationBarTrailing) {
+                        Button("Done") {
+                            showGroupNamingSheet = true
+                        }
+                        .fontWeight(.bold)
                     }
                 }
             }
-            .searchable(text: $searchQuery, prompt: "Search by name or email")
             .onAppear {
                 Task {
                     await fetchUsers()
@@ -156,115 +166,123 @@ struct UserSelectionView: View {
     
     // MARK: - Subviews
     
-    /// Loading state view
+    /// Custom search bar at top (NEW: Moved from bottom to top)
+    private var searchBarView: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .foregroundColor(.secondary)
+                .font(.body)
+            
+            TextField("Search by name or email", text: $searchQuery)
+                .textFieldStyle(.plain)
+                .autocorrectionDisabled()
+            
+            if !searchQuery.isEmpty {
+                Button(action: {
+                    searchQuery = ""
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                        .font(.body)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(Color(.secondarySystemBackground))
+        .cornerRadius(10)
+    }
+    
+    /// Loading state view with skeleton rows
     private var loadingView: some View {
         VStack(spacing: 16) {
-            ProgressView()
-                .progressViewStyle(CircularProgressViewStyle())
-            
-            Text("Loading users...")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            ForEach(0..<5, id: \.self) { _ in
+                HStack(spacing: 16) {
+                    // Skeleton avatar
+                    Circle()
+                        .fill(Color(.systemGray5))
+                        .frame(width: 56, height: 56)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Skeleton name
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(.systemGray5))
+                            .frame(height: 16)
+                        
+                        // Skeleton email
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(Color(.systemGray6))
+                            .frame(height: 12)
+                            .frame(maxWidth: 200)
+                    }
+                    
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+            }
         }
+        .padding(.top, 16)
     }
     
     /// Empty state when no users exist in database
     private var emptyStateView: some View {
-        VStack(spacing: 20) {
-            Image(systemName: "person.crop.circle")
-                .font(.system(size: 64))
+        VStack(spacing: 16) {
+            Image(systemName: "person.3")
+                .font(.system(size: 96))
                 .foregroundColor(.gray)
             
-            Text("No users found")
-                .font(.title2)
-                .fontWeight(.semibold)
-            
-            Text("Invite friends to join Psst!")
-                .font(.subheadline)
+            Text("No users available")
+                .font(.title3)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
     /// Empty state when search returns no results
     private var noResultsView: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
             Image(systemName: "magnifyingglass")
-                .font(.system(size: 64))
+                .font(.system(size: 96))
                 .foregroundColor(.gray)
             
             Text("No results for '\(searchQuery)'")
                 .font(.title3)
-                .fontWeight(.semibold)
-            
-            Text("Try searching for a different name or email")
-                .font(.subheadline)
                 .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal)
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
     
-    /// User list view with search results
+    /// User list view with section header and redesigned rows
     private var userListView: some View {
-        VStack(spacing: 0) {
-            ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(filteredUsers) { user in
-                        Button {
-                            if isGroupMode {
-                                // Toggle selection in group mode
-                                toggleUserSelection(user)
-                            } else {
-                                // Create 1-on-1 chat
-                                Task {
-                                    await createAndNavigateToChat(with: user)
-                                }
-                            }
-                        } label: {
-                            UserRow(
-                                user: user,
-                                showCheckbox: isGroupMode,
-                                isSelected: selectedUserIDs.contains(user.id)
-                            )
-                            .padding(.horizontal)
-                        }
-                        .disabled(isCreatingChat)
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        Divider()
-                            .padding(.leading, 76) // Align with text, not avatar
-                    }
+        ScrollView {
+            LazyVStack(spacing: 0) {
+                // Section header with user count (NEW: Moved from nav bar)
+                HStack {
+                    Text("\(filteredUsers.count) People")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    Spacer()
                 }
-            }
-            
-            // Create Group button (only visible in group mode)
-            if isGroupMode {
-                VStack(spacing: 8) {
-                    // Validation hint
-                    if selectedUserIDs.count < 2 {
-                        Text("Select 2 or more members")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                
+                // User rows
+                ForEach(filteredUsers) { user in
                     Button(action: {
-                        showGroupNamingSheet = true
+                        handleUserTap(user)
                     }) {
-                        Text("Create Group")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(selectedUserIDs.count >= 2 ? Color.blue : Color(.systemGray4))
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
+                        RedesignedUserRow(
+                            user: user,
+                            isSelected: selectedUserIDs.contains(user.id)
+                        )
                     }
-                    .disabled(selectedUserIDs.count < 2)
-                    .padding(.horizontal)
-                    .padding(.bottom, 8)
+                    .buttonStyle(UserRowButtonStyle())
+                    
+                    if user.id != filteredUsers.last?.id {
+                        Divider()
+                            .padding(.leading, 72) // After 56pt avatar + 16pt spacing
+                    }
                 }
-                .background(Color(.systemBackground))
             }
         }
         .overlay {
@@ -278,7 +296,7 @@ struct UserSelectionView: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                         .scaleEffect(1.5)
                     
-                    Text(isGroupMode ? "Creating group..." : "Creating chat...")
+                    Text(chatType == .group ? "Creating group..." : "Creating chat...")
                         .foregroundColor(.white)
                         .font(.subheadline)
                         .padding(.top, 8)
@@ -288,6 +306,27 @@ struct UserSelectionView: View {
     }
     
     // MARK: - Methods
+    
+    /// Handle user tap with haptic feedback and smart behavior based on chat type
+    /// 1-on-1 mode: Auto-navigate to chat immediately
+    /// Group mode: Toggle selection with checkmark animation
+    private func handleUserTap(_ user: User) {
+        // Haptic feedback on tap
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.impactOccurred()
+        
+        if chatType == .oneOnOne {
+            // 1-on-1 mode: Auto-navigate to chat (NEW BEHAVIOR)
+            Task {
+                await createAndNavigateToChat(with: user)
+            }
+        } else {
+            // Group mode: Toggle selection with animation
+            withAnimation(.easeInOut(duration: 0.2)) {
+                toggleUserSelection(user)
+            }
+        }
+    }
     
     /// Fetch all users from Firestore
     private func fetchUsers() async {
@@ -436,6 +475,96 @@ struct UserSelectionView: View {
                 print("❌ Error creating group: \(error.localizedDescription)")
             }
         }
+    }
+}
+
+// MARK: - Redesigned User Row Component
+
+/// Redesigned user row with 56pt avatar, larger spacing, and checkmark selection
+struct RedesignedUserRow: View {
+    let user: User
+    let isSelected: Bool
+    
+    @State private var isUserOnline: Bool = false
+    @State private var presenceListenerID: UUID? = nil
+    
+    @EnvironmentObject private var presenceService: PresenceService
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Avatar with online status (56pt - larger than before)
+            ZStack(alignment: .bottomTrailing) {
+                ProfilePhotoPreview(
+                    imageURL: user.photoURL,
+                    selectedImage: nil,
+                    isLoading: false,
+                    size: 56
+                )
+                
+                // Green presence halo (online status indicator)
+                PresenceHalo(isOnline: isUserOnline, size: 56)
+                    .animation(.easeInOut(duration: 0.2), value: isUserOnline)
+            }
+            
+            // User info
+            VStack(alignment: .leading, spacing: 4) {
+                Text(user.displayName)
+                    .font(.body)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                
+                Text(user.email)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            // Checkmark (NEW: Blue filled circle instead of checkbox)
+            if isSelected {
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(.blue)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .background(Color(.systemBackground))
+        .onAppear {
+            attachPresenceListener()
+        }
+        .onDisappear {
+            detachPresenceListener()
+        }
+    }
+    
+    // MARK: - Presence Methods
+    
+    private func attachPresenceListener() {
+        presenceListenerID = presenceService.observePresence(userID: user.id) { isOnline in
+            DispatchQueue.main.async {
+                self.isUserOnline = isOnline
+            }
+        }
+    }
+    
+    private func detachPresenceListener() {
+        guard let listenerID = presenceListenerID else { return }
+        presenceService.stopObserving(userID: user.id, listenerID: listenerID)
+        presenceListenerID = nil
+    }
+}
+
+// MARK: - Custom Button Style for User Rows
+
+/// Custom button style for user rows with scale and background animations
+struct UserRowButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(configuration.isPressed ? Color(.systemGray6) : Color(.systemBackground))
+            .scaleEffect(configuration.isPressed ? 0.98 : 1.0)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }
 

@@ -4,6 +4,7 @@
 //
 //  Created by Caleb (Coder Agent) - PR #4
 //  Updated by Caleb (Coder Agent) - PR #17 (Profile editing)
+//  Updated by Caleb (Coder Agent) - PR #006D (Profile UI polish)
 //
 
 import SwiftUI
@@ -27,7 +28,9 @@ struct ProfileView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                // VStack spacing set to 0 to allow precise control of spacing (PR #006D)
+                // Spacing follows 8pt grid: 16pt (photo→name), 4pt (name→email), 16pt (email→button), 32pt (button→section)
+                VStack(spacing: 0) {
                     // Top spacing
                     Spacer()
                         .frame(height: 20)
@@ -39,35 +42,39 @@ struct ProfileView: View {
                             userID: user.id,
                             selectedImage: nil,
                             isLoading: false,
-                            size: 120
+                            size: 140
+                        )
+                        .overlay(
+                            Circle()
+                                .stroke(Color(.quaternaryLabel), lineWidth: 1)
                         )
                         .id("\(user.id)-\(user.photoURL ?? "no-photo")-\(photoRefreshTrigger)")
-                        .padding(.top, 20)
+                        .padding(.top, 32)
                         
                         // Display Name
                         Text(user.displayName)
                             .font(.title)
                             .fontWeight(.bold)
+                            .foregroundColor(Color(.label))
+                            .padding(.top, 16)
                         
                         // Email
                         Text(user.email)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
+                            .padding(.top, 4)
                         
                         // Edit Profile Button
                         Button(action: {
                             showEditProfile = true
                         }) {
-                            HStack {
+                            HStack(spacing: 8) {
                                 Image(systemName: "pencil")
+                                    .font(.system(size: 16))
                                 Text("Edit Profile")
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.blue)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
                         }
+                        .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, 24)
                         .padding(.top, 16)
                         
@@ -75,6 +82,7 @@ struct ProfileView: View {
                         VStack(alignment: .leading, spacing: 16) {
                             Text("Account Information")
                                 .font(.headline)
+                                .foregroundColor(Color(.label))
                                 .padding(.horizontal, 24)
                             
                             VStack(spacing: 0) {
@@ -182,3 +190,4 @@ struct ProfileInfoRow: View {
     ProfileView()
         .environmentObject(AuthViewModel())
 }
+
