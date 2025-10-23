@@ -4,6 +4,7 @@
 //
 //  Created by Caleb (Coder Agent) - PR #7
 //  Updated by Caleb (Coder Agent) - PR #2: Fix delivery status to show timeline view per status type
+//  Updated by Caleb (Coder Agent) - PR #8: Drag to reveal timestamp (only visible while dragging)
 //  Individual message bubble component with sent/received styling
 //
 
@@ -12,7 +13,7 @@ import SwiftUI
 /// Message row component that displays individual message bubbles
 /// Supports both sent (right-aligned, blue) and received (left-aligned, gray) styling
 /// Shows sender names for group chat messages and read receipts for sent messages (PR #14)
-/// Supports swipe gestures to reveal timestamps (PR #21)
+/// Drag to reveal timestamp - only visible while actively dragging (PR #8)
 /// Shows delivery status timeline: latest Read, latest Delivered, latest Failed (PR #2)
 struct MessageRow: View {
     // MARK: - Properties
@@ -41,17 +42,14 @@ struct MessageRow: View {
     /// Whether this is the latest FAILED message from current user (PR #2 - Timeline View)
     var isLatestFailedMessage: Bool = false
     
-    // MARK: - State for Swipe Gestures (PR #21)
-    
-    /// Whether the timestamp is currently revealed via swipe
-    @State private var isTimestampRevealed: Bool = false
+    // MARK: - State for Swipe Gestures (PR #8 - Drag to reveal)
     
     /// Current drag offset for swipe gesture
     @State private var dragOffset: CGFloat = 0
     
     // MARK: - Computed Properties
     
-    /// Timestamp view for swipe reveal (PR #21)
+    /// Timestamp view for drag reveal (PR #8)
     private var timestampView: some View {
         Text(message.timestamp.formattedTimestamp())
             .font(.caption2)
@@ -81,15 +79,13 @@ struct MessageRow: View {
                         .padding(.leading, 4)
                 }
                 
-                // Message bubble with swipe gesture support (PR #21)
+                // Message bubble with swipe gesture support (PR #8 - Drag to reveal only)
                 HStack(spacing: 8) {
                     // Timestamp reveal area (left side for received messages)
-                    if !isFromCurrentUser && (isTimestampRevealed || dragOffset > 0) {
+                    // Only visible while actively dragging
+                    if !isFromCurrentUser && dragOffset > 20 {
                         timestampView
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .leading).combined(with: .opacity),
-                                removal: .move(edge: .leading).combined(with: .opacity)
-                            ))
+                            .opacity(min(Double(dragOffset / 80), 1.0))
                     }
                     
                     // Message bubble
@@ -105,45 +101,25 @@ struct MessageRow: View {
                         .gesture(
                             DragGesture()
                                 .onChanged { value in
-                                    // Only allow swipe in appropriate direction
+                                    // PR #8: Allow drag in appropriate direction with dampening
                                     let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
                                     if value.translation.width * allowedDirection > 0 {
-                                        dragOffset = value.translation.width * 0.3 // Dampen the drag
+                                        dragOffset = value.translation.width * 0.3
                                     }
                                 }
-                                .onEnded { value in
-                                    let threshold: CGFloat = 50
-                                    let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
-                                    
-                                    // Check if swipe was sufficient to reveal timestamp
-                                    if value.translation.width * allowedDirection > threshold {
-                                        withAnimation(.easeInOut(duration: 0.3)) {
-                                            isTimestampRevealed = true
-                                            dragOffset = 0
-                                        }
-                                        
-                                        // Auto-hide after 3 seconds
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                            withAnimation(.easeInOut(duration: 0.3)) {
-                                                isTimestampRevealed = false
-                                            }
-                                        }
-                                    } else {
-                                        // Snap back to original position
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            dragOffset = 0
-                                        }
+                                .onEnded { _ in
+                                    // PR #8: Always spring back immediately (timestamp disappears with message)
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        dragOffset = 0
                                     }
                                 }
                         )
                     
                     // Timestamp reveal area (right side for sent messages)
-                    if isFromCurrentUser && (isTimestampRevealed || dragOffset < 0) {
+                    // Only visible while actively dragging
+                    if isFromCurrentUser && dragOffset < -20 {
                         timestampView
-                            .transition(.asymmetric(
-                                insertion: .move(edge: .trailing).combined(with: .opacity),
-                                removal: .move(edge: .trailing).combined(with: .opacity)
-                            ))
+                            .opacity(min(Double(abs(dragOffset) / 80), 1.0))
                     }
                 }
                 
