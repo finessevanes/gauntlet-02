@@ -50,7 +50,6 @@ class ImageCacheService {
         memoryCache.countLimit = 50 // Cache up to 50 images in memory
         memoryCache.totalCostLimit = 10 * 1024 * 1024 // 10MB memory limit
         
-        Log.i("ImageCacheService", "Initialized cacheDir=\(cacheDirectory.path)")
     }
     
     // MARK: - Public Methods
@@ -68,7 +67,6 @@ class ImageCacheService {
                 }
                 
                 let sw = Stopwatch()
-                Log.i("ImageCacheService", "cache start userID=\(userID)")
                 // Cache in memory first
                 self.memoryCache.setObject(image, forKey: userID as NSString)
                 
@@ -128,7 +126,6 @@ class ImageCacheService {
                 let fileURL = self.cacheFileURL(for: userID)
                 
                 guard self.fileManager.fileExists(atPath: fileURL.path) else {
-                    Log.i("ImageCacheService", "miss userID=\(userID)")
                     continuation.resume(returning: nil)
                     return
                 }
@@ -169,7 +166,6 @@ class ImageCacheService {
                 }
                 
                 let sw = Stopwatch()
-                Log.i("ImageCacheService", "invalidate start userID=\(userID)")
                 // Remove from memory cache
                 self.memoryCache.removeObject(forKey: userID as NSString)
                 
@@ -179,7 +175,6 @@ class ImageCacheService {
                 if self.fileManager.fileExists(atPath: fileURL.path) {
                     do {
                         try self.fileManager.removeItem(at: fileURL)
-                        Log.i("ImageCacheService", "invalidate done userID=\(userID) took=\(sw.ms)ms")
                     } catch {
                         Log.e("ImageCacheService", "Failed to invalidate userID=\(userID): \(error.localizedDescription)")
                     }
@@ -206,7 +201,6 @@ class ImageCacheService {
                 do {
                     try self.fileManager.removeItem(at: self.cacheDirectory)
                     try self.fileManager.createDirectory(at: self.cacheDirectory, withIntermediateDirectories: true)
-                    Log.i("ImageCacheService", "Cleared all cached images")
                 } catch {
                     Log.e("ImageCacheService", "Failed to clear cache: \(error.localizedDescription)")
                 }
@@ -287,7 +281,6 @@ class ImageCacheService {
                 
                 // Check if cleanup is needed
                 guard totalSize > self.maxCacheSizeBytes else {
-                    Log.i("ImageCacheService", "Cache size OK used=\(totalSize) max=\(self.maxCacheSizeBytes)")
                     continuation.resume()
                     return
                 }
@@ -308,7 +301,6 @@ class ImageCacheService {
                         try self.fileManager.removeItem(at: file.url)
                         currentSize -= file.size
                         removedCount += 1
-                        Log.i("ImageCacheService", "Removed old cache file name=\(file.url.lastPathComponent)")
                     } catch {
                         Log.e("ImageCacheService", "Failed to remove cache file: \(error.localizedDescription)")
                     }

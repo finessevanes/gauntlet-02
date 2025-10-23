@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import UIKit
 
 /// Manages queue of messages sent while offline
 /// Persists queue in UserDefaults across app restarts
@@ -89,12 +90,23 @@ class MessageQueue {
             
             do {
                 // Attempt to send message using the ORIGINAL queued message ID
-                // This prevents creating duplicate messages with new IDs
-                _ = try await messageService.sendMessage(
-                    chatID: queuedMessage.chatID,
-                    text: queuedMessage.text,
-                    messageID: queuedMessage.id  // ← Use original ID!
-                )
+                // Support both text and image messages
+                if queuedMessage.mediaType == "image",
+                   let path = queuedMessage.localImagePath,
+                   let data = try? Data(contentsOf: URL(fileURLWithPath: path)),
+                   let image = UIImage(data: data) {
+                    _ = try await messageService.sendImageMessage(
+                        chatID: queuedMessage.chatID,
+                        image: image,
+                        messageID: queuedMessage.id
+                    )
+                } else {
+                    _ = try await messageService.sendMessage(
+                        chatID: queuedMessage.chatID,
+                        text: queuedMessage.text,
+                        messageID: queuedMessage.id  // ← Use original ID!
+                    )
+                }
                 
                 // Success - remove from queue
                 dequeue(id: queuedMessage.id)

@@ -60,6 +60,24 @@ struct MessageRow: View {
             .cornerRadius(8)
     }
     
+    /// Uploading image placeholder (PR #009)
+    private var uploadingImagePlaceholder: some View {
+        ZStack {
+            Rectangle()
+                .fill(isFromCurrentUser ? Color.blue.opacity(0.3) : Color(.systemGray5))
+                .frame(width: 200, height: 150)
+                .cornerRadius(12)
+            
+            VStack(spacing: 8) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: isFromCurrentUser ? .white : .gray))
+                Text("Uploading...")
+                    .font(.caption)
+                    .foregroundColor(isFromCurrentUser ? .white : .secondary)
+            }
+        }
+    }
+    
     // MARK: - Body
     
     var body: some View {
@@ -88,32 +106,62 @@ struct MessageRow: View {
                             .opacity(min(Double(dragOffset / 80), 1.0))
                     }
                     
-                    // Message bubble
-                    Text(message.text)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .foregroundColor(isFromCurrentUser ? .white : .primary)
-                        .background(isFromCurrentUser ? Color.blue : Color(.systemGray5))
-                        .cornerRadius(16)
-                        .frame(maxWidth: 250, alignment: isFromCurrentUser ? .trailing : .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .offset(x: dragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    // PR #8: Allow drag in appropriate direction with dampening
-                                    let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
-                                    if value.translation.width * allowedDirection > 0 {
-                                        dragOffset = value.translation.width * 0.3
-                                    }
+                    // Message content (text or image)
+                    Group {
+                        if message.mediaType == "image" {
+                            // Image message (may be uploading if mediaURL is nil)
+                            if let url = message.mediaURL {
+                                // Image uploaded successfully - show image
+                                ImageMessageView(
+                                    imageURL: url,
+                                    thumbnailURL: message.mediaThumbnailURL,
+                                    width: message.mediaDimensions?["width"],
+                                    height: message.mediaDimensions?["height"]
+                                )
+                                .onAppear {
+                                    print("🖼️ [MESSAGE ROW] Rendering image message: \(message.id)")
+                                    print("🔗 [MESSAGE ROW] Media URL: \(message.mediaURL ?? "nil")")
+                                    print("🔗 [MESSAGE ROW] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                                    print("✅ [MESSAGE ROW] Image uploaded successfully - showing ImageMessageView")
                                 }
-                                .onEnded { _ in
-                                    // PR #8: Always spring back immediately (timestamp disappears with message)
-                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                        dragOffset = 0
+                            } else {
+                                // Image is still uploading - show loading placeholder
+                                uploadingImagePlaceholder
+                                    .onAppear {
+                                        print("🖼️ [MESSAGE ROW] Rendering image message: \(message.id)")
+                                        print("🔗 [MESSAGE ROW] Media URL: \(message.mediaURL ?? "nil")")
+                                        print("🔗 [MESSAGE ROW] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                                        print("⏳ [MESSAGE ROW] Image still uploading - showing placeholder")
                                     }
+                            }
+                        } else {
+                            Text(message.text)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .foregroundColor(isFromCurrentUser ? .white : .primary)
+                                .background(isFromCurrentUser ? Color.blue : Color(.systemGray5))
+                                .cornerRadius(16)
+                                .frame(maxWidth: 250, alignment: isFromCurrentUser ? .trailing : .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .offset(x: dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                // PR #8: Allow drag in appropriate direction with dampening
+                                let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
+                                if value.translation.width * allowedDirection > 0 {
+                                    dragOffset = value.translation.width * 0.3
                                 }
-                        )
+                            }
+                            .onEnded { _ in
+                                // PR #8: Always spring back immediately (timestamp disappears with message)
+                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                    dragOffset = 0
+                                }
+                            }
+                    )
                     
                     // Timestamp reveal area (right side for sent messages)
                     // Only visible while actively dragging

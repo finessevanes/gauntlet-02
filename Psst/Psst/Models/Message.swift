@@ -39,9 +39,43 @@ struct Message: Identifiable, Codable, Equatable {
     /// Send status for optimistic UI (client-side only, not persisted to Firestore)
     var sendStatus: MessageSendStatus?
     
+    /// Media support (PR #009)
+    /// Optional fields for image messages
+    var mediaType: String?              // e.g., "image"
+    var mediaURL: String?               // Download URL from Firebase Storage
+    var mediaThumbnailURL: String?      // Thumbnail URL for performance
+    var mediaSize: Int?                 // File size in bytes
+    var mediaDimensions: [String: Int]? // {"width": 1920, "height": 1080}
+    
     /// CodingKeys to exclude sendStatus from Firestore serialization
     enum CodingKeys: String, CodingKey {
         case id, text, senderID, timestamp, readBy
+        case mediaType, mediaURL, mediaThumbnailURL, mediaSize, mediaDimensions
+    }
+    
+    /// Custom decoder to handle Firestore serverTimestamp (which is null initially)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        id = try container.decode(String.self, forKey: .id)
+        text = try container.decode(String.self, forKey: .text)
+        senderID = try container.decode(String.self, forKey: .senderID)
+        
+        // Handle null timestamp from Firestore serverTimestamp
+        // Use current date as fallback if timestamp is null
+        timestamp = (try? container.decode(Date.self, forKey: .timestamp)) ?? Date()
+        
+        readBy = try container.decode([String].self, forKey: .readBy)
+        
+        // Media fields (optional)
+        mediaType = try? container.decode(String.self, forKey: .mediaType)
+        mediaURL = try? container.decode(String.self, forKey: .mediaURL)
+        mediaThumbnailURL = try? container.decode(String.self, forKey: .mediaThumbnailURL)
+        mediaSize = try? container.decode(Int.self, forKey: .mediaSize)
+        mediaDimensions = try? container.decode([String: Int].self, forKey: .mediaDimensions)
+        
+        // sendStatus is client-only, not decoded from Firestore
+        sendStatus = nil
     }
     
     /// Initialize Message with default values
@@ -54,26 +88,50 @@ struct Message: Identifiable, Codable, Equatable {
     ///   - sendStatus: Send status for optimistic UI (default: nil)
     init(id: String, text: String, senderID: String,
          timestamp: Date = Date(), readBy: [String] = [],
-         sendStatus: MessageSendStatus? = nil) {
+         sendStatus: MessageSendStatus? = nil,
+         mediaType: String? = nil,
+         mediaURL: String? = nil,
+         mediaThumbnailURL: String? = nil,
+         mediaSize: Int? = nil,
+         mediaDimensions: [String: Int]? = nil) {
         self.id = id
         self.text = text
         self.senderID = senderID
         self.timestamp = timestamp
         self.readBy = readBy
         self.sendStatus = sendStatus
+        self.mediaType = mediaType
+        self.mediaURL = mediaURL
+        self.mediaThumbnailURL = mediaThumbnailURL
+        self.mediaSize = mediaSize
+        self.mediaDimensions = mediaDimensions
     }
     
     /// Convert Message model to dictionary for Firestore writes
     /// Uses server timestamps for consistency across devices
     /// - Returns: Dictionary representation suitable for Firestore setData/updateData
     func toDictionary() -> [String: Any] {
-        return [
+        var dict: [String: Any] = [
             "id": id,
             "text": text,
             "senderID": senderID,
             "timestamp": FieldValue.serverTimestamp(),
             "readBy": readBy
         ]
+        
+        // Include media fields if present
+        if let mediaType = mediaType { dict["mediaType"] = mediaType }
+        if let mediaURL = mediaURL { dict["mediaURL"] = mediaURL }
+        if let mediaThumbnailURL = mediaThumbnailURL { dict["mediaThumbnailURL"] = mediaThumbnailURL }
+        if let mediaSize = mediaSize { dict["mediaSize"] = mediaSize }
+        if let mediaDimensions = mediaDimensions { dict["mediaDimensions"] = mediaDimensions }
+        
+        return dict
+    }
+
+    /// Whether this message contains an image payload
+    func isImageMessage() -> Bool {
+        return mediaType == "image" && (mediaURL?.isEmpty == false)
     }
     
     /// Check if a specific user has read this message

@@ -9,6 +9,7 @@
 import Foundation
 import FirebaseFirestore
 import FirebaseAuth
+import UIKit
 
 /// Service for handling real-time message sending and receiving
 /// Uses Firestore snapshot listeners for sub-100ms message delivery
@@ -117,7 +118,7 @@ class MessageService {
     ///   - completion: Called with array of messages on each update
     /// - Returns: ListenerRegistration to remove listener later
     func observeMessages(chatID: String, completion: @escaping ([Message]) -> Void) -> ListenerRegistration {
-        print("👂 Listening for messages in chat: \(chatID)")
+        print("👂 [MESSAGE LOAD] Listening for messages in chat: \(chatID)")
         
         // Create Firestore query ordered by timestamp
         let query = db
@@ -130,35 +131,168 @@ class MessageService {
         let listener = query.addSnapshotListener { snapshot, error in
             // Handle errors
             if let error = error {
-                print("❌ Listener error: \(error.localizedDescription)")
+                print("❌ [MESSAGE LOAD] Listener error: \(error.localizedDescription)")
                 completion([])
                 return
             }
             
             // Parse snapshot to Message array
             guard let documents = snapshot?.documents else {
-                print("📨 Received 0 messages")
+                print("📨 [MESSAGE LOAD] Received 0 messages")
                 completion([])
                 return
             }
             
+            print("📨 [MESSAGE LOAD] Received \(documents.count) documents from Firestore")
+            
             // Decode messages from Firestore documents
             let messages = documents.compactMap { document -> Message? in
                 do {
-                    return try document.data(as: Message.self)
+                    let message = try document.data(as: Message.self)
+                    
+                    // Log image message details
+                    if message.mediaType == "image" {
+                        print("🖼️ [MESSAGE LOAD] Image message found: \(message.id)")
+                        print("🔗 [MESSAGE LOAD] Media URL: \(message.mediaURL ?? "nil")")
+                        print("🔗 [MESSAGE LOAD] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                        print("📏 [MESSAGE LOAD] Dimensions: \(message.mediaDimensions ?? [:])")
+                        print("📊 [MESSAGE LOAD] Size: \(message.mediaSize ?? 0) bytes")
+                    }
+                    
+                    return message
                 } catch {
-                    print("⚠️ Failed to decode message \(document.documentID): \(error)")
+                    print("⚠️ [MESSAGE LOAD] Failed to decode message \(document.documentID): \(error)")
                     return nil
                 }
             }
             
-            print("📨 Received \(messages.count) messages")
+            print("📨 [MESSAGE LOAD] Successfully decoded \(messages.count) messages")
             
             // Call completion handler with messages
             completion(messages)
         }
         
         return listener
+    }
+
+    // MARK: - Send Image Message (PR #009)
+    
+    /// Sends an image message to a chat. Handles compression, thumbnail generation, and Storage upload before Firestore write.
+    /// - Parameters:
+    ///   - chatID: Target chat ID
+    ///   - image: Original UIImage (will be compressed optimally)
+    ///   - messageID: Optional pre-generated message ID (for deterministic paths)
+    ///   - optimisticCompletion: Called immediately with an optimistic message (mediaType set to "image") before upload
+    /// - Returns: The ID of the created message
+    /// - Throws: MessageError or ImageUploadError if validation/upload fails
+    func sendImageMessage(
+        chatID: String,
+        image: UIImage,
+        messageID: String? = nil,
+        optimisticCompletion: ((Message) -> Void)? = nil
+    ) async throws -> String {
+        print("🖼️ [IMAGE SEND] Starting image send process for chat: \(chatID)")
+        print("🖼️ [IMAGE SEND] Original image size: \(image.size)")
+        
+        // Validate chat ID
+        guard !chatID.isEmpty else {
+            print("❌ [IMAGE SEND] Invalid chat ID")
+            throw MessageError.invalidChatID
+        }
+        
+        // Get current user ID
+        let senderID = try getCurrentUserID()
+        print("🖼️ [IMAGE SEND] Sender ID: \(senderID)")
+        
+        // Use provided message ID or generate new one
+        let finalMessageID = messageID ?? UUID().uuidString
+        print("🖼️ [IMAGE SEND] Message ID: \(finalMessageID)")
+        
+        // Create optimistic placeholder message
+        let optimisticMessage = Message(
+            id: finalMessageID,
+            text: "",
+            senderID: senderID,
+            timestamp: Date(),
+            readBy: [],
+            sendStatus: .sending,
+            mediaType: "image"
+        )
+        
+        // Return optimistic message immediately
+        optimisticCompletion?(optimisticMessage)
+        print("⚡️ [IMAGE SEND] Optimistic image message added: \(finalMessageID)")
+        
+        // Check network state (image uploads require network)
+        if !NetworkMonitor.shared.isConnected {
+            print("📥 [IMAGE SEND] Image message queued (offline): \(finalMessageID)")
+            throw MessageError.offline
+        }
+        
+        // Compress image (<=2MB, <=1920x1080) - single compression, no double-encoding!
+        print("🖼️ [IMAGE SEND] Compressing image (single pass, optimal quality)...")
+        let uploadService = ImageUploadService.shared
+        let compressedData = try await uploadService.compressImage(image)
+        print("✅ [IMAGE SEND] Compression complete: \(compressedData.count) bytes")
+        
+        // Generate thumbnail from compressed data
+        print("📐 [IMAGE SEND] Generating thumbnail for message: \(finalMessageID)")
+        let thumbnailData = try await uploadService.generateThumbnail(from: compressedData)
+        print("✅ [IMAGE SEND] Thumbnail generated: \(thumbnailData.count) bytes")
+        
+        // Upload image and thumbnail to Storage in parallel (faster than sequential!)
+        print("☁️ [IMAGE SEND] Uploading image and thumbnail in parallel...")
+        async let mediaURLTask = uploadService.uploadImage(imageData: compressedData, chatID: chatID, messageID: finalMessageID)
+        async let mediaThumbnailURLTask = uploadService.uploadThumbnail(thumbnailData: thumbnailData, chatID: chatID, messageID: finalMessageID)
+        
+        let (mediaURL, mediaThumbnailURL) = try await (mediaURLTask, mediaThumbnailURLTask)
+        print("✅ [IMAGE SEND] Upload complete: image + thumbnail")
+        print("🔗 [IMAGE SEND] Media URL: \(mediaURL)")
+        print("🔗 [IMAGE SEND] Thumbnail URL: \(mediaThumbnailURL)")
+        
+        // Determine compressed image dimensions
+        let compressedImageSize: CGSize = (UIImage(data: compressedData)?.size) ?? image.size
+        let width = Int(compressedImageSize.width.rounded())
+        let height = Int(compressedImageSize.height.rounded())
+        print("📏 [IMAGE SEND] Final dimensions: \(width)x\(height)")
+        
+        // Build final message with media metadata
+        let finalMessage = Message(
+            id: finalMessageID,
+            text: "",
+            senderID: senderID,
+            timestamp: Date(),
+            readBy: [],
+            sendStatus: nil,
+            mediaType: "image",
+            mediaURL: mediaURL,
+            mediaThumbnailURL: mediaThumbnailURL,
+            mediaSize: compressedData.count,
+            mediaDimensions: ["width": width, "height": height]
+        )
+        
+        do {
+            // Persist to Firestore
+            print("💾 [IMAGE SEND] Writing to Firestore...")
+            let messageRef = db
+                .collection("chats")
+                .document(chatID)
+                .collection("messages")
+                .document(finalMessageID)
+            
+            try await messageRef.setData(finalMessage.toDictionary())
+            
+            // Update chat document last message to a placeholder label
+            try await updateChatLastMessage(chatID: chatID, text: "Image")
+            
+            print("✅ [IMAGE SEND] Image message sent successfully: \(finalMessageID)")
+            print("🔗 [IMAGE SEND] Final URLs - Media: \(mediaURL), Thumbnail: \(mediaThumbnailURL)")
+            
+            return finalMessageID
+        } catch {
+            print("❌ [IMAGE SEND] Image message send failed: \(error.localizedDescription)")
+            throw MessageError.firestoreError(error)
+        }
     }
     
     // MARK: - Read Receipts (PR #14, PR #5)

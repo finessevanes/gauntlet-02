@@ -100,6 +100,7 @@ struct SettingsView: View {
             // Profile Photo (60pt circular)
             ProfilePhotoPreview(
                 imageURL: authViewModel.currentUser?.photoURL,
+                userID: authViewModel.currentUser?.id,
                 selectedImage: nil,
                 isLoading: false,
                 size: 60

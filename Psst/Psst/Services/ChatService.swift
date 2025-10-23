@@ -265,7 +265,6 @@ class ChatService {
             }
             
             let count = unreadMessages.count
-            print("📊 Unread count for chat \(chatID): \(count)")
             return count
             
         } catch {

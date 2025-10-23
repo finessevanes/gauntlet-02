@@ -30,10 +30,7 @@ struct ProfilePhotoWithPresence: View {
     /// Current online status
     @State private var isOnline: Bool = false
     
-    /// Listener ID for presence cleanup
-    @State private var listenerID: UUID?
-    
-    /// Presence service for observing online status
+    /// Presence service for observing online status (required by PresenceObserverModifier)
     @EnvironmentObject private var presenceService: PresenceService
     
     // MARK: - Initializer
@@ -58,6 +55,7 @@ struct ProfilePhotoWithPresence: View {
             // Profile photo
             ProfilePhotoPreview(
                 imageURL: photoURL,
+                userID: userID,
                 selectedImage: nil,
                 isLoading: false,
                 size: size
@@ -69,30 +67,7 @@ struct ProfilePhotoWithPresence: View {
                 .offset(x: 2, y: 2)
         }
         .frame(width: size, height: size)
-        .onAppear {
-            attachPresenceListener()
-        }
-        .onDisappear {
-            detachPresenceListener()
-        }
-    }
-    
-    // MARK: - Private Methods
-    
-    /// Attach Firebase presence listener
-    private func attachPresenceListener() {
-        listenerID = presenceService.observePresence(userID: userID) { online in
-            DispatchQueue.main.async {
-                self.isOnline = online
-            }
-        }
-    }
-    
-    /// Detach Firebase presence listener to prevent memory leaks
-    private func detachPresenceListener() {
-        guard let id = listenerID else { return }
-        presenceService.stopObserving(userID: userID, listenerID: id)
-        listenerID = nil
+        .observePresence(userID: userID, isOnline: $isOnline)
     }
 }
 
