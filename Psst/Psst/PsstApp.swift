@@ -39,8 +39,6 @@ struct PsstApp: App {
     // MARK: - Initialization
     
     init() {
-        // Configure logging level (errors only)
-        Log.minLevel = .error
         // Configure Firebase with GoogleService-Info.plist
         FirebaseService.shared.configure()
         
