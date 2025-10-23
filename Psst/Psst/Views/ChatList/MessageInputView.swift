@@ -245,41 +245,38 @@ struct MessageInputView: View {
         // User can manually dismiss by tapping outside or using keyboard shortcuts
     }
     
-    /// Image preview view with remove button - iMessage style
+    /// Image preview view with remove button
     private func imagePreviewView(image: UIImage) -> some View {
-        ZStack(alignment: .topTrailing) {
-            // Image preview with natural rounded corners
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: 280, maxHeight: 280)
-                .clipped()
-                .cornerRadius(18)
-                .shadow(color: Color.black.opacity(0.1), radius: 8, x: 0, y: 2)
-            
-            // Remove button - positioned in top-right corner
-            Button(action: {
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    previewImage = nil
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button(action: {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        previewImage = nil
+                    }
+                }) {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 24))
+                        .foregroundColor(.white)
+                        .background(Circle().fill(Color.black.opacity(0.6)).frame(width: 28, height: 28))
                 }
-            }) {
-                Image(systemName: "xmark.circle.fill")
-                    .font(.system(size: 28))
-                    .foregroundColor(.white)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.5))
-                            .frame(width: 28, height: 28)
-                    )
-                    .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                .padding(8)
             }
-            .padding(12)
-            .accessibilityLabel("Remove photo")
+            .zIndex(1)
+            
+            HStack {
+                Spacer()
+                Image(uiImage: image)
+                    .resizable()
+                    .scaledToFit()
+                    .frame(maxHeight: 200)
+                    .cornerRadius(12)
+                Spacer()
+            }
+            .padding(.horizontal, Constants.horizontalPadding)
+            .padding(.bottom, 8)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color(.systemBackground))
+        .background(Color(.systemGray6))
         .transition(.move(edge: .bottom).combined(with: .opacity))
     }
 }
