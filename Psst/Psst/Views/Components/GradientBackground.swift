@@ -66,7 +66,14 @@ struct GradientBackground: View {
 extension GradientBackground {
     /// Creates a primary gradient background
     static func primary() -> GradientBackground {
-        GradientBackground(gradient: PsstColors.primaryGradient)
+        let start = Color(.systemBackground)
+        let end = Color(.secondarySystemBackground)
+        let gradient = LinearGradient(
+            colors: [start, end],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+        return GradientBackground(gradient: gradient)
     }
     
     /// Creates an adaptive gradient background
@@ -97,12 +104,13 @@ struct GradientBackground_Previews: PreviewProvider {
             
             VStack {
                 Text("Welcome to Psst")
-                    .font(PsstTypography.largeTitle)
-                    .foregroundColor(.white)
+                    .font(.largeTitle)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
                 
                 Text("Your secure messaging app")
-                    .font(PsstTypography.body)
-                    .foregroundColor(.white.opacity(0.8))
+                    .font(.body)
+                    .foregroundColor(.secondary)
             }
         }
     }

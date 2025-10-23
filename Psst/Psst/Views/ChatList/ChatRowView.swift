@@ -58,14 +58,14 @@ struct ChatRowView: View {
                 ZStack {
                     Circle()
                         .fill(Color.blue.opacity(0.3))
-                        .frame(width: 50, height: 50)
+                        .frame(width: 56, height: 56)
                     
                     Image(systemName: "person.3.fill")
                         .font(.title3)
                         .foregroundColor(.blue)
                     
                     // Green presence halo (only when at least one member is online)
-                    PresenceHalo(isOnline: isAnyGroupMemberOnline, size: 50)
+                    PresenceHalo(isOnline: isAnyGroupMemberOnline, size: 56)
                         .animation(.easeInOut(duration: 0.2), value: isAnyGroupMemberOnline)
                 }
             } else {
@@ -75,11 +75,11 @@ struct ChatRowView: View {
                         imageURL: otherUser?.photoURL,
                         selectedImage: nil,
                         isLoading: false,
-                        size: 50
+                        size: 56
                     )
                     
                     // Green presence halo (only when online)
-                    PresenceHalo(isOnline: isContactOnline, size: 50)
+                    PresenceHalo(isOnline: isContactOnline, size: 56)
                         .animation(.easeInOut(duration: 0.2), value: isContactOnline)
                 }
             }
@@ -134,7 +134,8 @@ struct ChatRowView: View {
                 }
             }
         }
-        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
         .task {
             await loadDisplayName()
         }

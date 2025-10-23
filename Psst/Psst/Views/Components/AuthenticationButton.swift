@@ -87,7 +87,7 @@ struct AuthenticationButton: View {
                 }
                 
                 Text(title)
-                    .font(PsstTypography.button)
+                    .font(.headline)
                 
                 Spacer()
             }
@@ -111,11 +111,11 @@ struct AuthenticationButton: View {
     private var buttonBackground: some View {
         switch style {
         case .primary:
-            return AnyView(PsstColors.primaryButton)
+            return AnyView(Color.blue)
         case .secondary:
-            return AnyView(PsstColors.secondaryButton)
+            return AnyView(Color(.systemGray6))
         case .google:
-            return AnyView(PsstColors.secondaryButton)
+            return AnyView(Color(.systemGray6))
         }
     }
     
@@ -125,9 +125,9 @@ struct AuthenticationButton: View {
         case .primary:
             return .white
         case .secondary:
-            return PsstColors.primaryText
+            return .primary
         case .google:
-            return PsstColors.primaryText
+            return .primary
         }
     }
     
@@ -137,9 +137,9 @@ struct AuthenticationButton: View {
         case .primary:
             return Color.clear
         case .secondary:
-            return PsstColors.borderColor
+            return Color(.systemGray4)
         case .google:
-            return PsstColors.borderColor
+            return Color(.systemGray4)
         }
     }
     

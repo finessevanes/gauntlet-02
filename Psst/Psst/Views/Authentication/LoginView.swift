@@ -2,14 +2,14 @@
 //  LoginView.swift
 //  Psst
 //
-//  Created by Caleb (Coder Agent) - PR #20
-//  Minimal green light login screen with clean, modern design
+//  Created by Caleb (Coder Agent) - PR #006A
+//  Clean iOS-native login screen with system colors and minimal design
 //
 
 import SwiftUI
 
-/// Minimal login view with clean green light aesthetic
-/// Features simple layout with excellent UX and modern typography
+/// Clean iOS-native login view with minimal design
+/// Uses iOS system colors, native typography, and standard patterns
 struct LoginView: View {
     // MARK: - State Management
     
@@ -24,144 +24,101 @@ struct LoginView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Clean background
-                PsstColors.primaryGradient
+                // Clean system background
+                Color(.systemBackground)
                     .ignoresSafeArea()
                 
-                VStack(spacing: 0) {
+                VStack(spacing: 24) {
                     Spacer()
                     
-                    // Main content card
-                    VStack(spacing: 32) {
-                        // Header
-                        VStack(spacing: 16) {
-                            // App icon
-                            ZStack {
-                                Circle()
-                                    .fill(PsstColors.primaryGreen)
-                                    .frame(width: 80, height: 80)
-                                
-                                Image(systemName: "message.fill")
-                                    .font(.system(size: 32, weight: .medium))
-                                    .foregroundColor(.white)
-                            }
-                            
-                            VStack(spacing: 8) {
-                                Text("Welcome to Psst")
-                                    .font(PsstTypography.display)
-                                    .foregroundColor(PsstColors.primaryText)
-                                
-                                Text("Secure messaging made simple")
-                                    .font(PsstTypography.body)
-                                    .foregroundColor(PsstColors.secondaryText)
-                            }
-                        }
+                    // Header Section
+                    VStack(spacing: 16) {
+                        // Simple icon
+                        Image(systemName: "message.fill")
+                            .font(.system(size: 40))
+                            .foregroundColor(.blue)
                         
-                        // Sign in options
-                        VStack(spacing: 16) {
-                            // Email sign in button
-                            Button(action: {
-                                showingEmailSignIn = true
-                            }) {
-                                HStack {
-                                    Image(systemName: "envelope.fill")
-                                        .font(.system(size: 16, weight: .medium))
-                                    
-                                    Text("Continue with Email")
-                                        .font(PsstTypography.button)
-                                    
-                                    Spacer()
-                                }
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 16)
-                                .background(PsstColors.primaryButton)
-                                .cornerRadius(12)
-                            }
-                            .disabled(viewModel.isLoading)
+                        VStack(spacing: 8) {
+                            Text("Welcome Back")
+                                .font(.largeTitle)
+                                .fontWeight(.bold)
+                                .foregroundColor(.primary)
                             
-                            // Google sign in button
-                            Button(action: {
-                                Task {
-                                    await viewModel.signInWithGoogle()
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .font(.system(size: 16, weight: .medium))
-                                    
-                                    Text("Continue with Google")
-                                        .font(PsstTypography.button)
-                                    
-                                    Spacer()
-                                }
-                                .foregroundColor(PsstColors.primaryText)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 16)
-                                .background(PsstColors.secondaryButton)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(PsstColors.borderColor, lineWidth: 1)
-                                )
-                                .cornerRadius(12)
-                            }
-                            .disabled(viewModel.isLoading)
+                            Text("Sign in to continue")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
-                        
-                        // Sign up link
-                        HStack(spacing: 4) {
-                            Text("Don't have an account?")
-                                .font(PsstTypography.caption)
-                                .foregroundColor(PsstColors.mutedText)
-                            
-                            Button("Sign up") {
-                                showingSignUp = true
-                            }
-                            .font(PsstTypography.link)
-                            .foregroundColor(PsstColors.primaryGreen)
-                        }
-                        .padding(.top, 8)
                     }
-                    .padding(.horizontal, 32)
-                    .padding(.vertical, 40)
-                    .background(PsstColors.cardBackground)
-                    .cornerRadius(24)
-                    .shadow(color: PsstColors.cardShadow, radius: 20, x: 0, y: 10)
+                    .padding(.bottom, 16)
+                    
+                    // Sign in options
+                    VStack(spacing: 16) {
+                        // Email sign in button
+                        Button(action: {
+                            showingEmailSignIn = true
+                        }) {
+                            Text("Continue with Email")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(PrimaryButtonStyle())
+                        .disabled(viewModel.isLoading)
+                        
+                        // Google sign in button
+                        Button(action: {
+                            Task {
+                                await viewModel.signInWithGoogle()
+                            }
+                        }) {
+                            Text("Continue with Google")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(SecondaryButtonStyle())
+                        .disabled(viewModel.isLoading)
+                    }
                     .padding(.horizontal, 24)
                     
-                    Spacer()
-                }
-                
-                // Error toast
-                if let errorMessage = viewModel.errorMessage {
-                    VStack {
-                        Spacer()
+                    // Sign up link
+                    HStack(spacing: 4) {
+                        Text("Don't have an account?")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                         
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundColor(.white)
-                            
-                            Text(errorMessage)
-                                .font(PsstTypography.caption)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Button("Dismiss") {
-                                viewModel.clearError()
-                            }
-                            .font(PsstTypography.caption)
-                            .foregroundColor(.white.opacity(0.8))
+                        Button("Sign up") {
+                            showingSignUp = true
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(PsstColors.error)
-                        .cornerRadius(12)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 40)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
                     }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.errorMessage)
+                    .padding(.top, 8)
+                    
+                    Spacer()
+                    
+                    // Error message
+                    if let errorMessage = viewModel.errorMessage {
+                        VStack(spacing: 8) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .foregroundColor(.red)
+                                
+                                Text(errorMessage)
+                                    .font(.caption)
+                                    .foregroundColor(.red)
+                                    .multilineTextAlignment(.leading)
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .background(Color.red.opacity(0.1))
+                            .cornerRadius(8)
+                            .padding(.horizontal, 24)
+                        }
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .animation(.spring(response: 0.3), value: viewModel.errorMessage)
+                    }
                 }
             }
             .navigationBarHidden(true)
@@ -182,7 +139,13 @@ struct LoginView: View {
 
 struct LoginView_Previews: PreviewProvider {
     static var previews: some View {
-        LoginView()
+        Group {
+            LoginView()
+                .previewDisplayName("Light Mode")
+            
+            LoginView()
+                .preferredColorScheme(.dark)
+                .previewDisplayName("Dark Mode")
+        }
     }
 }
-

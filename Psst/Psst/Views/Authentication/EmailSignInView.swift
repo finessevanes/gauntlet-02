@@ -2,14 +2,14 @@
 //  EmailSignInView.swift
 //  Psst
 //
-//  Created by Caleb (Coder Agent) - PR #20
-//  Email/password sign-in modal with new design system
+//  Created by Caleb (Coder Agent) - PR #006A
+//  Clean iOS-native email sign-in modal with minimal design
 //
 
 import SwiftUI
 
-/// Email/password sign-in modal
-/// Clean form with gradient background and modern styling
+/// Clean iOS-native email sign-in modal
+/// Minimal design with iOS system colors and native typography
 struct EmailSignInView: View {
     // MARK: - State Management
     
@@ -20,40 +20,40 @@ struct EmailSignInView: View {
     @State private var password: String = ""
     @State private var showingForgotPassword: Bool = false
     
+    // MARK: - Computed Properties
+    
+    private var isFormValid: Bool {
+        !email.isEmpty && !password.isEmpty
+    }
+    
     // MARK: - Body
     
     var body: some View {
         NavigationView {
             ZStack {
-                // Gradient Background
-                GradientBackground.primary()
+                // Clean system background
+                Color(.systemBackground)
+                    .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 32) {
+                    VStack(spacing: 24) {
                         // Header Section
-                        VStack(spacing: 16) {
-                            Image(systemName: "envelope.fill")
-                                .font(.system(size: 48))
-                                .foregroundColor(.white)
-                            
-                            Text("Sign in with Email")
-                                .font(PsstTypography.largeTitle)
-                                .foregroundColor(.white)
-                            
-                            Text("Enter your credentials to continue")
-                                .font(PsstTypography.body)
-                                .foregroundColor(Color.white.opacity(0.8))
+                        VStack(spacing: 8) {
+                            Text("Email Sign In")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
                         }
                         .padding(.top, 40)
-                        .padding(.bottom, 20)
                         
-                        // Email/Password Form
-                        VStack(spacing: 20) {
-                            // Email Field
+                        // Form fields
+                        VStack(spacing: 16) {
+                            // Email field
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Email")
-                                    .font(PsstTypography.headline)
-                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
                                 
                                 TextField("Enter your email", text: $email)
                                     .textFieldStyle(.roundedBorder)
@@ -64,11 +64,12 @@ struct EmailSignInView: View {
                                     .accessibilityIdentifier("emailSignInField")
                             }
                             
-                            // Password Field
+                            // Password field
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Password")
-                                    .font(PsstTypography.headline)
-                                    .foregroundColor(.white)
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
                                 
                                 SecureField("Enter your password", text: $password)
                                     .textFieldStyle(.roundedBorder)
@@ -77,55 +78,62 @@ struct EmailSignInView: View {
                                     .accessibilityIdentifier("passwordSignInField")
                             }
                             
-                            // Forgot Password Link
+                            // Forgot password link
                             HStack {
                                 Spacer()
-                                Button("Forgot Password?") {
+                                Button("Forgot password?") {
                                     showingForgotPassword = true
                                 }
-                                .font(PsstTypography.caption)
-                                .foregroundColor(.white)
+                                .font(.caption)
+                                .foregroundColor(.blue)
                                 .disabled(viewModel.isLoading)
                                 .accessibilityIdentifier("forgotPasswordLink")
                             }
-                            
-                            // Sign In Button
-                            AuthenticationButton.primary(
-                                title: "Sign In",
-                                isLoading: viewModel.isLoading
-                            ) {
-                                Task {
-                                    await viewModel.signIn(email: email, password: password)
-                                }
-                            }
-                            .disabled(email.isEmpty || password.isEmpty)
                         }
                         .padding(.horizontal, 24)
                         
-                        Spacer()
-                    }
-                }
-                
-                // Error Alert
-                if let errorMessage = viewModel.errorMessage {
-                    VStack {
-                        Spacer()
-                        HStack {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                            Text(errorMessage)
-                                .font(.footnote)
+                        // Sign in button
+                        Button(action: {
+                            Task {
+                                await viewModel.signIn(email: email, password: password)
+                            }
+                        }) {
+                            Text(viewModel.isLoading ? "Signing In..." : "Continue")
+                                .font(.body)
+                                .fontWeight(.semibold)
                         }
-                        .padding()
-                        .background(PsstColors.error.opacity(0.9))
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                        .padding()
-                        .onTapGesture {
-                            viewModel.clearError()
+                        .buttonStyle(PrimaryButtonStyle(isLoading: viewModel.isLoading))
+                        .disabled(!isFormValid || viewModel.isLoading)
+                        .opacity(isFormValid ? 1.0 : 0.6)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+                        
+                        Spacer()
+                        
+                        // Error message
+                        if let errorMessage = viewModel.errorMessage {
+                            VStack(spacing: 8) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundColor(.red)
+                                    
+                                    Text(errorMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                        .multilineTextAlignment(.leading)
+                                    
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(8)
+                                .padding(.horizontal, 24)
+                            }
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .animation(.spring(response: 0.3), value: viewModel.errorMessage)
                         }
                     }
-                    .transition(.move(edge: .bottom))
-                    .animation(.spring(), value: viewModel.errorMessage)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -133,7 +141,8 @@ struct EmailSignInView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
-                            .foregroundColor(.white)
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
                     }
                     .disabled(viewModel.isLoading)
                     .accessibilityIdentifier("closeButton")
@@ -156,7 +165,13 @@ struct EmailSignInView: View {
 
 struct EmailSignInView_Previews: PreviewProvider {
     static var previews: some View {
-        EmailSignInView()
+        Group {
+            EmailSignInView()
+                .previewDisplayName("Light Mode")
+            
+            EmailSignInView()
+                .preferredColorScheme(.dark)
+                .previewDisplayName("Dark Mode")
+        }
     }
 }
-

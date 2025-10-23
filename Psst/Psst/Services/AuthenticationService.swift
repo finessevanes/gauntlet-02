@@ -118,20 +118,21 @@ class AuthenticationService: ObservableObject {
     /// - Parameters:
     ///   - email: User's email address
     ///   - password: User's password (min 6 characters)
+    ///   - displayName: Optional display name (defaults to email prefix if not provided)
     /// - Returns: Newly created User object
     /// - Throws: AuthenticationError if signup fails
-    func signUp(email: String, password: String) async throws -> User {
+    func signUp(email: String, password: String, displayName: String? = nil) async throws -> User {
         do {
             let result = try await Auth.auth().createUser(withEmail: email, password: password)
             let firebaseUser = result.user
 
             // Create user profile in Firestore
             do {
-                let displayName = firebaseUser.email?.components(separatedBy: "@").first ?? "User"
+                let userName = displayName ?? firebaseUser.email?.components(separatedBy: "@").first ?? "User"
                 let user = try await UserService.shared.createUser(
                     id: firebaseUser.uid,
                     email: firebaseUser.email ?? email,
-                    displayName: displayName,
+                    displayName: userName,
                     photoURL: firebaseUser.photoURL?.absoluteString
                 )
                 print("[AuthenticationService] ✅ User profile created in Firestore for \(firebaseUser.uid)")

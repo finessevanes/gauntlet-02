@@ -34,12 +34,13 @@ struct ForgotPasswordView: View {
                             .foregroundColor(.white)
                         
                         Text("Reset Password")
-                            .font(PsstTypography.largeTitle)
-                            .foregroundColor(.white)
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
                         
                         Text("Enter your email address and we'll send you a link to reset your password.")
-                            .font(PsstTypography.body)
-                            .foregroundColor(Color.white.opacity(0.85))
+                            .font(.body)
+                            .foregroundColor(.secondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal)
                     }
@@ -51,8 +52,8 @@ struct ForgotPasswordView: View {
                         // Email Field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Email")
-                                .font(PsstTypography.headline)
-                                .foregroundColor(.white)
+                                .font(.headline)
+                                .foregroundColor(.primary)
                             
                             TextField("Enter your email", text: $email)
                                 .textFieldStyle(.roundedBorder)
@@ -80,8 +81,8 @@ struct ForgotPasswordView: View {
                     Button("Back to Sign In") {
                         dismiss()
                     }
-                    .font(PsstTypography.caption)
-                    .foregroundColor(.white)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
                     .disabled(viewModel.isLoading)
                     .padding(.top, 8)
                     .accessibilityIdentifier("Back to Sign In")
@@ -99,7 +100,7 @@ struct ForgotPasswordView: View {
                                 .font(.footnote)
                         }
                         .padding()
-                        .background(PsstColors.error.opacity(0.9))
+                        .background(Color.red.opacity(0.9))
                         .foregroundColor(.white)
                         .cornerRadius(12)
                         .padding()
@@ -121,7 +122,7 @@ struct ForgotPasswordView: View {
                                 .font(.footnote)
                         }
                         .padding()
-                        .background(PsstColors.success.opacity(0.9))
+                        .background(Color.green.opacity(0.9))
                         .foregroundColor(.white)
                         .cornerRadius(12)
                         .padding()
