@@ -80,11 +80,39 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-#### PR #006: authentication-ui-redesign-and-color-scheme
+#### PR #006A: authentication-redesign-clean-ios-patterns
 
-**Brief:** Redesign the authentication screens to be cleaner and less cluttered, focusing on two primary sign-in options (email/password and Google) with a simple sign-up option. Implement a cohesive color scheme inspired by modern weather apps with gradient backgrounds that reflect the app's mood and purpose. Simplify the login screen to show only essential elements: app branding, two sign-in buttons (Email and Google), and a subtle sign-up link. Move the detailed sign-up form to a separate screen accessible only when needed. Apply the new color scheme consistently across all authentication screens with smooth gradients, modern typography, and improved visual hierarchy. Remove visual clutter like excessive dividers, redundant buttons, and overwhelming form elements. Ensure the design follows iOS Human Interface Guidelines while creating a distinctive, modern look that sets Psst apart from generic messaging apps.
+**Brief:** Redesign all authentication screens (LoginView, SignUpView, EmailSignInView) to use clean iOS patterns instead of elaborate gradients and weather-app styling. Remove all custom gradient backgrounds, card containers, decorative shadows, and colored icon circles. Replace with clean white backgrounds using iOS system colors, standard text fields, and consistent button styling. Create a unified auth design system that matches the main app aesthetic with Signal-like simplicity. This sets the foundation for consistent design patterns across the entire app. All existing functionality remains - just presented with a cleaner, more trustworthy iOS-native appearance.
 
 **Dependencies:** PR #2 (authentication flow)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #006B: main-app-ui-polish-conversations-profile
+
+**Brief:** Polish the main app experience (Conversations tab and Profile tab) with improved visual hierarchy and better UX patterns. In Conversations: move "new message" button from nav bar to a Floating Action Button (FAB) for better discoverability and thumb-friendliness, increase avatar sizes (50pt → 56pt), add user avatar to nav bar, improve spacing and layout while keeping all existing features (online status, unread badges, sender names) functional. In Profile: increase profile photo size (120pt → 140pt), improve layout and visual hierarchy, ensure button styling matches new design system. Update tab bar with consistent blue accent color. The result is a more polished, professional main app experience following modern messaging app patterns.
+
+**Dependencies:** PR #006A (authentication redesign - establishes design system)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 TODO
+
+---
+
+#### PR #006C: settings-redesign-ios-grouped-list
+
+**Brief:** Complete redesign of the Settings tab from basic centered placeholder to professional iOS-style grouped list following native iOS Settings app patterns. Implement user info section at top with profile photo and email, create "Account" section with Edit Profile and Notifications links, add "Support" section with Help & Support and About links, and keep red destructive-style Log Out button. Use iOS List with grouped style, NavigationLink for navigation, Label with SF Symbols for icons, and proper section headers. This completes the app-wide design system overhaul by bringing Settings up to the same professional standard as the rest of the app.
+
+**Dependencies:** PR #006B (main app polish - establishes tab bar styling)
 
 **Complexity:** Medium
 
