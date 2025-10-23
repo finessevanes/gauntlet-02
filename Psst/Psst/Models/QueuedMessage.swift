@@ -26,6 +26,12 @@ struct QueuedMessage: Identifiable, Codable, Equatable {
     /// Number of retry attempts (max 3)
     var retryCount: Int
     
+    /// Media type for queued media messages (e.g., "image"). Nil for text messages
+    var mediaType: String?
+    
+    /// Local file path to image data for offline upload (for media messages)
+    var localImagePath: String?
+    
     /// Initialize QueuedMessage
     /// - Parameters:
     ///   - id: Unique message identifier
@@ -34,12 +40,15 @@ struct QueuedMessage: Identifiable, Codable, Equatable {
     ///   - timestamp: When message was queued (default: now)
     ///   - retryCount: Number of retry attempts (default: 0)
     init(id: String, chatID: String, text: String,
-         timestamp: Date = Date(), retryCount: Int = 0) {
+         timestamp: Date = Date(), retryCount: Int = 0,
+         mediaType: String? = nil, localImagePath: String? = nil) {
         self.id = id
         self.chatID = chatID
         self.text = text
         self.timestamp = timestamp
         self.retryCount = retryCount
+        self.mediaType = mediaType
+        self.localImagePath = localImagePath
     }
     
     /// Convert QueuedMessage to Message for UI display
@@ -52,7 +61,8 @@ struct QueuedMessage: Identifiable, Codable, Equatable {
             senderID: senderID,
             timestamp: timestamp,
             readBy: [],
-            sendStatus: .queued
+            sendStatus: .queued,
+            mediaType: mediaType
         )
     }
 }

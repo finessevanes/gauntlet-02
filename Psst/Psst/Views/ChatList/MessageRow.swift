@@ -62,6 +62,25 @@ struct MessageRow: View {
             .cornerRadius(8)
     }
     
+    /// Uploading image placeholder (PR #009) - iMessage style
+    private var uploadingImagePlaceholder: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 18)
+                .fill(isFromCurrentUser ? Color.blue.opacity(0.2) : Color(.systemGray6))
+                .frame(width: 280, height: 210)
+                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
+            
+            VStack(spacing: 12) {
+                ProgressView()
+                    .progressViewStyle(CircularProgressViewStyle(tint: isFromCurrentUser ? .blue : .gray))
+                    .scaleEffect(1.2)
+                Text("Uploading...")
+                    .font(.subheadline)
+                    .foregroundColor(isFromCurrentUser ? .blue : .secondary)
+            }
+        }
+    }
+    
     // MARK: - Body
     
     var body: some View {
@@ -92,50 +111,68 @@ struct MessageRow: View {
                             ))
                     }
                     
-                    // Message bubble
-                    Text(message.text)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .foregroundColor(isFromCurrentUser ? .white : .primary)
-                        .background(isFromCurrentUser ? Color.blue : Color(.systemGray5))
-                        .cornerRadius(16)
-                        .frame(maxWidth: 250, alignment: isFromCurrentUser ? .trailing : .leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .offset(x: dragOffset)
-                        .gesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    // Only allow swipe in appropriate direction
-                                    let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
-                                    if value.translation.width * allowedDirection > 0 {
-                                        dragOffset = value.translation.width * 0.3 // Dampen the drag
-                                    }
+                    // Message content (text or image)
+                    Group {
+                        if message.mediaType == "image" {
+                            // Image message (may be uploading if mediaURL is nil)
+                            if let url = message.mediaURL {
+                                // Image uploaded successfully - show image
+                                ImageMessageView(
+                                    imageURL: url,
+                                    thumbnailURL: message.mediaThumbnailURL,
+                                    width: message.mediaDimensions?["width"],
+                                    height: message.mediaDimensions?["height"]
+                                )
+                            } else {
+                                // Image is still uploading - show loading placeholder
+                                uploadingImagePlaceholder
+                            }
+                        } else {
+                            Text(message.text)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 10)
+                                .foregroundColor(isFromCurrentUser ? .white : .primary)
+                                .background(isFromCurrentUser ? Color.blue : Color(.systemGray5))
+                                .cornerRadius(16)
+                                .frame(maxWidth: 250, alignment: isFromCurrentUser ? .trailing : .leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .offset(x: dragOffset)
+                    .gesture(
+                        DragGesture()
+                            .onChanged { value in
+                                // Only allow swipe in appropriate direction
+                                let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
+                                if value.translation.width * allowedDirection > 0 {
+                                    dragOffset = value.translation.width * 0.3 // Dampen the drag
                                 }
-                                .onEnded { value in
-                                    let threshold: CGFloat = 50
-                                    let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
+                            }
+                            .onEnded { value in
+                                let threshold: CGFloat = 50
+                                let allowedDirection: CGFloat = isFromCurrentUser ? -1 : 1
+                                
+                                // Check if swipe was sufficient to reveal timestamp
+                                if value.translation.width * allowedDirection > threshold {
+                                    withAnimation(.easeInOut(duration: 0.3)) {
+                                        isTimestampRevealed = true
+                                        dragOffset = 0
+                                    }
                                     
-                                    // Check if swipe was sufficient to reveal timestamp
-                                    if value.translation.width * allowedDirection > threshold {
+                                    // Auto-hide after 3 seconds
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
                                         withAnimation(.easeInOut(duration: 0.3)) {
-                                            isTimestampRevealed = true
-                                            dragOffset = 0
-                                        }
-                                        
-                                        // Auto-hide after 3 seconds
-                                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                            withAnimation(.easeInOut(duration: 0.3)) {
-                                                isTimestampRevealed = false
-                                            }
-                                        }
-                                    } else {
-                                        // Snap back to original position
-                                        withAnimation(.easeInOut(duration: 0.2)) {
-                                            dragOffset = 0
+                                            isTimestampRevealed = false
                                         }
                                     }
+                                } else {
+                                    // Snap back to original position
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        dragOffset = 0
+                                    }
                                 }
-                        )
+                            }
+                    )
                     
                     // Timestamp reveal area (right side for sent messages)
                     if isFromCurrentUser && (isTimestampRevealed || dragOffset < 0) {

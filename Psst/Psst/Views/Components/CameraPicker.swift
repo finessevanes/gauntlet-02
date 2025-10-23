@@ -32,6 +32,13 @@ struct CameraPicker: UIViewControllerRepresentable {
         picker.delegate = context.coordinator
         picker.modalPresentationStyle = .fullScreen
         
+        // Fix UI styling to prevent multiple color shades
+        picker.navigationBar.isTranslucent = false
+        picker.toolbar.isTranslucent = false
+        picker.navigationBar.barTintColor = .black
+        picker.toolbar.barTintColor = .black
+        picker.view.backgroundColor = .black
+        
         return picker
     }
     

@@ -122,6 +122,9 @@ struct ChatView: View {
             MessageInputView(
                 text: $inputText,
                 onSend: handleSend,
+                onSendImage: { image in
+                    handleSendImage(image)
+                },
                 chatID: chat.id,
                 userID: currentUserID,
                 typingIndicatorService: typingIndicatorService,
@@ -404,14 +407,61 @@ struct ChatView: View {
         }
     }
     
+    /// Handle image send using MessageService (PR #009)
+    /// Accepts raw UIImage for optimal single-pass compression
+    private func handleSendImage(_ image: UIImage) {
+        Task {
+            do {
+                _ = try await messageService.sendImageMessage(
+                    chatID: chat.id,
+                    image: image,
+                    optimisticCompletion: { optimisticMessage in
+                        DispatchQueue.main.async {
+                            self.messages.append(optimisticMessage)
+                            self.updateLatestMessageIDs()
+                        }
+                    }
+                )
+            } catch MessageError.offline {
+                await MainActor.run {
+                    if let index = self.messages.firstIndex(where: { $0.sendStatus == .sending }) {
+                        self.messages[index].sendStatus = .queued
+                    }
+                    self.updateQueueCount()
+                }
+            } catch {
+                print("❌ Error sending image: \(error.localizedDescription)")
+                await MainActor.run {
+                    if let index = self.messages.firstIndex(where: { $0.sendStatus == .sending }) {
+                        self.messages[index].sendStatus = .failed
+                    }
+                }
+            }
+        }
+    }
+    
     /// Retry sending a failed message
     private func retryMessage(_ message: Message) {
+        // Check if this is an image message
+        if message.mediaType == "image" {
+            // Cannot retry image messages - original image data is lost
+            // User should delete and resend the image
+            print("⚠️ Cannot retry image message - please delete and resend the image")
+            
+            // Remove the failed message from the UI
+            if let index = messages.firstIndex(where: { $0.id == message.id }) {
+                messages.remove(at: index)
+            }
+            
+            return
+        }
+        
         // Update failed message to sending status
         if let index = messages.firstIndex(where: { $0.id == message.id }) {
             messages[index].sendStatus = .sending
         }
         
-        // Retry send
+        // Retry send (text messages only)
         Task {
             do {
                 _ = try await messageService.sendMessage(
