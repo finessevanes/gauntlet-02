@@ -29,6 +29,9 @@ struct ProfilePhotoPreview: View {
     /// Size of the circular preview
     var size: CGFloat = 120
     
+    /// If true, force showing placeholder and clear any cached/remote image
+    var forcePlaceholder: Bool = false
+    
     // MARK: - State
     
     /// Cached image loaded from ImageCacheService
@@ -41,7 +44,10 @@ struct ProfilePhotoPreview: View {
     
     var body: some View {
         ZStack {
-            if isLoading {
+            if forcePlaceholder {
+                // Explicitly show placeholder (used for staged delete)
+                placeholderView
+            } else if isLoading {
                 // Loading state - show spinner
                 ZStack {
                     Circle()
@@ -58,6 +64,7 @@ struct ProfilePhotoPreview: View {
                     .scaledToFill()
                     .frame(width: size, height: size)
                     .clipShape(Circle())
+                    .id(ObjectIdentifier(selectedImage))
             } else if let cachedImage = cachedImage {
                 // Cached image - loads instantly
                 Image(uiImage: cachedImage)
@@ -85,11 +92,7 @@ struct ProfilePhotoPreview: View {
                             .clipShape(Circle())
                             .onAppear {
                                 // Cache the downloaded image if we have a userID
-                                if let userID = userID, let uiImage = convertToUIImage(image) {
-                                    Task {
-                                        await ImageCacheService.shared.cacheProfilePhoto(uiImage, userID: userID)
-                                    }
-                                }
+                                // Note: We cannot reliably extract UIImage from AsyncImage here; rely on cache via UserService paths.
                             }
                     case .failure:
                         placeholderView
@@ -107,9 +110,21 @@ struct ProfilePhotoPreview: View {
                 .stroke(Color(.systemGray4), lineWidth: 2)
         )
         .task {
-            // Load from cache on appear if userID is provided
-            if let userID = userID, selectedImage == nil {
+            // Load from cache on appear if userID is provided and not forced placeholder
+            if !forcePlaceholder, let userID = userID, selectedImage == nil {
                 await loadFromCache(userID: userID)
+            }
+        }
+        .onChange(of: forcePlaceholder) { _, newValue in
+            // Clear cached image when forcing placeholder to avoid stale display
+            if newValue {
+                cachedImage = nil
+            }
+        }
+        .onChange(of: imageURL) { oldValue, newValue in
+            // If URL changes or becomes nil, clear cached image to avoid mismatch
+            if oldValue != newValue {
+                cachedImage = nil
             }
         }
     }
@@ -140,21 +155,12 @@ struct ProfilePhotoPreview: View {
         // Check cache first
         if let cached = await ImageCacheService.shared.getCachedProfilePhoto(userID: userID) {
             cachedImage = cached
-            print("[ProfilePhotoPreview] ✅ Loaded from cache for user \(userID)")
         }
         
         isLoadingImage = false
     }
     
-    /// Converts SwiftUI Image to UIImage (helper for caching AsyncImage results)
-    /// - Parameter image: SwiftUI Image
-    /// - Returns: UIImage if conversion successful
-    private func convertToUIImage(_ image: Image) -> UIImage? {
-        // Note: This is a simplified approach
-        // In practice, AsyncImage already provides UIImage internally
-        // We cache it after download in the onAppear handler
-        return nil
-    }
+    
 }
 
 // MARK: - Preview

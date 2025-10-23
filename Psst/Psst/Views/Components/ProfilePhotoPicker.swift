@@ -21,8 +21,7 @@ struct ProfilePhotoPicker: UIViewControllerRepresentable {
     /// Binding to store any error that occurs during image loading
     @Binding var error: ProfilePhotoError?
     
-    /// Environment dismiss action
-    @Environment(\.dismiss) var dismiss
+    // No environment dismiss here; the parent sheet should stay open
     
     // MARK: - UIViewControllerRepresentable
     
@@ -58,12 +57,12 @@ struct ProfilePhotoPicker: UIViewControllerRepresentable {
         }
         
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
-            // Dismiss picker
+            // Dismiss only the PHPicker; keep the parent Edit Profile sheet open
             picker.dismiss(animated: true)
             
             // Get first result (we only allow single selection)
             guard let result = results.first else {
-                print("[ProfilePhotoPicker] No image selected")
+                Log.i("ProfilePhotoPicker", "No image selected")
                 return
             }
             
@@ -72,7 +71,7 @@ struct ProfilePhotoPicker: UIViewControllerRepresentable {
                 result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] image, error in
                     // Handle loading errors
                     if let error = error {
-                        print("[ProfilePhotoPicker] ❌ Failed to load image: \(error.localizedDescription)")
+                        Log.e("ProfilePhotoPicker", "Failed to load image: \(error.localizedDescription)")
                         
                         // Update error binding on main thread
                         DispatchQueue.main.async {
@@ -83,7 +82,7 @@ struct ProfilePhotoPicker: UIViewControllerRepresentable {
                     
                     // Validate that we got a UIImage
                     guard let uiImage = image as? UIImage else {
-                        print("[ProfilePhotoPicker] ❌ Invalid image type")
+                        Log.e("ProfilePhotoPicker", "Invalid image type")
                         
                         DispatchQueue.main.async {
                             self?.parent.error = ProfilePhotoError.invalidImageData
@@ -94,12 +93,12 @@ struct ProfilePhotoPicker: UIViewControllerRepresentable {
                     // Success - image loaded
                     // Note: We don't validate size here because compression will handle it
                     // Only format validation happens during upload
-                    print("[ProfilePhotoPicker] ✅ Image loaded successfully")
+                    Log.i("ProfilePhotoPicker", "Image loaded successfully")
                     
                     DispatchQueue.main.async {
                         self?.parent.selectedImage = uiImage
                         self?.parent.error = nil
-                        print("[ProfilePhotoPicker] ✅ Image selected successfully")
+                        Log.i("ProfilePhotoPicker", "Image selected successfully")
                     }
                 }
             }
