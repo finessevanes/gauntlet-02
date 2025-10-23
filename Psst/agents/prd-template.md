@@ -131,35 +131,88 @@ List SwiftUI views/files with one-line purpose each.
 
 ## 12. Testing Plan & Acceptance Gates
 
-Define BEFORE implementation. Use checkboxes.
+**Define these 3 scenarios BEFORE implementation.** Use specific, testable criteria.
 
-**Current**: Manual testing validation (see `Psst/agents/shared-standards.md`)  
-**Future**: Automated testing recommendations in `Psst/docs/testing-strategy.md`
+**See `Psst/docs/testing-strategy.md` for examples and detailed guidance.**
 
-- Configuration Testing
-  - [ ] Firebase Authentication setup works
-  - [ ] Firestore database connection established
-  - [ ] FCM push notifications configured
-  - [ ] All environment variables and API keys properly set
-  
-- Happy Path Testing
-  - [ ] User action succeeds
-  - [ ] Gate: [specific measurable outcome]
-  
-- Edge Cases Testing
-  - [ ] Empty/invalid input handled gracefully
-  - [ ] Offline behavior correct
-  - [ ] Network issues handled properly
-  
-- Multi-User Testing
-  - [ ] Real-time sync <100ms across devices
-  - [ ] Concurrent actions handled correctly
-  - [ ] Messages appear on all connected devices
-  
-- Performance Testing (see shared-standards.md)
-  - [ ] App load < 2-3s
-  - [ ] Smooth 60fps scrolling
-  - [ ] Message latency < 100ms
+---
+
+### Happy Path
+- [ ] [Describe main user flow from start to finish]
+- [ ] **Gate:** [Specific measurable outcome - e.g., "Message appears in chat within 1 second"]
+- [ ] **Pass Criteria:** Flow completes without errors, user sees expected result
+
+**Example (Message Send):**
+- User opens chat → types message → taps send → message appears in chat
+- Gate: Message persisted to Firestore and appears on sender's screen
+- Pass: No errors, message visible with timestamp
+
+---
+
+### Edge Cases (Document 1-2 specific scenarios)
+
+- [ ] **Edge Case 1:** [What happens with non-standard input?]
+  - **Test:** [Specific scenario - e.g., "User sends empty message"]
+  - **Expected:** [Behavior - e.g., "Shows alert: 'Message cannot be empty'"]
+  - **Pass:** Handled gracefully, clear feedback, no crash
+
+- [ ] **Edge Case 2:** [What happens with unusual condition?]
+  - **Test:** [Specific scenario - e.g., "User sends 1000-character message"]
+  - **Expected:** [Behavior - e.g., "Accepts message or shows character limit"]
+  - **Pass:** No crash, appropriate handling
+
+**Common Edge Cases to Consider:**
+- Empty input (blank fields, empty messages)
+- Long input (character limits, large data)
+- Special characters (emojis, Unicode, symbols)
+- Rapid actions (spam button, concurrent requests)
+- Boundary conditions (max users in group, max message length)
+
+---
+
+### Error Handling
+
+- [ ] **Offline Mode**
+  - **Test:** Enable airplane mode → attempt action
+  - **Expected:** "No internet connection" message, action queues for retry
+  - **Pass:** Clear error message, retry works when online
+
+- [ ] **Invalid Input**
+  - **Test:** Submit empty/malformed data (e.g., invalid email format)
+  - **Expected:** Validation error shown inline with correction hint
+  - **Pass:** User can fix and retry, no crash
+
+- [ ] **Network Timeout** (if applicable for long operations)
+  - **Test:** Slow network → action times out
+  - **Expected:** Loading state → "Taking longer than expected" → retry button
+  - **Pass:** Timeout handled gracefully, retry option provided
+
+- [ ] **Permission Denied** (if applicable)
+  - **Test:** User attempts action without proper permissions
+  - **Expected:** "You don't have permission" message
+  - **Pass:** Clear message, no crash or partial writes
+
+---
+
+### Optional: Multi-Device Testing
+
+**Only for real-time sync features** (messaging, presence, typing indicators):
+
+- [ ] Action on Device 1 syncs to Device 2
+- [ ] **Gate:** Sync happens within ~500ms
+- [ ] **Pass:** Change visible on all connected devices, no data loss
+
+---
+
+### Performance Check (Subjective)
+
+- [ ] Feature feels responsive (no noticeable lag)
+- [ ] Smooth animations (if applicable)
+- [ ] No UI blocking during operations
+
+**If performance-critical (lists 50+ items, heavy operations):**
+- [ ] Measure specific metric (e.g., scroll performance, load time)
+- [ ] Target: [Specific number - e.g., "List loads in < 1 second"]
 
 ---
 

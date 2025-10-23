@@ -1,34 +1,167 @@
-# Testing Strategy & Recommendations
+# Testing Strategy
 
-**Last Updated**: October 21, 2025
+**Last Updated**: October 23, 2025
 
-This document outlines the comprehensive testing strategy for the Psst project, including current manual testing approach and future automated testing recommendations.
-
----
-
-## Current Testing Approach
-
-### Manual Testing (Active)
-We currently use **manual testing validation** to ensure features work correctly before deployment. This approach prioritizes development velocity while maintaining quality.
-
-**Why Manual Testing Now:**
-- Faster feature delivery during development phases
-- Human validation of UX/UI is essential
-- Firebase integration requires real device testing
-- Multi-device sync testing needs physical devices
-
-**Manual Testing Standards:**
-- See `Psst/agents/shared-standards.md` for detailed manual testing requirements
-- All features must pass manual testing checklist before deployment
-- Multi-device testing required for real-time features
-- Performance validation through manual measurement
+**Philosophy:** User-centric manual validation for speed and quality. Ship features fast with pragmatic testing.
 
 ---
 
-## Future Automated Testing Strategy
+## Current Approach: Manual Flow Testing
 
-### Phase 4: Comprehensive Testing Implementation
-**Target**: PR #25 - Testing & QA (Phase 4)
+Each PR ends with testing **3 critical scenarios:**
+
+### 1. Happy Path (Required)
+**What:** Main user flow from start to finish  
+**Why:** Validates the feature works as intended for the primary use case
+
+**Example (Message Send):**
+1. User opens chat
+2. Types message "Hello World"
+3. Taps send button
+4. Message appears in chat bubble
+5. Other device receives message (if real-time feature)
+
+**Pass Criteria:** 
+- Flow completes without errors
+- User sees expected outcome
+- No console errors or warnings
+
+---
+
+### 2. Edge Cases (1-2 Required)
+**What:** Non-standard inputs or conditions  
+**Why:** Ensures feature degrades gracefully under unusual circumstances
+
+**Common Edge Cases to Test:**
+- **Empty input:** Send blank message → Shows "Message cannot be empty"
+- **Long input:** 500+ character message → Handles without crash
+- **Special characters:** Emojis, symbols, Unicode → Displays correctly
+- **Rapid actions:** Spam send button 10x → Queues properly, no duplicates
+- **Concurrent users:** 2 users act simultaneously → Both actions succeed
+- **Boundary conditions:** Max group size, character limits → Enforced gracefully
+
+**Pass Criteria:** 
+- App doesn't crash
+- Shows appropriate feedback to user
+- Data remains consistent
+
+---
+
+### 3. Error Handling (Required)
+**What:** How the feature behaves when things fail  
+**Why:** Users must understand what went wrong and how to recover
+
+**Common Error Scenarios:**
+
+**Offline Mode:**
+- Enable airplane mode
+- Attempt action (send message, update profile)
+- **Expected:** "No internet connection" message, action queues for retry
+
+**Network Timeout:**
+- Simulate slow network (or wait for natural timeout)
+- **Expected:** Loading state → "Taking longer than expected" → retry option
+
+**Invalid Data:**
+- Submit empty required field
+- Enter malformed email/phone
+- **Expected:** Validation error inline, clear instruction to fix
+
+**Permission Denied:**
+- Attempt action user doesn't have rights for
+- **Expected:** "You don't have permission to do this" message
+
+**Pass Criteria:** 
+- Clear, actionable error message shown
+- User can retry or take alternative action
+- No data corruption or partial writes
+- App remains functional after error
+
+---
+
+## Testing Checklist (Copy to Each TODO)
+
+**Before marking PR complete:**
+
+- [ ] **Happy Path:** Main user flow works end-to-end without errors
+- [ ] **Edge Case 1:** [Document specific scenario] handled gracefully
+- [ ] **Edge Case 2:** [Document specific scenario] handled gracefully (optional but recommended)
+- [ ] **Error Handling:** 
+  - Offline mode shows clear message (test: airplane mode)
+  - Invalid input shows validation error
+  - Timeout shows retry option (if long-running operation)
+- [ ] **No Console Errors:** Clean console during all test scenarios
+- [ ] **Performance Check:** Feature feels responsive (subjective, no noticeable lag)
+
+---
+
+## Optional Testing (When Applicable)
+
+### Multi-Device Testing
+**When Required:** Real-time sync features (messaging, presence, typing indicators, read receipts)
+
+**How to Test:**
+1. Open app on Device 1 (iPhone or Simulator)
+2. Open app on Device 2 (different device)
+3. Perform action on Device 1 (send message, update status)
+4. **Verify:** Change appears on Device 2 within ~500ms
+5. Repeat in reverse (Device 2 → Device 1)
+
+**Pass Criteria:** Sync happens quickly, no data loss
+
+---
+
+### Performance Testing
+**When Required:** Lists with 50+ items, heavy animations, image loading
+
+**How to Test:**
+- **Scrolling:** Scroll through long list, verify smooth 60fps (no jank)
+- **Loading:** Measure time from tap to screen display
+- **Memory:** Check for leaks with large datasets
+
+**Pass Criteria:** 
+- Smooth scrolling (subjective)
+- Fast load times (< 2-3 seconds)
+- No memory warnings
+
+---
+
+## Testing Examples by Feature Type
+
+### Messaging Features
+**Happy Path:** Open chat → Type → Send → Message appears  
+**Edge Case 1:** Send empty message → Blocked with error  
+**Edge Case 2:** Send 1000-char message → Accepted or truncated with warning  
+**Error:** Airplane mode → Queues message, sends on reconnect
+
+---
+
+### Profile Features
+**Happy Path:** Tap Edit → Change name → Save → Name updates  
+**Edge Case 1:** Save without changes → No API call, instant success  
+**Edge Case 2:** Invalid email format → Validation error inline  
+**Error:** Offline → "Can't update profile offline"
+
+---
+
+### List/Search Features
+**Happy Path:** Open list → See items → Tap item → Detail loads  
+**Edge Case 1:** Empty list → "No items yet" empty state  
+**Edge Case 2:** Search no results → "No matches found"  
+**Error:** Load fails → "Couldn't load items" with retry button
+
+---
+
+## Future: Automated Testing (Phase 6+)
+
+**When to Add:** After MVP ships and revenue validates product direction
+
+**Priorities:**
+1. **Unit Tests:** Service layer business logic (high ROI)
+2. **Integration Tests:** Critical user flows (signup, send message)
+3. **UI Tests:** Smoke tests for major screens
+
+**See below for AI feature integration test templates when Phase 6 begins.**
 
 ### 1. Unit Testing Framework
 
@@ -328,6 +461,68 @@ firebase emulators:start --only firestore,auth
 - Firebase Testing Patterns
 - SwiftUI Testing Strategies
 - Performance Testing Guidelines
+
+---
+
+---
+
+## AI Feature Integration Tests (Phase 6+)
+
+When AI features are implemented, use these happy path demos as integration test templates.
+
+### Happy Path 1: YOLO Mode Lead Qualification
+**Tests:** User Preferences, Function Calling, Memory/State, Error Handling
+
+**Setup:**
+- Coach has YOLO mode enabled 8pm-7am
+- Preferences stored: rates=$150/hr, friendly tone
+
+**Flow:**
+1. New lead DMs at 11pm: "What are your rates?"
+2. **VERIFY:** AI responds within 5 seconds with correct rates
+3. Lead: "What's your availability?"
+4. **VERIFY:** AI checks calendar, suggests 3 available slots
+5. Lead picks: "2pm tomorrow works"
+6. **VERIFY:** Calendar event created in Firestore
+7. **VERIFY:** Coach sees notification next morning
+
+**Expected Result:** Lead qualified and booked without coach intervention
+
+**Success Criteria:**
+- AI response time < 5 seconds
+- Rates match User Preferences exactly
+- Calendar event persisted correctly in Firestore
+- Multi-turn conversation state maintained across messages
+- Coach notification triggered and delivered
+
+---
+
+### Happy Path 2: Second Brain Context Recall
+**Tests:** RAG Pipeline, Memory/State, Function Calling, User Preferences
+
+**Setup:**
+- Existing conversation history for client Mike
+- Mike previously mentioned: "I travel to Dallas monthly"
+- Vector embeddings generated for all past messages
+
+**Flow:**
+1. Mike messages: "Traveling to Dallas next week, hotel gym only"
+2. Coach asks AI: "What did Mike say about travel before?"
+3. **VERIFY:** RAG searches conversations, returns relevant messages
+4. **VERIFY:** AI surfaces: "Mike mentioned Dallas 3 weeks ago, liked DB workouts"
+5. **VERIFY:** AI drafts suggested workout message
+6. Coach reviews, optionally edits
+7. Coach sends (or AI sends if approved as-is)
+8. Mike replies: "Perfect! You remembered 🙌"
+
+**Expected Result:** Semantic search finds relevant context, AI personalizes response
+
+**Success Criteria:**
+- Semantic search returns messages about "travel" and "Dallas"
+- Similarity score > 0.7 for relevant messages
+- AI draft includes personalized details from past conversations
+- Coach maintains control (can edit before sending)
+- Client feels remembered and valued
 
 ---
 

@@ -74,30 +74,41 @@ Reference requirements from `Psst/agents/shared-standards.md`.
 
 ---
 
-## 6. Testing Validation
+## 6. User-Centric Testing
 
-**Current**: Manual testing validation (see `Psst/agents/shared-standards.md`)  
-**Future**: Automated testing recommendations in `Psst/docs/testing-strategy.md`
+**Test 3 scenarios before marking complete** (see `Psst/agents/shared-standards.md`):
 
-- [ ] Configuration Testing
-  - Test Gate: Firebase Authentication, Firestore, FCM all connected and working
-  - Test Gate: All environment variables and API keys properly configured
+### Happy Path
+- [ ] Main user flow works end-to-end
+  - **Test Gate:** [Describe expected user journey from start to finish]
+  - **Pass:** Flow completes without errors, user sees expected outcome
+
+### Edge Cases (Document 1-2 specific scenarios)
+- [ ] Edge Case 1: [Specific scenario - e.g., "Send empty message"]
+  - **Test Gate:** [What happens - e.g., "Shows 'Message cannot be empty' alert"]
+  - **Pass:** Handled gracefully, no crash, appropriate feedback shown
   
-- [ ] User Flow Testing
-  - Test Gate: Complete main user journey end-to-end successfully
-  - Test Gate: Edge cases (invalid inputs, empty states, network issues) handled gracefully
+- [ ] Edge Case 2 (Optional but recommended): [Specific scenario - e.g., "Send 1000-char message"]
+  - **Test Gate:** [What happens - e.g., "Accepts or shows character limit warning"]
+  - **Pass:** No crash, clear feedback if needed
+
+### Error Handling
+- [ ] Offline behavior
+  - **Test Gate:** Enable airplane mode → attempt action (send message, update profile)
+  - **Pass:** Shows "No internet connection" message, queues action for retry when online
   
-- [ ] Multi-Device Testing
-  - Test Gate: Real-time sync works across 2+ devices within 100ms
-  - Test Gate: Messages appear on all connected devices simultaneously
+- [ ] Invalid input
+  - **Test Gate:** Submit empty/malformed data (empty field, invalid email format)
+  - **Pass:** Validation error shown inline, user can correct and retry
   
-- [ ] Offline Behavior Testing
-  - Test Gate: App functions properly without internet connection
-  - Test Gate: Messages queue locally and send when connection restored
-  
-- [ ] Visual States Verification
-  - Test Gate: Empty, loading, error, success states all render correctly
-  - Test Gate: No console errors during testing
+- [ ] Network timeout (if applicable for long operations)
+  - **Test Gate:** Slow network simulation or natural timeout
+  - **Pass:** Shows loading state → timeout message → retry button
+
+### Final Checks
+- [ ] No console errors during all test scenarios
+- [ ] Feature feels responsive (subjective - no noticeable lag)
+- [ ] Multi-device sync works (if real-time feature - see shared-standards.md)
 
 ---
 

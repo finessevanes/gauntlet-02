@@ -60,68 +60,65 @@ Every feature involving messaging MUST address:
 
 ### Current Testing Approach
 
-This project uses **manual testing validation** to ensure features work correctly before deployment.
+**Philosophy:** User-centric manual validation. Each PR tests **3 scenarios:**
 
-**📋 For comprehensive testing strategy and future automated testing recommendations, see [Testing Strategy & Recommendations](../docs/testing-strategy.md)**
+1. **Happy Path** - Main user flow works end-to-end
+2. **Edge Cases** - 1-2 non-standard inputs handled gracefully
+3. **Error Handling** - Offline/timeout/invalid input show clear messages
 
-### Manual Testing Requirements
+**📋 For detailed testing strategy and examples, see [Testing Strategy](../docs/testing-strategy.md)**
 
-**For each feature, the user must verify:**
+---
 
-**1. Configuration Testing**
-- Firebase Authentication setup works
-- Firestore database connection established
-- FCM push notifications configured
-- All environment variables and API keys properly set
-
-**2. User Flow Testing**
-- Happy path: Complete the main user journey end-to-end
-- Edge cases: Test with invalid inputs, empty states, network issues
-- Multi-user scenarios: Test real-time sync across 2+ devices
-- Offline behavior: Test app functionality without internet connection
-
-**3. Performance Validation**
-- App loads in < 2-3 seconds (cold start to interactive UI)
-- Messages sync across devices in < 100ms
-- Smooth 60fps scrolling with 100+ messages
-- No UI blocking or freezing during operations
-
-**4. Visual State Verification**
-- Empty states display correctly
-- Loading states show appropriate indicators
-- Error states provide clear feedback
-- Success states confirm completed actions
-
-### Manual Testing Checklist Template
+### Manual Testing Checklist
 
 **Before marking feature complete, verify:**
 
-- [ ] **Configuration**: All Firebase services connected and working
-- [ ] **Happy Path**: Main user flow works from start to finish
-- [ ] **Edge Cases**: Invalid inputs handled gracefully
-- [ ] **Multi-Device**: Real-time sync works across 2+ devices
-- [ ] **Offline**: App functions properly without internet
-- [ ] **Performance**: App loads quickly, smooth scrolling, fast sync
-- [ ] **Visual States**: All UI states (empty, loading, error, success) display correctly
-- [ ] **No Console Errors**: Clean console output during testing
+- [ ] **Happy Path**: Main user flow works from start to finish without errors
+- [ ] **Edge Case 1**: [Document specific scenario] handled gracefully
+- [ ] **Edge Case 2**: [Document specific scenario] handled gracefully (optional but recommended)
+- [ ] **Error Handling**: 
+  - Offline mode shows clear message (test: enable airplane mode)
+  - Invalid input shows validation error (test: empty/malformed data)
+  - Timeout shows retry option (test: slow network, if applicable)
+- [ ] **No Console Errors**: Clean console output during all test scenarios
+- [ ] **Performance Check**: Feature feels responsive (subjective, no noticeable lag)
 
-### Multi-Device Testing Instructions
+---
 
-**To test real-time sync:**
-1. Open app on Device 1 (iPhone/Simulator)
-2. Open app on Device 2 (different iPhone/Simulator)
-3. Send message from Device 1
-4. Verify message appears on Device 2 within 100ms
-5. Send message from Device 2
-6. Verify message appears on Device 1 within 100ms
-7. Test with 3+ devices if available
+### Optional: Multi-Device Testing
 
-**To test offline behavior:**
-1. Disable internet connection
-2. Attempt to send messages (should queue locally)
-3. Re-enable internet connection
-4. Verify queued messages send automatically
-5. Verify real-time sync resumes
+**Only required for real-time sync features** (messaging, presence, typing indicators):
+
+1. Open app on Device 1 (iPhone or Simulator)
+2. Open app on Device 2 (different device)
+3. Perform action on Device 1 (send message, update status)
+4. Verify sync on Device 2 within ~500ms
+5. Repeat in reverse (Device 2 → Device 1)
+
+**Pass Criteria:** Sync happens quickly, no data loss
+
+---
+
+### Testing Examples by Feature Type
+
+**Messaging Features:**
+- Happy Path: Open chat → Type → Send → Message appears
+- Edge Case 1: Send empty message → Shows "Message cannot be empty"
+- Edge Case 2: Send 1000-character message → Handles without crash
+- Error: Airplane mode → Message queues, shows "Sending..." then sends on reconnect
+
+**Profile Features:**
+- Happy Path: Tap Edit → Change name → Save → Name updates
+- Edge Case 1: Save without changes → No API call, shows success
+- Edge Case 2: Invalid email format → Shows validation error inline
+- Error: Offline → Shows "Can't update profile offline, try again later"
+
+**List Features:**
+- Happy Path: Open list → See items → Tap item → Detail loads
+- Edge Case 1: Empty list → Shows "No items yet" empty state
+- Edge Case 2: Search no results → Shows "No matches found"
+- Error: Load fails → Shows "Couldn't load items" with retry button
 
 ---
 
