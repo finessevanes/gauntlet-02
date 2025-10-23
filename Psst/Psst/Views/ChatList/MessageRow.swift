@@ -62,21 +62,20 @@ struct MessageRow: View {
             .cornerRadius(8)
     }
     
-    /// Uploading image placeholder (PR #009) - iMessage style
+    /// Uploading image placeholder (PR #009)
     private var uploadingImagePlaceholder: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 18)
-                .fill(isFromCurrentUser ? Color.blue.opacity(0.2) : Color(.systemGray6))
-                .frame(width: 280, height: 210)
-                .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 2)
+            Rectangle()
+                .fill(isFromCurrentUser ? Color.blue.opacity(0.3) : Color(.systemGray5))
+                .frame(width: 200, height: 150)
+                .cornerRadius(12)
             
-            VStack(spacing: 12) {
+            VStack(spacing: 8) {
                 ProgressView()
-                    .progressViewStyle(CircularProgressViewStyle(tint: isFromCurrentUser ? .blue : .gray))
-                    .scaleEffect(1.2)
+                    .progressViewStyle(CircularProgressViewStyle(tint: isFromCurrentUser ? .white : .gray))
                 Text("Uploading...")
-                    .font(.subheadline)
-                    .foregroundColor(isFromCurrentUser ? .blue : .secondary)
+                    .font(.caption)
+                    .foregroundColor(isFromCurrentUser ? .white : .secondary)
             }
         }
     }
@@ -123,9 +122,21 @@ struct MessageRow: View {
                                     width: message.mediaDimensions?["width"],
                                     height: message.mediaDimensions?["height"]
                                 )
+                                .onAppear {
+                                    print("🖼️ [MESSAGE ROW] Rendering image message: \(message.id)")
+                                    print("🔗 [MESSAGE ROW] Media URL: \(message.mediaURL ?? "nil")")
+                                    print("🔗 [MESSAGE ROW] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                                    print("✅ [MESSAGE ROW] Image uploaded successfully - showing ImageMessageView")
+                                }
                             } else {
                                 // Image is still uploading - show loading placeholder
                                 uploadingImagePlaceholder
+                                    .onAppear {
+                                        print("🖼️ [MESSAGE ROW] Rendering image message: \(message.id)")
+                                        print("🔗 [MESSAGE ROW] Media URL: \(message.mediaURL ?? "nil")")
+                                        print("🔗 [MESSAGE ROW] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                                        print("⏳ [MESSAGE ROW] Image still uploading - showing placeholder")
+                                    }
                             }
                         } else {
                             Text(message.text)
