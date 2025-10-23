@@ -205,9 +205,14 @@ struct ChatView: View {
                 .environmentObject(presenceService)
         }
         .onAppear {
+            print("📱 [CHAT VIEW] User entered chat: \(chat.id)")
+            print("📱 [CHAT VIEW] Chat type: \(chat.isGroupChat ? "Group" : "1-on-1")")
+            print("📱 [CHAT VIEW] Current message count: \(messages.count)")
+            
             // Get current user ID from Firebase Auth
             if let uid = Auth.auth().currentUser?.uid {
                 currentUserID = uid
+                print("📱 [CHAT VIEW] Current user ID: \(uid)")
             }
             // Determine other user ID for presence tracking
             determineOtherUserID()
@@ -236,6 +241,9 @@ struct ChatView: View {
             markMessagesAsRead()
         }
         .onDisappear {
+            print("📱 [CHAT VIEW] User left chat: \(chat.id)")
+            print("📱 [CHAT VIEW] Final message count: \(messages.count)")
+            
             // Stop listening to prevent memory leaks
             stopListeningForMessages()
             // Detach presence listener
@@ -379,6 +387,10 @@ struct ChatView: View {
                             self.messages.append(optimisticMessage)
                             // PR #2: Update latest message IDs when new message is added
                             self.updateLatestMessageIDs()
+                            // Scroll to bottom after adding message
+                            if let proxy = self.scrollProxy {
+                                self.scrollToBottom(proxy: proxy)
+                            }
                         }
                     }
                 )
@@ -419,6 +431,10 @@ struct ChatView: View {
                         DispatchQueue.main.async {
                             self.messages.append(optimisticMessage)
                             self.updateLatestMessageIDs()
+                            // Scroll to bottom after adding message
+                            if let proxy = self.scrollProxy {
+                                self.scrollToBottom(proxy: proxy)
+                            }
                         }
                     }
                 )
@@ -500,8 +516,23 @@ struct ChatView: View {
     
     /// Start listening for real-time messages
     private func startListeningForMessages() {
+        print("👂 [CHAT VIEW] Starting message listener for chat: \(chat.id)")
+        
         // Attach Firestore snapshot listener
         messageListener = messageService.observeMessages(chatID: chat.id) { firestoreMessages in
+            print("📨 [CHAT VIEW] Received \(firestoreMessages.count) messages from Firestore")
+            
+            // Log image messages specifically
+            let imageMessages = firestoreMessages.filter { $0.mediaType == "image" }
+            if !imageMessages.isEmpty {
+                print("🖼️ [CHAT VIEW] Found \(imageMessages.count) image messages:")
+                for message in imageMessages {
+                    print("🖼️ [CHAT VIEW] Image message \(message.id):")
+                    print("🔗 [CHAT VIEW]   Media URL: \(message.mediaURL ?? "nil")")
+                    print("🔗 [CHAT VIEW]   Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
+                }
+            }
+            
             // Merge Firestore messages with optimistic messages
             // Strategy: Update existing messages, add new ones
             var updatedMessages = self.messages
@@ -512,9 +543,11 @@ struct ChatView: View {
                     var updated = firestoreMessage
                     updated.sendStatus = nil  // Confirmed, no status indicator needed
                     updatedMessages[index] = updated
+                    print("🔄 [CHAT VIEW] Updated existing message: \(firestoreMessage.id)")
                 } else {
                     // New message from Firestore - add it
                     updatedMessages.append(firestoreMessage)
+                    print("➕ [CHAT VIEW] Added new message: \(firestoreMessage.id)")
                 }
             }
             
@@ -527,6 +560,7 @@ struct ChatView: View {
             // Sort by timestamp
             updatedMessages.sort { $0.timestamp < $1.timestamp }
             
+            print("📨 [CHAT VIEW] Final message count: \(updatedMessages.count)")
             self.messages = updatedMessages
             
             // PR #2: Update latest message IDs for each status type
