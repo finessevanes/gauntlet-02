@@ -4,156 +4,155 @@
 //
 //  Created by Caleb (Coder Agent) - PR #4
 //  Updated by Caleb (Coder Agent) - PR #17 (Edit Profile integration)
+//  Redesigned by Caleb (Coder Agent) - PR #006C (iOS grouped list)
 //
 
 import SwiftUI
 
-/// Settings view with logout functionality and profile editing
-/// Additional settings features will be implemented in Phase 4
+/// Settings view with iOS-native grouped list design
+/// Includes user info, account settings, support options, and logout
 struct SettingsView: View {
-    // MARK: - State Management
-
+    // MARK: - Environment
+    
     /// Authentication view model for logout functionality
     @EnvironmentObject var authViewModel: AuthViewModel
-
-    /// Show error alert
-    @State private var showErrorAlert: Bool = false
     
-    /// Show edit profile sheet
-    @State private var showEditProfile = false
+    // MARK: - State
     
-    /// Show notification test view
-    @State private var showNotificationTest = false
-
+    /// Logout loading state
+    @State private var isLoggingOut = false
+    
+    /// Show logout error alert
+    @State private var showLogoutError = false
+    
+    /// Error message for logout failures
+    @State private var errorMessage = ""
+    
     // MARK: - Body
-
+    
     var body: some View {
-        NavigationView {
-            VStack(spacing: 24) {
-                Spacer()
-
-                // Feature icon
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 72))
-                    .foregroundColor(.gray)
-
-                // Title
-                Text("Settings")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
-
-                // Logged-in user info
-                if let currentUser = authViewModel.currentUser {
-                    VStack(spacing: 8) {
-                        Text("Logged in as:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                        
-                        Text(currentUser.email)
-                            .font(.headline)
-                            .foregroundColor(.primary)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
-                            .background(Color(.systemGray6))
-                            .cornerRadius(8)
-                    }
-                    .padding(.bottom, 16)
-                }
-
-                // Coming soon message
-                Text("Coming Soon in Phase 4")
-                    .font(.title3)
-                    .foregroundColor(.secondary)
-
-                // Description
-                Text("This screen will contain app settings and preferences.")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-
-                Spacer()
+        NavigationStack {
+            List {
+                // User Info Section (custom header, not in Section)
+                userInfoSection
                 
-                // Edit Profile Button
-                if authViewModel.currentUser != nil {
-                    Button(action: {
-                        showEditProfile = true
-                    }) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                            Text("Edit Profile")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
+                // Account Section
+                Section(header: Text("ACCOUNT")) {
+                    NavigationLink(destination: NotificationsSettingsView()) {
+                        Label("Notifications", systemImage: "bell.circle")
                     }
-                    .padding(.horizontal, 24)
                 }
                 
-                // Notification Test Button (Debug only)
-                #if DEBUG
-                Button(action: {
-                    showNotificationTest = true
-                }) {
-                    HStack {
-                        Image(systemName: "bell.fill")
-                        Text("Test Notifications")
-                            .fontWeight(.semibold)
+                // Support Section
+                Section(header: Text("SUPPORT")) {
+                    NavigationLink(destination: HelpSupportView()) {
+                        Label("Help & Support", systemImage: "questionmark.circle")
                     }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.orange)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                    
+                    NavigationLink(destination: AboutView()) {
+                        Label("About", systemImage: "info.circle")
+                    }
                 }
-                .padding(.horizontal, 24)
-                #endif
-
-                // Logout Button
-                Button(action: {
-                    Task {
-                        await authViewModel.signOut()
-                        // Check for error after sign out
-                        if authViewModel.errorMessage != nil {
-                            showErrorAlert = true
-                        }
-                    }
-                }) {
-                    HStack {
-                        Image(systemName: "arrow.right.square.fill")
-                        Text("Log Out")
-                            .fontWeight(.semibold)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.red)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
+                
+                // Logout Button Section
+                Section {
+                    logoutButton
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 32)
             }
+            .listStyle(.insetGrouped)
             .navigationTitle("Settings")
-            .alert("Logout Error", isPresented: $showErrorAlert) {
-                Button("OK") {
-                    authViewModel.clearError()
+            .navigationBarTitleDisplayMode(.large)
+            .alert("Logout Error", isPresented: $showLogoutError) {
+                Button("OK", role: .cancel) {
+                    showLogoutError = false
                 }
             } message: {
-                Text(authViewModel.errorMessage ?? "An error occurred while logging out.")
-            }
-            .sheet(isPresented: $showEditProfile) {
-                if let user = authViewModel.currentUser {
-                    EditProfileView(user: user)
-                }
-            }
-            .sheet(isPresented: $showNotificationTest) {
-                NotificationTestView()
+                Text(errorMessage)
             }
         }
     }
+    
+    // MARK: - User Info Section
+    
+    /// User info header with profile photo, name, and email
+    private var userInfoSection: some View {
+        HStack(spacing: 16) {
+            // Profile Photo (60pt circular)
+            ProfilePhotoPreview(
+                imageURL: authViewModel.currentUser?.photoURL,
+                selectedImage: nil,
+                isLoading: false,
+                size: 60
+            )
+            
+            // User Info (name and email)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(authViewModel.currentUser?.displayName ?? "User")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                
+                Text(authViewModel.currentUser?.email ?? "")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .listRowBackground(Color(.secondarySystemBackground))
+    }
+    
+    // MARK: - Logout Button
+    
+    /// Logout button with destructive styling and loading state
+    private var logoutButton: some View {
+        Button(action: handleLogout) {
+            if isLoggingOut {
+                HStack {
+                    Spacer()
+                    ProgressView()
+                        .tint(.white)
+                    Text("Logging out...")
+                        .foregroundColor(.white)
+                        .padding(.leading, 8)
+                    Spacer()
+                }
+            } else {
+                HStack {
+                    Spacer()
+                    Text("Log Out")
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+            }
+        }
+        .buttonStyle(.borderedProminent)
+        .tint(.red)
+        .disabled(isLoggingOut)
+        .listRowBackground(Color.clear)
+    }
+    
+    // MARK: - Methods
+    
+    /// Handles logout button tap
+    /// Shows loading state, signs out user, and handles errors
+    private func handleLogout() {
+        isLoggingOut = true
+        
+        Task {
+            // Call AuthViewModel's signOut method (async)
+            await authViewModel.signOut()
+            
+            // Check for errors after signout
+            if let error = authViewModel.errorMessage {
+                errorMessage = error
+                showLogoutError = true
+                isLoggingOut = false
+            }
+            // Navigation handled by AuthViewModel (returns to LoginView)
+        }
+    }
+    
 }
 
 // MARK: - Preview
