@@ -15,7 +15,6 @@
 		262227022EA71CD200303C16 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000004 /* FirebaseMessaging */; };
 		262227032EA71CD200303C16 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000005 /* FirebaseStorage */; };
 		2626E8002EA703CF00F8567B /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FD2EA703CF00F8567B /* architecture.md */; };
-		2626E8012EA703CF00F8567B /* prd-full-features.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FE2EA703CF00F8567B /* prd-full-features.md */; };
 		2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F42EA703CF00F8567B /* caleb-agent.md */; };
 		2626E8032EA703CF00F8567B /* test-template.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FA2EA703CF00F8567B /* test-template.md */; };
 		2626E8042EA703CF00F8567B /* pam-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F52EA703CF00F8567B /* pam-agent.md */; };
@@ -54,11 +53,20 @@
 		2626E7FA2EA703CF00F8567B /* test-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "test-template.md"; sourceTree = "<group>"; };
 		2626E7FB2EA703CF00F8567B /* todo-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "todo-template.md"; sourceTree = "<group>"; };
 		2626E7FD2EA703CF00F8567B /* architecture.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = architecture.md; sourceTree = "<group>"; };
-		2626E7FE2EA703CF00F8567B /* prd-full-features.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "prd-full-features.md"; sourceTree = "<group>"; };
 		2659517F2EA6D27E00B5C739 /* Psst.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Psst.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2659518F2EA6D27F00B5C739 /* PsstTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PsstTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		265951992EA6D27F00B5C739 /* PsstUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PsstUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		265951B02EA6D27E00B5C739 /* Exceptions for "Psst" folder in "Psst" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 2659517E2EA6D27E00B5C739 /* Psst */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		265951812EA6D27E00B5C739 /* Psst */ = {
@@ -81,15 +89,6 @@
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		265951B02EA6D27E00B5C739 /* Exceptions for "Psst" folder in "Psst" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = 2659517E2EA6D27E00B5C739 /* Psst */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 /* Begin PBXFrameworksBuildPhase section */
 		2659517C2EA6D27E00B5C739 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
@@ -141,7 +140,6 @@
 			isa = PBXGroup;
 			children = (
 				2626E7FD2EA703CF00F8567B /* architecture.md */,
-				2626E7FE2EA703CF00F8567B /* prd-full-features.md */,
 			);
 			path = docs;
 			sourceTree = "<group>";
@@ -301,7 +299,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				2626E8002EA703CF00F8567B /* architecture.md in Resources */,
-				2626E8012EA703CF00F8567B /* prd-full-features.md in Resources */,
 				2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */,
 				2626E8032EA703CF00F8567B /* test-template.md in Resources */,
 				2626E8042EA703CF00F8567B /* pam-agent.md in Resources */,
