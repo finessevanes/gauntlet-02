@@ -119,27 +119,30 @@ struct ChatView: View {
         .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Show presence indicator and profile photo in header for 1-on-1 chats
+            // Show presence halo and profile photo in header for 1-on-1 chats
             if !chat.isGroupChat {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 8) {
-                        // Profile photo
-                        ProfilePhotoPreview(
-                            imageURL: otherUser?.photoURL,
-                            selectedImage: nil,
-                            isLoading: false,
-                            size: 32
-                        )
+                        // Profile photo with presence halo
+                        ZStack {
+                            ProfilePhotoPreview(
+                                imageURL: otherUser?.photoURL,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32
+                            )
+                            
+                            // Green presence halo (only when online)
+                            PresenceHalo(isOnline: isContactOnline, size: 32)
+                                .animation(.easeInOut(duration: 0.2), value: isContactOnline)
+                        }
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(otherUser?.displayName ?? "Chat")
                                 .font(.headline)
-                            HStack(spacing: 4) {
-                                PresenceIndicator(isOnline: isContactOnline)
-                                Text(isContactOnline ? "Online" : "Offline")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(isContactOnline ? "Online" : "Offline")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
@@ -623,13 +626,9 @@ struct ChatView: View {
                     return
                 }
                 
-                print("📖 Marking messages as read for chat: \(chat.id)")
                 try await messageService.markChatMessagesAsRead(chatID: chat.id)
-                
-                print("✅ Messages marked as read")
             } catch {
                 // Fail silently - read receipts are non-critical
-                // Log error for debugging but don't show alert to user
                 print("❌ Failed to mark messages as read: \(error.localizedDescription)")
             }
         }
