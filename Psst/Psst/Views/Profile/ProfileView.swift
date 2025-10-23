@@ -19,6 +19,9 @@ struct ProfileView: View {
     /// Show edit profile sheet
     @State private var showEditProfile = false
     
+    /// Refresh trigger for profile photo (increments to force refresh)
+    @State private var photoRefreshTrigger = 0
+    
     // MARK: - Body
 
     var body: some View {
@@ -33,10 +36,12 @@ struct ProfileView: View {
                     if let user = authViewModel.currentUser {
                         ProfilePhotoPreview(
                             imageURL: user.photoURL,
+                            userID: user.id,
                             selectedImage: nil,
                             isLoading: false,
                             size: 120
                         )
+                        .id("\(user.id)-\(user.photoURL ?? "no-photo")-\(photoRefreshTrigger)")
                         .padding(.top, 20)
                         
                         // Display Name
@@ -111,12 +116,32 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
-            .sheet(isPresented: $showEditProfile) {
+            .sheet(isPresented: $showEditProfile, onDismiss: {
+                // Refresh user data when EditProfileView dismisses
+                Task {
+                    await refreshUserData()
+                }
+            }) {
                 if let user = authViewModel.currentUser {
                     EditProfileView(user: user)
                 }
             }
         }
+    }
+    
+    // MARK: - Methods
+    
+    /// Refreshes profile photo display after edit
+    /// The AuthenticationService's Firestore listener will update the user data automatically
+    /// This just forces the ProfilePhotoPreview to recreate and reload from cache
+    @MainActor
+    private func refreshUserData() async {
+        // We rely on pre-caching after upload; avoid invalidating cache here to prevent flicker
+        // Small delay to allow Firestore listener to update user model
+        try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+        // Nudge view to refresh
+        photoRefreshTrigger += 1
+        Log.i("ProfileView", "Profile photo refresh triggered (no cache invalidation)")
     }
 }
 

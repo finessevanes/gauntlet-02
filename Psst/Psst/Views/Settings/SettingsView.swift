@@ -19,9 +19,6 @@ struct SettingsView: View {
     /// Show error alert
     @State private var showErrorAlert: Bool = false
     
-    /// Show edit profile sheet
-    @State private var showEditProfile = false
-    
     /// Show notification test view
     @State private var showNotificationTest = false
 
@@ -74,25 +71,6 @@ struct SettingsView: View {
 
                 Spacer()
                 
-                // Edit Profile Button
-                if authViewModel.currentUser != nil {
-                    Button(action: {
-                        showEditProfile = true
-                    }) {
-                        HStack {
-                            Image(systemName: "person.circle.fill")
-                            Text("Edit Profile")
-                                .fontWeight(.semibold)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.blue)
-                        .foregroundColor(.white)
-                        .cornerRadius(12)
-                    }
-                    .padding(.horizontal, 24)
-                }
-                
                 // Notification Test Button (Debug only)
                 #if DEBUG
                 Button(action: {
@@ -143,11 +121,6 @@ struct SettingsView: View {
                 }
             } message: {
                 Text(authViewModel.errorMessage ?? "An error occurred while logging out.")
-            }
-            .sheet(isPresented: $showEditProfile) {
-                if let user = authViewModel.currentUser {
-                    EditProfileView(user: user)
-                }
             }
             .sheet(isPresented: $showNotificationTest) {
                 NotificationTestView()
