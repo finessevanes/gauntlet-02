@@ -19,6 +19,11 @@ enum ProfilePhotoError: Error, LocalizedError, Equatable {
     case permissionDenied
     case cacheError(String)
     case invalidImageData
+    case deleteFailed(reason: String)
+    case noPhotoToDelete
+    case cameraPermissionDenied
+    case cameraNotAvailable
+    case photoLibraryPermissionDenied
     
     /// User-friendly error description
     var errorDescription: String? {
@@ -46,6 +51,21 @@ enum ProfilePhotoError: Error, LocalizedError, Equatable {
             
         case .invalidImageData:
             return "Invalid image data. Please select a different image."
+            
+        case .deleteFailed(let reason):
+            return "Failed to delete photo: \(reason). Please try again."
+            
+        case .noPhotoToDelete:
+            return "No profile photo to delete."
+            
+        case .cameraPermissionDenied:
+            return "Camera access denied. Please enable camera access in Settings to take photos."
+            
+        case .cameraNotAvailable:
+            return "Camera is not available on this device."
+            
+        case .photoLibraryPermissionDenied:
+            return "Photo library access denied. Please enable photo library access in Settings to select photos."
         }
     }
     
@@ -75,6 +95,21 @@ enum ProfilePhotoError: Error, LocalizedError, Equatable {
             
         case .invalidImageData:
             return "Try taking a new photo or selecting a different one from your library."
+            
+        case .deleteFailed:
+            return "Check your internet connection and try again."
+            
+        case .noPhotoToDelete:
+            return "Upload a profile photo first before trying to delete it."
+            
+        case .cameraPermissionDenied:
+            return "Go to Settings → Psst → Camera and enable camera access."
+            
+        case .cameraNotAvailable:
+            return "Try using the photo library instead to select an existing photo."
+            
+        case .photoLibraryPermissionDenied:
+            return "Go to Settings → Psst → Photos and enable photo library access."
         }
     }
 }
