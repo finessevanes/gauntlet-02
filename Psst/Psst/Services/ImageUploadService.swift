@@ -154,8 +154,16 @@ final class ImageUploadService {
     ///   - messageID: Message identifier (filename)
     /// - Returns: Download URL string
     func uploadImage(imageData: Data, chatID: String, messageID: String) async throws -> String {
+        print("☁️ [UPLOAD] Starting image upload for message: \(messageID)")
+        print("☁️ [UPLOAD] Image data size: \(imageData.count) bytes")
+        
         let filePath = StoragePath.fullImage(chatID: chatID, messageID: messageID)
-        return try await uploadData(imageData, chatID: chatID, filePath: filePath)
+        print("☁️ [UPLOAD] Storage path: \(filePath)")
+        
+        let url = try await uploadData(imageData, chatID: chatID, filePath: filePath)
+        print("✅ [UPLOAD] Image upload successful: \(url)")
+        
+        return url
     }
     
     /// Uploads thumbnail data to Firebase Storage under thumbnails subfolder
@@ -165,8 +173,16 @@ final class ImageUploadService {
     ///   - messageID: Message identifier (base filename)
     /// - Returns: Download URL string
     func uploadThumbnail(thumbnailData: Data, chatID: String, messageID: String) async throws -> String {
+        print("☁️ [UPLOAD] Starting thumbnail upload for message: \(messageID)")
+        print("☁️ [UPLOAD] Thumbnail data size: \(thumbnailData.count) bytes")
+        
         let filePath = StoragePath.thumbnail(chatID: chatID, messageID: messageID)
-        return try await uploadData(thumbnailData, chatID: chatID, filePath: filePath)
+        print("☁️ [UPLOAD] Thumbnail storage path: \(filePath)")
+        
+        let url = try await uploadData(thumbnailData, chatID: chatID, filePath: filePath)
+        print("✅ [UPLOAD] Thumbnail upload successful: \(url)")
+        
+        return url
     }
     
     // MARK: - Helpers
