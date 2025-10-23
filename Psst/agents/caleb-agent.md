@@ -183,33 +183,83 @@ Check every gate from PRD Section 12:
 - WAIT for user to test again
 - WAIT for approval again
 
-### Step 7: Commit Changes (ONLY AFTER USER APPROVAL)
+### Step 7: Commit Changes Functionally (ONLY AFTER USER APPROVAL)
 
 **⚠️ PREREQUISITE: User has tested and explicitly approved ⚠️**
 
+**🧹 BEFORE COMMITTING: Clean up all debug code**
+
+**MANDATORY cleanup checklist:**
+- [ ] Remove all `print()` debug statements
+- [ ] Remove all `debugPrint()` statements
+- [ ] Remove all commented-out code
+- [ ] Remove all `// TODO:` comments (unless tracking actual future work)
+- [ ] Remove all `// FIXME:` comments
+- [ ] Remove all test/placeholder values
+- [ ] Remove all unused imports
+- [ ] Verify no console spam during normal usage
+
+**IMPORTANT: Commit by function/feature, not all at once**
+
+When user confirms feature is working and ready for PR, commit in logical functional chunks:
+
+**Commit Strategy:**
+- Commit by functional component (not all files in one commit)
+- Make it easy for anyone to see how things are implemented
+- Don't over-commit (avoid giant commits with 20+ files)
+- Each commit should be a logical, complete piece of functionality
+
+**Example commit sequence for PR-005:**
 ```bash
-git add .
-git commit -m "feat: [descriptive commit message]"
+# Commit 1: Data model
+git add Psst/Psst/Models/ReadReceiptDetail.swift
+git commit -m "feat(pr-005): add ReadReceiptDetail data model"
+
+# Commit 2: Service layer
+git add Psst/Psst/Services/MessageService.swift
+git commit -m "feat(pr-005): add fetchReadReceiptDetails to MessageService"
+
+# Commit 3: ViewModel
+git add Psst/Psst/ViewModels/ReadReceiptDetailViewModel.swift
+git commit -m "feat(pr-005): add ReadReceiptDetailViewModel with real-time listener"
+
+# Commit 4: UI components
+git add Psst/Psst/Views/Components/ReadReceiptMemberRow.swift
+git add Psst/Psst/Views/Components/ReadReceiptDetailView.swift
+git commit -m "feat(pr-005): add read receipt detail UI components"
+
+# Commit 5: Integration
+git add Psst/Psst/Views/Components/MessageReadIndicatorView.swift
+git commit -m "feat(pr-005): add tap gesture to MessageReadIndicatorView for groups"
+
+# Commit 6: Documentation
+git add Psst/docs/todos/pr-005-todo.md
+git commit -m "docs(pr-005): update TODO with completed tasks"
+
+# Push all commits
 git push origin feat/pr-{number}-{feature-name}
 ```
 
-### Step 8: Create Pull Request
+**Guidelines:**
+- Group related files together (e.g., all UI components in one commit)
+- Separate major functional pieces (data model, service, viewmodel, UI)
+- Keep commits focused on one logical change
+- Write clear commit messages that explain what was added/changed
+
+### Step 8: Create Pull Request with Summary
 
 **IMPORTANT: PR must target `develop` branch, NOT `main`**
 
-**PR title format:**
-```
-PR #{number}: {Feature Name}
-```
+**Use GitHub CLI to create PR with summary included:**
 
-**Base branch:** `develop`  
-**Compare branch:** `feat/pr-{number}-{feature-name}`
-
-**PR description must include:**
-
-```markdown
-## Summary
-One sentence: what does this PR do?
+```bash
+# Create PR with full summary in CLI command
+gh pr create \
+  --base develop \
+  --head feat/pr-{number}-{feature-name} \
+  --title "PR #{number}: {Feature Name}" \
+  --body "## Summary
+{One sentence: what does this PR do?}
 
 ## What Changed
 - List all modified files
@@ -217,70 +267,89 @@ One sentence: what does this PR do?
 - Note any breaking changes
 
 ## Testing
-- [ ] Unit tests (XCTest) created and passing
-- [ ] UI tests (XCUITest) created and passing
-- [ ] Service tests created and passing (if applicable)
-- [ ] Multi-device testing complete
-- [ ] All acceptance gates pass
-- [ ] Visual verification (USER does manually)
-- [ ] Performance feel test (USER does manually)
+- [x] Configuration testing complete
+- [x] User flow testing complete
+- [x] Multi-device testing complete (real-time sync <100ms)
+- [x] Offline behavior tested
+- [x] All acceptance gates pass
+- [x] Visual states verified
+- [x] Performance targets met (see shared-standards.md)
 
 ## Checklist
-- [ ] All TODO items completed
-- [ ] Code follows patterns from shared-standards.md
-- [ ] No console warnings
-- [ ] Documentation updated
+- [x] All TODO items completed
+- [x] Code follows patterns from shared-standards.md
+- [x] No console warnings
+- [x] Documentation updated
 
 ## Notes
-Any gotchas, trade-offs, or future improvements
+{Any gotchas, trade-offs, or future improvements}"
 ```
 
----
+**Example for PR-005:**
+```bash
+gh pr create \
+  --base develop \
+  --head feat/pr-005-group-read-receipts-detailed-view \
+  --title "PR #005: Group Read Receipts Detailed View" \
+  --body "## Summary
+Implemented detailed read receipt view for group chats showing which members have read messages by name.
 
-## Testing Checklist (Run Before PR)
+## What Changed
+- Added ReadReceiptDetail.swift (new data model)
+- Modified MessageService.swift (added fetchReadReceiptDetails method)
+- Added ReadReceiptDetailViewModel.swift (manages state and real-time updates)
+- Added ReadReceiptDetailView.swift (modal sheet component)
+- Added ReadReceiptMemberRow.swift (member list row component)
+- Modified MessageReadIndicatorView.swift (added tap gesture for groups)
 
-### Functional Tests
-- [ ] Feature works as described in PRD
-- [ ] All user interactions respond correctly
-- [ ] Error states handled gracefully
-- [ ] Loading states shown appropriately
+## Testing
+- [x] Configuration testing complete
+- [x] User flow testing complete (tap, display, dismiss)
+- [x] Multi-device testing complete (real-time sync <100ms)
+- [x] Offline behavior tested
+- [x] All acceptance gates pass (9/9)
+- [x] Visual states verified (loading, error, empty, success)
+- [x] Performance targets met (<300ms load, 60fps animations)
 
-### Performance Tests (from shared-standards.md)
-- [ ] Smooth 60fps scrolling with 100+ messages
-- [ ] App load time < 2-3 seconds
-- [ ] Message delivery < 100ms
-- [ ] No lag or stuttering
-- [ ] No console warnings/errors
+## Checklist
+- [x] All TODO items completed
+- [x] Code follows patterns from shared-standards.md
+- [x] No console warnings
+- [x] Documentation updated
 
-### Real-Time Tests (from shared-standards.md)
-- [ ] Messages sync across devices <100ms
-- [ ] Concurrent messages work
-- [ ] Works with 3+ simultaneous devices
-- [ ] Offline queue works correctly
-- [ ] Reconnection handled gracefully
+## Notes
+- Feature only activates in group chats (3+ members)
+- Uses existing message.readBy array (no schema changes)
+- Real-time updates via Firestore listener
+- Profile photos with initials fallback"
+```
 
-### Device Tests
-- [ ] iPhone (various sizes: SE, 14, 15 Pro Max)
-- [ ] iOS Simulator testing complete
-- [ ] Physical device testing (USER does)
+**After creating PR:**
+1. **IMPORTANT: Return the PR URL to the user**
+2. Example output:
+   ```
+   ✅ PR created successfully!
+   
+   PR URL: https://github.com/username/repo/pull/27
+   
+   Ready for review.
+   ```
 
-### Edge Cases
-- [ ] Empty states
-- [ ] 100+ items
-- [ ] Offline mode
-- [ ] Small screen (iPhone SE)
-- [ ] Large screen (Pro Max/iPad)
+**PR Creation Checklist:**
+- [ ] Used `gh pr create` CLI command
+- [ ] Included full summary in `--body` parameter
+- [ ] Targeted `develop` branch (not main)
+- [ ] Used correct branch name format
+- [ ] **Returned PR URL to user**
 
 ---
 
 ## Code Review Self-Checklist
 
-Before submitting PR, review using checklist in `Psst/agents/shared-standards.md`:
-- Architecture
-- Code Quality
-- Swift/SwiftUI Best Practices
-- Testing
-- Documentation
+Before submitting PR, verify:
+- [ ] Code follows `Psst/agents/shared-standards.md` (architecture, code quality, Swift/SwiftUI best practices)
+- [ ] All testing complete (see Step 4 and TODO document)
+- [ ] Documentation updated
 
 ---
 
@@ -315,7 +384,8 @@ Before submitting PR, review using checklist in `Psst/agents/shared-standards.md
 - ✅ All automated tests pass
 - ✅ All acceptance gates pass
 - ✅ Code review self-checklist complete (shared-standards.md)
-- ✅ No console warnings
+- ✅ **All debug code removed (MANDATORY)**
+- ✅ No console warnings or debug spam
 - ✅ Documentation updated
 - ✅ PR description complete
 
@@ -356,16 +426,53 @@ git checkout -b feat/pr-1-message-send
 # 7. Verify with user
 # - Build and run
 # - Test feature
-# - Confirm: "Ready for PR?"
+# - Confirm: "Ready to commit?"
 # - WAIT for approval
 
-# 8. Create PR (targeting develop)
-git add .
-git commit -m "feat: add message send functionality"
-git push origin feat/pr-1-message-send
-# Create PR on GitHub with full description
+# 8. Commit functionally (after user approval)
+# Data model
+git add Psst/Psst/Models/Message.swift
+git commit -m "feat(pr-1): add Message data model"
 
-# 9. Merge when approved
+# Service layer
+git add Psst/Psst/Services/MessageService.swift
+git commit -m "feat(pr-1): add sendMessage to MessageService"
+
+# UI components
+git add Psst/Psst/Views/ChatView.swift Psst/Psst/Views/MessageInputView.swift
+git commit -m "feat(pr-1): add chat view and message input UI"
+
+# Documentation
+git add Psst/docs/todos/pr-1-todo.md
+git commit -m "docs(pr-1): update TODO with completed tasks"
+
+# Push all commits
+git push origin feat/pr-1-message-send
+
+# 9. Create PR with summary in CLI command
+gh pr create \
+  --base develop \
+  --head feat/pr-1-message-send \
+  --title "PR #001: Message Send Functionality" \
+  --body "## Summary
+Implemented message send functionality with real-time sync.
+
+## What Changed
+- Added Message.swift data model
+- Added sendMessage to MessageService
+- Added ChatView and MessageInputView
+
+## Testing
+- [x] All testing complete
+
+## Checklist
+- [x] All TODO items completed"
+
+# Return PR URL to user
+# ✅ PR created successfully!
+# PR URL: https://github.com/username/repo/pull/1
+
+# 10. Merge when approved
 ```
 
 ---
