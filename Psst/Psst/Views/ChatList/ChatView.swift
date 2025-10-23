@@ -4,6 +4,7 @@
 //
 //  Updated by Caleb (Coder Agent) - PR #10: Optimistic UI and offline persistence
 //  Updated by Caleb (Coder Agent) - PR #17: Added profile photos in header
+//  Updated by Caleb (Coder Agent) - PR #2: Fix delivery status to show only on latest message
 //  Full chat view with message list, input bar, auto-scroll, and offline support
 //
 
@@ -21,6 +22,12 @@ struct ChatView: View {
     
     /// All messages (includes both optimistic and confirmed from Firestore)
     @State private var messages: [Message] = []
+    
+    /// Latest message IDs for each status type (PR #2 - Timeline View)
+    /// Shows status on the latest message of each type for complete status visibility
+    @State private var latestReadMessageID: String? = nil
+    @State private var latestDeliveredMessageID: String? = nil
+    @State private var latestFailedMessageID: String? = nil
     
     /// Input text field value
     @State private var inputText = ""
@@ -246,7 +253,10 @@ struct ChatView: View {
                                 isFromCurrentUser: message.isFromCurrentUser(currentUserID: currentUserID),
                                 senderName: getSenderName(for: message),
                                 chat: chat,
-                                currentUserID: currentUserID
+                                currentUserID: currentUserID,
+                                isLatestReadMessage: message.id == latestReadMessageID,      // PR #2: Timeline view
+                                isLatestDeliveredMessage: message.id == latestDeliveredMessageID,
+                                isLatestFailedMessage: message.id == latestFailedMessageID
                             )
                             
                             // Show status indicator for sent messages only (offline/queued/failed states)
@@ -308,6 +318,8 @@ struct ChatView: View {
                         // Add message to UI immediately (before Firestore confirms)
                         DispatchQueue.main.async {
                             self.messages.append(optimisticMessage)
+                            // PR #2: Update latest message IDs when new message is added
+                            self.updateLatestMessageIDs()
                         }
                     }
                 )
@@ -410,6 +422,9 @@ struct ChatView: View {
             updatedMessages.sort { $0.timestamp < $1.timestamp }
             
             self.messages = updatedMessages
+            
+            // PR #2: Update latest message IDs for each status type
+            self.updateLatestMessageIDs()
         }
     }
     
@@ -566,6 +581,35 @@ struct ChatView: View {
     }
     
     // MARK: - Read Receipts (PR #14)
+    
+    /// Updates the latest message IDs for each status type (PR #2 - Timeline View)
+    /// Tracks the latest message for Read, Delivered, and Failed statuses independently
+    /// This provides a complete status timeline showing when last message was read, delivered, or failed
+    private func updateLatestMessageIDs() {
+        // Filter to current user's messages only
+        let currentUserMessages = messages.filter { $0.isFromCurrentUser(currentUserID: currentUserID) }
+        
+        // Find latest READ message (has read receipts from other users)
+        latestReadMessageID = currentUserMessages.last { message in
+            !message.readBy.isEmpty
+        }?.id
+        
+        // Find latest DELIVERED message (no read receipts yet, successfully delivered)
+        latestDeliveredMessageID = currentUserMessages.last { message in
+            message.readBy.isEmpty && (message.sendStatus == nil || message.sendStatus == .delivered)
+        }?.id
+        
+        // Find latest FAILED message (send failed, needs retry)
+        latestFailedMessageID = currentUserMessages.last { message in
+            message.sendStatus == .failed
+        }?.id
+        
+        // Debug logging
+        print("📊 [PR #2 Status Timeline]")
+        print("   Latest Read: \(latestReadMessageID ?? "none")")
+        print("   Latest Delivered: \(latestDeliveredMessageID ?? "none")")
+        print("   Latest Failed: \(latestFailedMessageID ?? "none")")
+    }
     
     /// Marks all unread messages in this chat as read by the current user
     /// Called automatically when chat view appears

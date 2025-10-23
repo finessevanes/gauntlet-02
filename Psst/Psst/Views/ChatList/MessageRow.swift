@@ -3,6 +3,7 @@
 //  Psst
 //
 //  Created by Caleb (Coder Agent) - PR #7
+//  Updated by Caleb (Coder Agent) - PR #2: Fix delivery status to show timeline view per status type
 //  Individual message bubble component with sent/received styling
 //
 
@@ -12,6 +13,7 @@ import SwiftUI
 /// Supports both sent (right-aligned, blue) and received (left-aligned, gray) styling
 /// Shows sender names for group chat messages and read receipts for sent messages (PR #14)
 /// Supports swipe gestures to reveal timestamps (PR #21)
+/// Shows delivery status timeline: latest Read, latest Delivered, latest Failed (PR #2)
 struct MessageRow: View {
     // MARK: - Properties
     
@@ -29,6 +31,15 @@ struct MessageRow: View {
     
     /// Current user ID (for read receipts)
     var currentUserID: String? = nil
+    
+    /// Whether this is the latest READ message from current user (PR #2 - Timeline View)
+    var isLatestReadMessage: Bool = false
+    
+    /// Whether this is the latest DELIVERED message from current user (PR #2 - Timeline View)
+    var isLatestDeliveredMessage: Bool = false
+    
+    /// Whether this is the latest FAILED message from current user (PR #2 - Timeline View)
+    var isLatestFailedMessage: Bool = false
     
     // MARK: - State for Swipe Gestures (PR #21)
     
@@ -137,7 +148,11 @@ struct MessageRow: View {
                 }
                 
                 // Read receipt indicator (only for sent messages) - PR #14
-                if isFromCurrentUser, let chat = chat, let currentUserID = currentUserID {
+                // PR #2: Show status if this is the latest message of ANY status type (Timeline View)
+                // This allows users to see: latest Read, latest Delivered, and latest Failed simultaneously
+                let shouldShowStatus = isLatestReadMessage || isLatestDeliveredMessage || isLatestFailedMessage
+                
+                if isFromCurrentUser, shouldShowStatus, let chat = chat, let currentUserID = currentUserID {
                     MessageReadIndicatorView(
                         message: message,
                         chat: chat,
@@ -165,7 +180,8 @@ struct MessageRow: View {
                 senderID: "currentUser",
                 timestamp: Date()
             ),
-            isFromCurrentUser: true
+            isFromCurrentUser: true,
+            isLatestReadMessage: false  // PR #2: Not latest - no delivery status
         )
         
         MessageRow(
@@ -175,7 +191,10 @@ struct MessageRow: View {
                 senderID: "currentUser",
                 timestamp: Date()
             ),
-            isFromCurrentUser: true
+            isFromCurrentUser: true,
+            chat: Chat(id: "preview_chat", members: ["currentUser", "otherUser"], lastMessage: "", isGroupChat: false),
+            currentUserID: "currentUser",
+            isLatestDeliveredMessage: true  // PR #2: Latest delivered - shows delivery status
         )
     }
     .padding()
@@ -202,6 +221,104 @@ struct MessageRow: View {
             ),
             isFromCurrentUser: false
         )
+    }
+    .padding()
+}
+
+#Preview("Multiple Sent Messages - PR #2 Timeline View") {
+    // This preview demonstrates PR #2 fix: shows latest message for EACH status type
+    // Timeline view: latest Read, latest Delivered, latest Failed all visible
+    let chat = Chat(
+        id: "preview_chat",
+        members: ["currentUser", "otherUser"],
+        lastMessage: "Last message",
+        isGroupChat: false
+    )
+    
+    VStack(spacing: 12) {
+        Text("PR #2 Timeline View: Show Latest of Each Status")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(.bottom, 8)
+        
+        // Message 1-2: Read (only #2 shows "Read")
+        MessageRow(
+            message: Message(
+                id: "1",
+                text: "First message",
+                senderID: "currentUser",
+                timestamp: Date().addingTimeInterval(-120),
+                readBy: ["otherUser"]
+            ),
+            isFromCurrentUser: true,
+            chat: chat,
+            currentUserID: "currentUser",
+            isLatestReadMessage: false  // Not latest read
+        )
+        
+        MessageRow(
+            message: Message(
+                id: "2",
+                text: "Second message - READ",
+                senderID: "currentUser",
+                timestamp: Date().addingTimeInterval(-90),
+                readBy: ["otherUser"]
+            ),
+            isFromCurrentUser: true,
+            chat: chat,
+            currentUserID: "currentUser",
+            isLatestReadMessage: true  // Latest read ✓ shows "Read"
+        )
+        
+        // Message 3-4: Delivered (only #4 shows "Delivered")
+        MessageRow(
+            message: Message(
+                id: "3",
+                text: "Third message",
+                senderID: "currentUser",
+                timestamp: Date().addingTimeInterval(-60),
+                readBy: []
+            ),
+            isFromCurrentUser: true,
+            chat: chat,
+            currentUserID: "currentUser",
+            isLatestDeliveredMessage: false  // Not latest delivered
+        )
+        
+        MessageRow(
+            message: Message(
+                id: "4",
+                text: "Fourth message - DELIVERED",
+                senderID: "currentUser",
+                timestamp: Date().addingTimeInterval(-30),
+                readBy: []
+            ),
+            isFromCurrentUser: true,
+            chat: chat,
+            currentUserID: "currentUser",
+            isLatestDeliveredMessage: true  // Latest delivered ✓ shows "Delivered"
+        )
+        
+        // Message 5: Failed (shows "Failed")
+        MessageRow(
+            message: Message(
+                id: "5",
+                text: "Fifth message - FAILED",
+                senderID: "currentUser",
+                timestamp: Date(),
+                readBy: [],
+                sendStatus: .failed
+            ),
+            isFromCurrentUser: true,
+            chat: chat,
+            currentUserID: "currentUser",
+            isLatestFailedMessage: true  // Latest failed ✓ shows "Failed"
+        )
+        
+        Text("Result: 3 statuses visible simultaneously!")
+            .font(.caption)
+            .foregroundColor(.green)
+            .padding(.top, 8)
     }
     .padding()
 }
