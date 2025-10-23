@@ -85,6 +85,20 @@ struct ChatView: View {
     /// Firestore listener registration for cleanup (wrapped in State for mutability)
     @State private var messageListener: ListenerRegistration?
     
+    // MARK: - Group Presence (PR #004)
+    
+    /// Group member presence tracking (userID -> isOnline)
+    @State private var memberPresences: [String: Bool] = [:]
+    
+    /// Group presence listeners for cleanup
+    @State private var presenceListeners: [String: UUID] = [:]
+    
+    /// Show member list sheet
+    @State private var showMemberList: Bool = false
+    
+    /// Loaded group member profiles (for header display)
+    @State private var groupMembers: [User] = []
+    
     // MARK: - Body
     
     var body: some View {
@@ -119,42 +133,73 @@ struct ChatView: View {
         .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Show presence indicator and profile photo in header for 1-on-1 chats
+            // Show presence halo and profile photo in header for 1-on-1 chats
             if !chat.isGroupChat {
                 ToolbarItem(placement: .principal) {
                     HStack(spacing: 8) {
-                        // Profile photo
-                        ProfilePhotoPreview(
-                            imageURL: otherUser?.photoURL,
-                            selectedImage: nil,
-                            isLoading: false,
-                            size: 32
-                        )
+                        // Profile photo with presence halo
+                        ZStack {
+                            ProfilePhotoPreview(
+                                imageURL: otherUser?.photoURL,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32
+                            )
+                            
+                            // Green presence halo (only when online)
+                            PresenceHalo(isOnline: isContactOnline, size: 32)
+                                .animation(.easeInOut(duration: 0.2), value: isContactOnline)
+                        }
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text(otherUser?.displayName ?? "Chat")
                                 .font(.headline)
-                            HStack(spacing: 4) {
-                                PresenceIndicator(isOnline: isContactOnline)
-                                Text(isContactOnline ? "Online" : "Offline")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text(isContactOnline ? "Online" : "Offline")
+                                .font(.caption2)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
             } else {
-                // Show member count for group chats
+                // Show member photos for group chats (PR #004)
                 ToolbarItem(placement: .principal) {
-                    VStack(spacing: 0) {
-                        Text(chat.groupName ?? "Group Chat")
-                            .font(.headline)
-                        Text("\(chat.members.count) members")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                    Button(action: {
+                        showMemberList = true
+                    }) {
+                        VStack(spacing: 4) {
+                            // Group name
+                            Text(chat.groupName ?? "Group Chat")
+                                .font(.headline)
+                                .foregroundColor(.primary)
+                            
+                            // Member photos row (first 3-5 members)
+                            HStack(spacing: -8) {
+                                ForEach(Array(groupMembers.prefix(5).enumerated()), id: \.element.id) { index, member in
+                                    ProfilePhotoWithPresence(
+                                        userID: member.id,
+                                        photoURL: member.photoURL,
+                                        displayName: member.displayName,
+                                        size: 24
+                                    )
+                                    .zIndex(Double(5 - index)) // Stack from left to right
+                                }
+                                
+                                // Show "+X more" if there are more members
+                                if groupMembers.count > 5 {
+                                    Text("+\(groupMembers.count - 5)")
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
                     }
                 }
             }
+        }
+        .sheet(isPresented: $showMemberList) {
+            // Group member list sheet (PR #004)
+            GroupMemberStatusView(chat: chat)
+                .environmentObject(presenceService)
         }
         .onAppear {
             // Get current user ID from Firebase Auth
@@ -177,6 +222,13 @@ struct ChatView: View {
                     await prefetchSenderNames()
                 }
             }
+            // Load group members and observe presence (PR #004)
+            if chat.isGroupChat {
+                Task {
+                    await loadGroupMembers()
+                }
+                attachGroupPresenceListeners()
+            }
             // Mark messages as read when chat opens (PR #14)
             markMessagesAsRead()
         }
@@ -187,6 +239,10 @@ struct ChatView: View {
             detachPresenceListener()
             // Detach typing listener and clear own typing status
             detachTypingListener()
+            // Detach group presence listeners (PR #004)
+            if chat.isGroupChat {
+                detachGroupPresenceListeners()
+            }
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected
@@ -580,6 +636,48 @@ struct ChatView: View {
         }
     }
     
+    // MARK: - Group Presence (PR #004)
+    
+    /// Load group member profiles for header display
+    private func loadGroupMembers() async {
+        guard chat.isGroupChat else { return }
+        
+        var members: [User] = []
+        
+        for memberID in chat.members {
+            do {
+                let user = try await userService.getUser(id: memberID)
+                members.append(user)
+            } catch {
+                print("⚠️ Failed to load group member \(memberID): \(error.localizedDescription)")
+            }
+        }
+        
+        await MainActor.run {
+            self.groupMembers = members
+        }
+    }
+    
+    /// Attach group presence listeners for all members
+    private func attachGroupPresenceListeners() {
+        guard chat.isGroupChat else { return }
+        
+        presenceListeners = presenceService.observeGroupPresence(userIDs: chat.members) { userID, isOnline in
+            DispatchQueue.main.async {
+                self.memberPresences[userID] = isOnline
+            }
+        }
+    }
+    
+    /// Detach all group presence listeners
+    private func detachGroupPresenceListeners() {
+        guard !presenceListeners.isEmpty else { return }
+        
+        presenceService.stopObservingGroup(listeners: presenceListeners)
+        presenceListeners.removeAll()
+        memberPresences.removeAll()
+    }
+    
     // MARK: - Read Receipts (PR #14)
     
     /// Updates the latest message IDs for each status type (PR #2 - Timeline View)
@@ -623,13 +721,9 @@ struct ChatView: View {
                     return
                 }
                 
-                print("📖 Marking messages as read for chat: \(chat.id)")
                 try await messageService.markChatMessagesAsRead(chatID: chat.id)
-                
-                print("✅ Messages marked as read")
             } catch {
                 // Fail silently - read receipts are non-critical
-                // Log error for debugging but don't show alert to user
                 print("❌ Failed to mark messages as read: \(error.localizedDescription)")
             }
         }

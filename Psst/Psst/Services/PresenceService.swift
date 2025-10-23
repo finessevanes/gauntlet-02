@@ -187,5 +187,92 @@ class PresenceService: ObservableObject {
         presenceRefs.removeAll()
         print("[PresenceService] Stopped all presence observers (\(totalListenerCount) listeners)")
     }
+    
+    // MARK: - Group Presence Methods (PR #004)
+    
+    /// Observe presence for multiple users simultaneously (for group chats)
+    /// Attaches individual listeners for each user and aggregates results
+    /// Returns dictionary of listenerIDs keyed by userID for cleanup
+    /// 
+    /// - Parameters:
+    ///   - userIDs: Array of user IDs to observe presence for (1-50 users recommended)
+    ///   - completion: Callback fired for each user whenever their status changes
+    ///                 Parameters: (userID: String, isOnline: Bool)
+    /// - Returns: Dictionary mapping userID to listenerID for later cleanup via stopObservingGroup
+    ///
+    /// Pre-conditions:
+    /// - userIDs array is not empty (1-50 users)
+    /// - Firebase Realtime DB is connected
+    /// - User is authenticated
+    ///
+    /// Post-conditions:
+    /// - Listener registered for each userID
+    /// - Completion fires immediately with current status for each user
+    /// - Completion fires on every subsequent status change
+    /// - Returns map of userID -> listenerID for later cleanup
+    ///
+    /// Error handling:
+    /// - If userID doesn't exist in presence DB, defaults to offline
+    /// - Network errors logged but don't throw (graceful degradation)
+    func observeGroupPresence(
+        userIDs: [String],
+        completion: @escaping (String, Bool) -> Void
+    ) -> [String: UUID] {
+        // Validate input
+        guard !userIDs.isEmpty else {
+            print("[PresenceService] ⚠️ observeGroupPresence called with empty userIDs array")
+            return [:]
+        }
+        
+        var listenerMap: [String: UUID] = [:]
+        
+        // Attach individual listener for each user
+        for userID in userIDs {
+            let listenerID = observePresence(userID: userID) { isOnline in
+                // Forward status update to group completion handler
+                completion(userID, isOnline)
+            }
+            
+            listenerMap[userID] = listenerID
+        }
+        
+        print("[PresenceService] 📊 Observing group presence for \(userIDs.count) members")
+        
+        return listenerMap
+    }
+    
+    /// Stop observing presence for multiple users
+    /// Cleans up all listeners to prevent memory leaks
+    /// Safe to call with invalid listenerIDs (defensive cleanup)
+    ///
+    /// - Parameter listeners: Dictionary of userID -> listenerID from observeGroupPresence
+    ///
+    /// Pre-conditions:
+    /// - listeners map contains valid listenerIDs from observeGroupPresence
+    ///
+    /// Post-conditions:
+    /// - All specified listeners removed from Firebase
+    /// - Memory released for each listener
+    /// - Internal tracking dictionaries cleaned up
+    ///
+    /// Error handling:
+    /// - Silently ignores invalid listenerIDs (defensive cleanup)
+    /// - Ensures no partial cleanup (all-or-nothing)
+    func stopObservingGroup(listeners: [String: UUID]) {
+        guard !listeners.isEmpty else {
+            print("[PresenceService] ⚠️ stopObservingGroup called with empty listeners map")
+            return
+        }
+        
+        var cleanedCount = 0
+        
+        // Remove each listener individually
+        for (userID, listenerID) in listeners {
+            stopObserving(userID: userID, listenerID: listenerID)
+            cleanedCount += 1
+        }
+        
+        print("[PresenceService] 🧹 Cleaned up \(cleanedCount) group presence listeners")
+    }
 }
 

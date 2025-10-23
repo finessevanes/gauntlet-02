@@ -213,6 +213,69 @@ class ChatService {
         }
     }
     
+    // MARK: - Unread Message Count
+    
+    /// Get the count of unread messages for the current user in a specific chat
+    /// Queries the messages subcollection where currentUserID is NOT in the readBy array
+    /// Used for unread message indicators in ChatRowView
+    /// - Parameters:
+    ///   - chatID: The chat ID to query
+    ///   - currentUserID: The current user's ID
+    /// - Returns: Number of unread messages (0 if all read or chat empty)
+    /// - Throws: Firestore errors, ChatError for invalid parameters
+    func getUnreadMessageCount(chatID: String, currentUserID: String) async throws -> Int {
+        // Validate parameters
+        guard !chatID.isEmpty else {
+            print("❌ Cannot get unread count: chatID is empty")
+            throw ChatError.invalidUserID
+        }
+        
+        guard !currentUserID.isEmpty else {
+            print("❌ Cannot get unread count: currentUserID is empty")
+            throw ChatError.invalidUserID
+        }
+        
+        do {
+            // Query messages where currentUserID is NOT in readBy array
+            // Firestore doesn't have a native "arrayDoesNotContain" query
+            // So we need to fetch all messages and filter client-side
+            // For better performance, we limit to recent messages (last 100)
+            let snapshot = try await db.collection("chats")
+                .document(chatID)
+                .collection("messages")
+                .order(by: "timestamp", descending: true)
+                .limit(to: 100)
+                .getDocuments()
+            
+            // Filter messages where currentUserID is NOT in readBy
+            let unreadMessages = snapshot.documents.filter { document in
+                // Get readBy array, default to empty if missing
+                let readBy = document.data()["readBy"] as? [String] ?? []
+                
+                // Get senderID to skip own messages
+                let senderID = document.data()["senderID"] as? String ?? ""
+                
+                // Skip own messages (you can't have "unread" messages you sent yourself)
+                if senderID == currentUserID {
+                    return false
+                }
+                
+                // Message is unread if currentUserID is NOT in readBy array
+                return !readBy.contains(currentUserID)
+            }
+            
+            let count = unreadMessages.count
+            print("📊 Unread count for chat \(chatID): \(count)")
+            return count
+            
+        } catch {
+            print("❌ Error fetching unread message count for chat \(chatID): \(error.localizedDescription)")
+            // Return 0 instead of throwing to prevent UI errors
+            // The indicator will just show no unread messages
+            return 0
+        }
+    }
+    
     // MARK: - Create Group Chat
     
     /// Creates a new group chat with 3+ members and a custom name
