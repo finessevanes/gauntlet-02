@@ -72,12 +72,13 @@ class AuthViewModel: ObservableObject {
     /// - Parameters:
     ///   - email: User's email address
     ///   - password: User's password
-    func signUp(email: String, password: String) async {
+    ///   - displayName: Optional display name (defaults to email prefix if not provided)
+    func signUp(email: String, password: String, displayName: String? = nil) async {
         clearMessages()
         isLoading = true
         
         do {
-            _ = try await authService.signUp(email: email, password: password)
+            _ = try await authService.signUp(email: email, password: password, displayName: displayName)
             // Success - currentUser will be updated automatically via ObservableObject
         } catch let error as AuthenticationError {
             errorMessage = error.errorDescription

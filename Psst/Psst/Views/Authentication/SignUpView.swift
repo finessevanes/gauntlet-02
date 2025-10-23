@@ -2,20 +2,21 @@
 //  SignUpView.swift
 //  Psst
 //
-//  Created by Caleb (Coder Agent) - PR #20
-//  Minimal green light sign up screen with clean form design
+//  Created by Caleb (Coder Agent) - PR #006A
+//  Clean iOS-native sign up screen with standard form layout
 //
 
 import SwiftUI
 
-/// Minimal sign up view with clean green light aesthetic
-/// Features simple form layout with excellent UX
+/// Clean iOS-native sign up view with standard form layout
+/// Uses iOS system colors, native typography, and standard patterns
 struct SignUpView: View {
     // MARK: - State Management
     
     @StateObject private var viewModel = AuthViewModel()
     @Environment(\.dismiss) private var dismiss
     
+    @State private var displayName: String = ""
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
@@ -27,7 +28,7 @@ struct SignUpView: View {
     }
     
     private var isFormValid: Bool {
-        !email.isEmpty && !password.isEmpty && passwordsMatch
+        !displayName.isEmpty && !email.isEmpty && !password.isEmpty && passwordsMatch && password.count >= 6
     }
     
     // MARK: - Body
@@ -35,244 +36,153 @@ struct SignUpView: View {
     var body: some View {
         NavigationView {
             ZStack {
-                // Clean background
-                PsstColors.primaryGradient
+                // Clean system background
+                Color(.systemBackground)
                     .ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 24) {
+                        // Header Section
+                        VStack(spacing: 8) {
+                            Text("Create Account")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                        }
+                        .padding(.top, 16)
+                        
+                        // Form fields
+                        VStack(spacing: 16) {
+                            // Full Name field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Full Name")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                
+                                TextField("Enter your name", text: $displayName)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.name)
+                                    .autocapitalization(.words)
+                                    .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpNameField")
+                            }
+                            
+                            // Email field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Email")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                
+                                TextField("Enter your email", text: $email)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.emailAddress)
+                                    .autocapitalization(.none)
+                                    .keyboardType(.emailAddress)
+                                    .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpEmailField")
+                            }
+                            
+                            // Password field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Password")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                
+                                SecureField("Create a password", text: $password)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.newPassword)
+                                    .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpPasswordField")
+                                
+                                if !password.isEmpty && password.count < 6 {
+                                    Text("Password must be at least 6 characters")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                            
+                            // Confirm password field
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text("Confirm Password")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.secondary)
+                                
+                                SecureField("Confirm your password", text: $confirmPassword)
+                                    .textFieldStyle(.roundedBorder)
+                                    .textContentType(.newPassword)
+                                    .disabled(viewModel.isLoading)
+                                    .accessibilityIdentifier("signUpConfirmPasswordField")
+                                
+                                if !confirmPassword.isEmpty && !passwordsMatch {
+                                    Text("Passwords do not match")
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 24)
+                        
+                        // Sign up button
+                        Button(action: {
+                            Task {
+                                await viewModel.signUp(email: email, password: password, displayName: displayName)
+                            }
+                        }) {
+                            Text(viewModel.isLoading ? "Creating Account..." : "Sign Up")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(PrimaryButtonStyle(isLoading: viewModel.isLoading))
+                        .disabled(!isFormValid || viewModel.isLoading)
+                        .opacity(isFormValid ? 1.0 : 0.6)
+                        .padding(.horizontal, 24)
+                        .padding(.top, 8)
+                        
+                        // Sign in link
+                        HStack(spacing: 4) {
+                            Text("Already have an account?")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Button("Log in") {
+                                dismiss()
+                            }
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.blue)
+                        }
+                        .padding(.top, 8)
+                        
                         Spacer()
                         
-                        // Main content card
-                        VStack(spacing: 32) {
-                            // Header
-                            VStack(spacing: 16) {
-                                // App icon
-                                ZStack {
-                                    Circle()
-                                        .fill(PsstColors.primaryGreen)
-                                        .frame(width: 80, height: 80)
+                        // Error message
+                        if let errorMessage = viewModel.errorMessage {
+                            VStack(spacing: 8) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .foregroundColor(.red)
                                     
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .font(.system(size: 32, weight: .medium))
-                                        .foregroundColor(.white)
-                                }
-                                
-                                VStack(spacing: 8) {
-                                    Text("Create Account")
-                                        .font(PsstTypography.display)
-                                        .foregroundColor(PsstColors.primaryText)
-                                    
-                                    Text("Join Psst today")
-                                        .font(PsstTypography.body)
-                                        .foregroundColor(PsstColors.secondaryText)
-                                }
-                            }
-                            
-                            // Form fields
-                            VStack(spacing: 20) {
-                                // Email field
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Email")
-                                        .font(PsstTypography.label)
-                                        .foregroundColor(PsstColors.primaryText)
-                                    
-                                    TextField("Enter your email", text: $email)
-                                        .font(PsstTypography.input)
-                                        .textContentType(.emailAddress)
-                                        .autocapitalization(.none)
-                                        .keyboardType(.emailAddress)
-                                        .disabled(viewModel.isLoading)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 14)
-                                        .background(PsstColors.cardBackground)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(PsstColors.borderColor, lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                        .accessibilityIdentifier("signUpEmailField")
-                                }
-                                
-                                // Password field
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Password")
-                                        .font(PsstTypography.label)
-                                        .foregroundColor(PsstColors.primaryText)
-                                    
-                                    SecureField("Create a password", text: $password)
-                                        .font(PsstTypography.input)
-                                        .textContentType(.newPassword)
-                                        .disabled(viewModel.isLoading)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 14)
-                                        .background(PsstColors.cardBackground)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(PsstColors.borderColor, lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                        .accessibilityIdentifier("signUpPasswordField")
-                                    
-                                    Text("Must be at least 6 characters")
-                                        .font(PsstTypography.helper)
-                                        .foregroundColor(PsstColors.mutedText)
-                                }
-                                
-                                // Confirm password field
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Confirm Password")
-                                        .font(PsstTypography.label)
-                                        .foregroundColor(PsstColors.primaryText)
-                                    
-                                    SecureField("Confirm your password", text: $confirmPassword)
-                                        .font(PsstTypography.input)
-                                        .textContentType(.newPassword)
-                                        .disabled(viewModel.isLoading)
-                                        .padding(.horizontal, 16)
-                                        .padding(.vertical, 14)
-                                        .background(PsstColors.cardBackground)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12)
-                                                .stroke(confirmPassword.isEmpty ? PsstColors.borderColor : 
-                                                        passwordsMatch ? PsstColors.primaryGreen : PsstColors.error, 
-                                                        lineWidth: 1)
-                                        )
-                                        .cornerRadius(12)
-                                        .accessibilityIdentifier("signUpConfirmPasswordField")
-                                    
-                                    if !confirmPassword.isEmpty && !passwordsMatch {
-                                        Text("Passwords do not match")
-                                            .font(PsstTypography.helper)
-                                            .foregroundColor(PsstColors.error)
-                                    }
-                                }
-                                
-                                // Sign up button
-                                Button(action: {
-                                    Task {
-                                        await viewModel.signUp(email: email, password: password)
-                                    }
-                                }) {
-                                    HStack {
-                                        if viewModel.isLoading {
-                                            ProgressView()
-                                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                                                .scaleEffect(0.8)
-                                        } else {
-                                            Text("Create Account")
-                                                .font(PsstTypography.button)
-                                        }
-                                        
-                                        Spacer()
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 24)
-                                    .padding(.vertical, 16)
-                                    .background(isFormValid ? PsstColors.primaryButton : PsstColors.mutedText)
-                                    .cornerRadius(12)
-                                }
-                                .disabled(!isFormValid || viewModel.isLoading)
-                            }
-                            
-                            // Divider
-                            HStack {
-                                Rectangle()
-                                    .fill(PsstColors.borderColor)
-                                    .frame(height: 1)
-                                
-                                Text("OR")
-                                    .font(PsstTypography.caption)
-                                    .foregroundColor(PsstColors.mutedText)
-                                    .padding(.horizontal, 16)
-                                
-                                Rectangle()
-                                    .fill(PsstColors.borderColor)
-                                    .frame(height: 1)
-                            }
-                            
-                            // Google sign up button
-                            Button(action: {
-                                Task {
-                                    await viewModel.signUpWithGoogle()
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "globe")
-                                        .font(.system(size: 16, weight: .medium))
-                                    
-                                    Text("Sign up with Google")
-                                        .font(PsstTypography.button)
+                                    Text(errorMessage)
+                                        .font(.caption)
+                                        .foregroundColor(.red)
+                                        .multilineTextAlignment(.leading)
                                     
                                     Spacer()
                                 }
-                                .foregroundColor(PsstColors.primaryText)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 12)
+                                .background(Color.red.opacity(0.1))
+                                .cornerRadius(8)
                                 .padding(.horizontal, 24)
-                                .padding(.vertical, 16)
-                                .background(PsstColors.secondaryButton)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(PsstColors.borderColor, lineWidth: 1)
-                                )
-                                .cornerRadius(12)
                             }
-                            .disabled(viewModel.isLoading)
-                            
-                            // Sign in link
-                            HStack(spacing: 4) {
-                                Text("Already have an account?")
-                                    .font(PsstTypography.caption)
-                                    .foregroundColor(PsstColors.mutedText)
-                                
-                                Button("Sign in") {
-                                    dismiss()
-                                }
-                                .font(PsstTypography.link)
-                                .foregroundColor(PsstColors.primaryGreen)
-                            }
-                            .padding(.top, 8)
+                            .transition(.move(edge: .bottom).combined(with: .opacity))
+                            .animation(.spring(response: 0.3), value: viewModel.errorMessage)
                         }
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 40)
-                        .background(PsstColors.cardBackground)
-                        .cornerRadius(24)
-                        .shadow(color: PsstColors.cardShadow, radius: 20, x: 0, y: 10)
-                        .padding(.horizontal, 24)
-                        
-                        Spacer()
                     }
-                }
-                
-                // Error toast
-                if let errorMessage = viewModel.errorMessage {
-                    VStack {
-                        Spacer()
-                        
-                        HStack(spacing: 12) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .foregroundColor(.white)
-                            
-                            Text(errorMessage)
-                                .font(PsstTypography.caption)
-                                .foregroundColor(.white)
-                            
-                            Spacer()
-                            
-                            Button("Dismiss") {
-                                viewModel.clearError()
-                            }
-                            .font(PsstTypography.caption)
-                            .foregroundColor(.white.opacity(0.8))
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 16)
-                        .background(PsstColors.error)
-                        .cornerRadius(12)
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 40)
-                    }
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .animation(.spring(response: 0.6, dampingFraction: 0.8), value: viewModel.errorMessage)
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -281,7 +191,7 @@ struct SignUpView: View {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(PsstColors.primaryText)
+                            .foregroundColor(.primary)
                     }
                     .disabled(viewModel.isLoading)
                     .accessibilityIdentifier("closeButton")
@@ -300,7 +210,13 @@ struct SignUpView: View {
 
 struct SignUpView_Previews: PreviewProvider {
     static var previews: some View {
-        SignUpView()
+        Group {
+            SignUpView()
+                .previewDisplayName("Light Mode")
+            
+            SignUpView()
+                .preferredColorScheme(.dark)
+                .previewDisplayName("Dark Mode")
+        }
     }
 }
-
