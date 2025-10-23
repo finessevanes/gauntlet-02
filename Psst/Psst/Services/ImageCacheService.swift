@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+ 
 
 /// Service for managing local image caching with size limits and LRU cleanup
 /// Caches profile photos to disk for instant loading and reduced network usage
@@ -49,7 +50,7 @@ class ImageCacheService {
         memoryCache.countLimit = 50 // Cache up to 50 images in memory
         memoryCache.totalCostLimit = 10 * 1024 * 1024 // 10MB memory limit
         
-        print("[ImageCacheService] Initialized with cache directory: \(cacheDirectory.path)")
+        Log.i("ImageCacheService", "Initialized cacheDir=\(cacheDirectory.path)")
     }
     
     // MARK: - Public Methods
@@ -66,6 +67,8 @@ class ImageCacheService {
                     return
                 }
                 
+                let sw = Stopwatch()
+                Log.i("ImageCacheService", "cache start userID=\(userID)")
                 // Cache in memory first
                 self.memoryCache.setObject(image, forKey: userID as NSString)
                 
@@ -74,7 +77,7 @@ class ImageCacheService {
                 
                 // Compress image for disk storage (JPEG at 0.8 quality)
                 guard let imageData = image.jpegData(compressionQuality: 0.8) else {
-                    print("[ImageCacheService] ❌ Failed to convert image to JPEG data for user \(userID)")
+                    Log.e("ImageCacheService", "Failed to convert image to JPEG userID=\(userID)")
                     continuation.resume()
                     return
                 }
@@ -88,7 +91,7 @@ class ImageCacheService {
                         ofItemAtPath: fileURL.path
                     )
                     
-                    print("[ImageCacheService] ✅ Cached image for user \(userID) (\(imageData.count) bytes)")
+                    Log.i("ImageCacheService", "cache done userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
                     
                     // Clean up cache if needed
                     Task {
@@ -96,7 +99,7 @@ class ImageCacheService {
                     }
                     
                 } catch {
-                    print("[ImageCacheService] ❌ Failed to cache image for user \(userID): \(error.localizedDescription)")
+                    Log.e("ImageCacheService", "Failed to cache userID=\(userID): \(error.localizedDescription)")
                 }
                 
                 continuation.resume()
@@ -110,7 +113,7 @@ class ImageCacheService {
     func getCachedProfilePhoto(userID: String) async -> UIImage? {
         // Check memory cache first (fastest)
         if let cachedImage = memoryCache.object(forKey: userID as NSString) {
-            print("[ImageCacheService] Memory cache hit for user \(userID)")
+            Log.i("ImageCacheService", "memory hit userID=\(userID)")
             return cachedImage
         }
         
@@ -125,20 +128,21 @@ class ImageCacheService {
                 let fileURL = self.cacheFileURL(for: userID)
                 
                 guard self.fileManager.fileExists(atPath: fileURL.path) else {
-                    print("[ImageCacheService] Cache miss for user \(userID)")
+                    Log.i("ImageCacheService", "miss userID=\(userID)")
                     continuation.resume(returning: nil)
                     return
                 }
                 
                 // Load image from disk
+                let sw = Stopwatch()
                 guard let imageData = try? Data(contentsOf: fileURL),
                       let image = UIImage(data: imageData) else {
-                    print("[ImageCacheService] ❌ Failed to load cached image for user \(userID)")
+                    Log.e("ImageCacheService", "Failed to load cached image userID=\(userID)")
                     continuation.resume(returning: nil)
                     return
                 }
                 
-                print("[ImageCacheService] Disk cache hit for user \(userID)")
+                Log.i("ImageCacheService", "disk hit userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
                 
                 // Cache in memory for faster future access
                 self.memoryCache.setObject(image, forKey: userID as NSString)
@@ -164,6 +168,8 @@ class ImageCacheService {
                     return
                 }
                 
+                let sw = Stopwatch()
+                Log.i("ImageCacheService", "invalidate start userID=\(userID)")
                 // Remove from memory cache
                 self.memoryCache.removeObject(forKey: userID as NSString)
                 
@@ -173,9 +179,9 @@ class ImageCacheService {
                 if self.fileManager.fileExists(atPath: fileURL.path) {
                     do {
                         try self.fileManager.removeItem(at: fileURL)
-                        print("[ImageCacheService] ✅ Invalidated cache for user \(userID)")
+                        Log.i("ImageCacheService", "invalidate done userID=\(userID) took=\(sw.ms)ms")
                     } catch {
-                        print("[ImageCacheService] ❌ Failed to invalidate cache for user \(userID): \(error.localizedDescription)")
+                        Log.e("ImageCacheService", "Failed to invalidate userID=\(userID): \(error.localizedDescription)")
                     }
                 }
                 
@@ -200,9 +206,9 @@ class ImageCacheService {
                 do {
                     try self.fileManager.removeItem(at: self.cacheDirectory)
                     try self.fileManager.createDirectory(at: self.cacheDirectory, withIntermediateDirectories: true)
-                    print("[ImageCacheService] ✅ Cleared all cached images")
+                    Log.i("ImageCacheService", "Cleared all cached images")
                 } catch {
-                    print("[ImageCacheService] ❌ Failed to clear cache: \(error.localizedDescription)")
+                    Log.e("ImageCacheService", "Failed to clear cache: \(error.localizedDescription)")
                 }
                 
                 continuation.resume()
@@ -281,12 +287,12 @@ class ImageCacheService {
                 
                 // Check if cleanup is needed
                 guard totalSize > self.maxCacheSizeBytes else {
-                    print("[ImageCacheService] Cache size OK: \(totalSize) bytes / \(self.maxCacheSizeBytes) bytes")
+                    Log.i("ImageCacheService", "Cache size OK used=\(totalSize) max=\(self.maxCacheSizeBytes)")
                     continuation.resume()
                     return
                 }
                 
-                print("[ImageCacheService] Cache size exceeded: \(totalSize) bytes / \(self.maxCacheSizeBytes) bytes. Starting cleanup...")
+                Log.i("ImageCacheService", "Cache size exceeded used=\(totalSize) max=\(self.maxCacheSizeBytes) starting cleanup")
                 
                 // Sort by access date (oldest first - LRU)
                 files.sort { $0.accessDate < $1.accessDate }
@@ -302,13 +308,13 @@ class ImageCacheService {
                         try self.fileManager.removeItem(at: file.url)
                         currentSize -= file.size
                         removedCount += 1
-                        print("[ImageCacheService] Removed old cache file: \(file.url.lastPathComponent)")
+                        Log.i("ImageCacheService", "Removed old cache file name=\(file.url.lastPathComponent)")
                     } catch {
-                        print("[ImageCacheService] ❌ Failed to remove cache file: \(error.localizedDescription)")
+                        Log.e("ImageCacheService", "Failed to remove cache file: \(error.localizedDescription)")
                     }
                 }
                 
-                print("[ImageCacheService] ✅ Cleanup complete. Removed \(removedCount) files. New size: \(currentSize) bytes")
+                Log.i("ImageCacheService", "Cleanup complete removed=\(removedCount) newSize=\(currentSize)")
                 
                 continuation.resume()
             }
