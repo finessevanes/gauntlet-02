@@ -2,7 +2,57 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** 🎯 1 In Progress | ✅ 13 Completed
+**Status:** 🎯 1 In Progress | ✅ 11 Completed | 📋 2 To Do
+
+---
+
+## 📋 To Do (Priority Order)
+
+### Phase 1: MVP Polish & UX Enhancement
+
+#### PR #007: app-launch-loading-screen-and-skeleton
+
+**Brief:** Implement a smooth app launch experience by replacing the brief login screen flash with a proper loading screen or skeleton UI when users reopen the app. Currently, users who were previously logged in see the login screen for a second before being redirected to the main app, creating a jarring user experience. Create a loading screen with app branding, skeleton UI components that match the main app layout, and smooth transitions. The loading screen should appear immediately on app launch while Firebase Authentication checks the user's login status in the background. Once authentication is confirmed, smoothly transition to the main app without showing the login screen. This creates a more professional, seamless user experience that matches modern app standards.
+
+**Dependencies:** PR #2 (authentication flow), PR #4 (app navigation)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 📋 TO DO
+
+---
+
+#### PR #008: message-timestamp-tap-to-reveal
+
+**Brief:** Replace the current swipe gesture for viewing message timestamps with a simple tap interaction. Currently, users must swipe left or right on messages to reveal timestamps, which is not intuitive and can be difficult to discover. Implement a tap-to-reveal system where users can tap on any message to show its timestamp for a few seconds before it automatically fades back. This should work for both sent and received messages, with smooth animations for the timestamp appearance and disappearance. The timestamp should be clearly visible and positioned appropriately relative to the message bubble. This creates a more discoverable and user-friendly way to view message timing information, following modern messaging app patterns.
+
+**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
+
+**Complexity:** Simple
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 📋 TO DO
+
+---
+
+## 🎯 In Progress
+
+### Phase 1: MVP Polish & UX Enhancement
+
+#### PR #009: basic-media-support-and-image-messaging
+
+**Brief:** Implement basic media support to allow users to send and receive images in conversations. This includes adding image picker functionality to the message input, uploading images to Firebase Storage, displaying images in chat messages, and handling image compression for optimal performance. Users should be able to select images from their photo library or take new photos with the camera. Implement proper image loading states, error handling for failed uploads, and thumbnail generation for better performance. Images should display inline within the chat conversation with proper sizing and aspect ratio handling. This basic media support is essential for a complete messaging experience and addresses a core requirement for modern messaging apps.
+
+**Dependencies:** PR #8 (messaging service), PR #17 (user profile editing for image handling)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** 🎯 IN PROGRESS
 
 ---
 
@@ -80,7 +130,7 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-#### PR #006: App-Wide Design System Overhaul (Split into 5 Sub-PRs)
+#### PR #006: app-wide design system sverhaul (split into 5 sub-prs)
 
 **Brief:** Complete redesign of the app's visual identity and user interface to create a modern, cohesive experience. This PR was split into five focused sub-PRs for better implementation and testing.
 
@@ -144,62 +194,14 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
-#### PR #007: app-launch-loading-screen-and-skeleton
-
-**Brief:** Implement a smooth app launch experience by replacing the brief login screen flash with a proper loading screen or skeleton UI when users reopen the app. Currently, users who were previously logged in see the login screen for a second before being redirected to the main app, creating a jarring user experience. Create a loading screen with app branding, skeleton UI components that match the main app layout, and smooth transitions. The loading screen should appear immediately on app launch while Firebase Authentication checks the user's login status in the background. Once authentication is confirmed, smoothly transition to the main app without showing the login screen. This creates a more professional, seamless user experience that matches modern app standards.
-
-**Dependencies:** PR #2 (authentication flow), PR #4 (app navigation)
-
-**Complexity:** Medium
-
-**Phase:** 1 (MVP Polish)
-
-**Status:** ✅ COMPLETED
-
----
-
-#### PR #008: message-timestamp-tap-to-reveal
-
-**Brief:** Replace the current swipe gesture for viewing message timestamps with a simple tap interaction. Currently, users must swipe left or right on messages to reveal timestamps, which is not intuitive and can be difficult to discover. Implement a tap-to-reveal system where users can tap on any message to show its timestamp for a few seconds before it automatically fades back. This should work for both sent and received messages, with smooth animations for the timestamp appearance and disappearance. The timestamp should be clearly visible and positioned appropriately relative to the message bubble. This creates a more discoverable and user-friendly way to view message timing information, following modern messaging app patterns.
-
-**Dependencies:** PR #7 (chat view UI), PR #8 (messaging service)
-
-**Complexity:** Simple
-
-**Phase:** 1 (MVP Polish)
-
-**Status:** ✅ COMPLETED
-
----
-
-## 🎯 In Progress
-
-### Phase 1: MVP Polish & UX Enhancement
-
-
-
-#### PR #009: basic-media-support-and-image-messaging
-
-**Brief:** Implement basic media support to allow users to send and receive images in conversations. This includes adding image picker functionality to the message input, uploading images to Firebase Storage, displaying images in chat messages, and handling image compression for optimal performance. Users should be able to select images from their photo library or take new photos with the camera. Implement proper image loading states, error handling for failed uploads, and thumbnail generation for better performance. Images should display inline within the chat conversation with proper sizing and aspect ratio handling. This basic media support is essential for a complete messaging experience and addresses a core requirement for modern messaging apps.
-
-**Dependencies:** PR #8 (messaging service), PR #17 (user profile editing for image handling)
-
-**Complexity:** Medium
-
-**Phase:** 1 (MVP Polish)
-
-**Status:** 🎯 IN PROGRESS
-
----
-
 ## 📊 Summary
 
 ### Project Progress
-- **Phase 1 (MVP Polish):** ✅ 13/14 Complete (93%)
+- **Phase 1 (MVP Polish):** ✅ 11/14 Complete (79%) | 📋 2 To Do | 🎯 1 In Progress
 
 ### Overall Status
 - **Total PRs:** 14 (PR #006 split into 006A, 006B, 006C, 006D, 006E)
-- **Completed:** 13 (93%)
+- **Completed:** 11 (79%)
   - PR #001: Profile Photo Upload Reliability Fix
   - PR #002: Message Delivery Status Indicator Fix
   - PR #003: Presence Indicator Redesign & Unread Badges
@@ -211,14 +213,17 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
     - PR #006C: Settings Screen Redesign
     - PR #006D: Profile Screen Polish
     - PR #006E: New Chat Sheet Redesign
+- **To Do:** 2 (14%)
   - PR #007: App Launch Loading Screen & Skeleton
   - PR #008: Message Timestamp Tap-to-Reveal
 - **In Progress:** 1 (7%)
   - PR #009: Basic Media Support & Image Messaging
 
+### Next Priority Actions
+1. **PR #007** 📋 App Launch Loading Screen - Smooth authentication flow
+2. **PR #008** 📋 Message Timestamp Tap-to-Reveal - Intuitive tap interaction for timestamps
+
 ### Recent Completions
-- **PR #008** ✅ Message Timestamp Tap-to-Reveal - Intuitive tap interaction for timestamps
-- **PR #007** ✅ App Launch Loading Screen - Smooth authentication flow
 - **PR #006** ✅ Complete Design System Overhaul (All 5 sub-PRs) - Modern, cohesive UI across entire app
 - **PR #005** ✅ Group Read Receipts Detailed View - Per-member read status
 - **PR #004** ✅ Group Online Indicators - Real-time member status
