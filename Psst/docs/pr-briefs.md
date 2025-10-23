@@ -2,7 +2,7 @@
 
 This document contains high-level briefs for all Pull Requests in the Psst messaging app project. Each PR represents a logical, vertical slice of functionality that can be completed in 1-3 days.
 
-**Status:** 🎯 1 In Progress | ✅ 11 Completed | 📋 2 To Do
+**Status:** 🎯 1 In Progress | ✅ 12 Completed | 📋 1 To Do
 
 ---
 
@@ -10,19 +10,6 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ### Phase 1: MVP Polish & UX Enhancement
 
-#### PR #007: app-launch-loading-screen-and-skeleton
-
-**Brief:** Implement a smooth app launch experience by replacing the brief login screen flash with a proper loading screen or skeleton UI when users reopen the app. Currently, users who were previously logged in see the login screen for a second before being redirected to the main app, creating a jarring user experience. Create a loading screen with app branding, skeleton UI components that match the main app layout, and smooth transitions. The loading screen should appear immediately on app launch while Firebase Authentication checks the user's login status in the background. Once authentication is confirmed, smoothly transition to the main app without showing the login screen. This creates a more professional, seamless user experience that matches modern app standards.
-
-**Dependencies:** PR #2 (authentication flow), PR #4 (app navigation)
-
-**Complexity:** Medium
-
-**Phase:** 1 (MVP Polish)
-
-**Status:** 📋 TO DO
-
----
 
 #### PR #008: message-timestamp-tap-to-reveal
 
@@ -194,14 +181,28 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
 
 ---
 
+#### PR #007: app-launch-loading-screen-and-skeleton
+
+**Brief:** Implement a smooth app launch experience by replacing the brief login screen flash with a proper loading screen or skeleton UI when users reopen the app. Currently, users who were previously logged in see the login screen for a second before being redirected to the main app, creating a jarring user experience. Create a loading screen with app branding, skeleton UI components that match the main app layout, and smooth transitions. The loading screen should appear immediately on app launch while Firebase Authentication checks the user's login status in the background. Once authentication is confirmed, smoothly transition to the main app without showing the login screen. This creates a more professional, seamless user experience that matches modern app standards.
+
+**Dependencies:** PR #2 (authentication flow), PR #4 (app navigation)
+
+**Complexity:** Medium
+
+**Phase:** 1 (MVP Polish)
+
+**Status:** ✅ COMPLETED
+
+---
+
 ## 📊 Summary
 
 ### Project Progress
-- **Phase 1 (MVP Polish):** ✅ 11/14 Complete (79%) | 📋 2 To Do | 🎯 1 In Progress
+- **Phase 1 (MVP Polish):** ✅ 12/14 Complete (86%) | 📋 1 To Do | 🎯 1 In Progress
 
 ### Overall Status
 - **Total PRs:** 14 (PR #006 split into 006A, 006B, 006C, 006D, 006E)
-- **Completed:** 11 (79%)
+- **Completed:** 12 (86%)
   - PR #001: Profile Photo Upload Reliability Fix
   - PR #002: Message Delivery Status Indicator Fix
   - PR #003: Presence Indicator Redesign & Unread Badges
@@ -213,17 +214,17 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
     - PR #006C: Settings Screen Redesign
     - PR #006D: Profile Screen Polish
     - PR #006E: New Chat Sheet Redesign
-- **To Do:** 2 (14%)
   - PR #007: App Launch Loading Screen & Skeleton
+- **To Do:** 1 (7%)
   - PR #008: Message Timestamp Tap-to-Reveal
 - **In Progress:** 1 (7%)
   - PR #009: Basic Media Support & Image Messaging
 
 ### Next Priority Actions
-1. **PR #007** 📋 App Launch Loading Screen - Smooth authentication flow
-2. **PR #008** 📋 Message Timestamp Tap-to-Reveal - Intuitive tap interaction for timestamps
+1. **PR #008** 📋 Message Timestamp Tap-to-Reveal - Intuitive tap interaction for timestamps
 
 ### Recent Completions
+- **PR #007** ✅ App Launch Loading Screen & Skeleton - Smooth authentication flow
 - **PR #006** ✅ Complete Design System Overhaul (All 5 sub-PRs) - Modern, cohesive UI across entire app
 - **PR #005** ✅ Group Read Receipts Detailed View - Per-member read status
 - **PR #004** ✅ Group Online Indicators - Real-time member status
