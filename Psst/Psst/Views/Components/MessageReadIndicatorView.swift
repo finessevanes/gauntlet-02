@@ -11,6 +11,7 @@ import SwiftUI
 /// Read receipt indicator showing message delivery and read status
 /// Displays "Sending...", "Delivered", "Read", "Read by X/Y", or "Read by all"
 /// with appropriate colors (gray for unread, blue for read)
+/// In group chats (3+ members), tapping opens detailed read receipt view
 struct MessageReadIndicatorView: View {
     // MARK: - Properties
     
@@ -23,6 +24,12 @@ struct MessageReadIndicatorView: View {
     /// Current user ID for read status calculation
     let currentUserID: String
     
+    /// State for showing read receipt detail modal (group chats only)
+    @State private var isShowingReadReceipts = false
+    
+    /// State for tap animation
+    @State private var isTapped = false
+    
     // MARK: - Body
     
     var body: some View {
@@ -31,6 +38,24 @@ struct MessageReadIndicatorView: View {
             .foregroundColor(statusColor)
             .italic(message.sendStatus == .sending || message.sendStatus == .queued)
             .animation(.easeInOut(duration: 0.2), value: statusText)
+            .scaleEffect(isTapped ? 0.95 : 1.0)
+            .animation(.spring(response: 0.2), value: isTapped)
+            .onTapGesture {
+                // Only open detail view for group chats (3+ members)
+                if chat.isGroupChat {
+                    // Tap animation feedback
+                    isTapped = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        isTapped = false
+                    }
+                    
+                    // Open detail modal
+                    isShowingReadReceipts = true
+                }
+            }
+            .sheet(isPresented: $isShowingReadReceipts) {
+                ReadReceiptDetailView(message: message, chat: chat)
+            }
     }
     
     // MARK: - Computed Properties

@@ -161,7 +161,80 @@ class MessageService {
         return listener
     }
     
-    // MARK: - Read Receipts (PR #14)
+    // MARK: - Read Receipts (PR #14, PR #5)
+    
+    /// Fetches detailed read receipt information for a message
+    /// Combines message.readBy array with user data from UserService
+    /// - Parameters:
+    ///   - message: The message to fetch read receipt details for
+    ///   - chat: The chat containing the message (for member list)
+    /// - Returns: Array of ReadReceiptDetail with user names and read status, sorted alphabetically (read members first, then unread)
+    /// - Throws: MessageError if user data fetch fails
+    func fetchReadReceiptDetails(for message: Message, in chat: Chat) async throws -> [ReadReceiptDetail] {
+        print("📖 Fetching read receipt details for message \(message.id)")
+        let start = Date()
+        
+        // Get recipient member IDs (all members except sender)
+        let recipientIDs = chat.members.filter { $0 != message.senderID }
+        
+        guard !recipientIDs.isEmpty else {
+            print("📖 No recipients to fetch")
+            return []
+        }
+        
+        print("📖 Fetching details for \(recipientIDs.count) recipients")
+        
+        // Batch fetch user data using UserService
+        let users = try await UserService.shared.getUsers(ids: recipientIDs)
+        
+        // Build ReadReceiptDetail objects
+        var details: [ReadReceiptDetail] = []
+        
+        for userID in recipientIDs {
+            // Find user in fetched users array
+            if let user = users.first(where: { $0.id == userID }) {
+                let hasRead = message.readBy.contains(userID)
+                
+                let detail = ReadReceiptDetail(
+                    id: userID,
+                    userID: userID,
+                    userName: user.displayName,
+                    userPhotoURL: user.photoURL,
+                    hasRead: hasRead
+                )
+                
+                details.append(detail)
+            } else {
+                // User not found - create fallback entry
+                print("⚠️ User \(userID) not found, using fallback")
+                
+                let hasRead = message.readBy.contains(userID)
+                
+                let detail = ReadReceiptDetail(
+                    id: userID,
+                    userID: userID,
+                    userName: "Unknown User",
+                    userPhotoURL: nil,
+                    hasRead: hasRead
+                )
+                
+                details.append(detail)
+            }
+        }
+        
+        // Sort alphabetically by userName
+        // Read members first, then not read yet members
+        let readDetails = details.filter { $0.hasRead }.sorted { $0.userName < $1.userName }
+        let unreadDetails = details.filter { !$0.hasRead }.sorted { $0.userName < $1.userName }
+        
+        let sortedDetails = readDetails + unreadDetails
+        
+        // Log performance
+        let duration = Date().timeIntervalSince(start) * 1000
+        print("📖 Fetched \(details.count) read receipt details in \(Int(duration))ms")
+        
+        return sortedDetails
+    }
     
     /// Marks specific messages as read by the current user
     /// Uses atomic arrayUnion for idempotent updates (safe to call multiple times)
