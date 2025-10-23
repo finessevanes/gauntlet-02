@@ -356,24 +356,25 @@ VStack(alignment: .leading, spacing: 16) {
 
 ## 7. Definition of Done
 
-- [ ] Branch created from develop
-- [ ] All TODO tasks completed and checked off
-- [ ] ProfileView updated with all design changes
-- [ ] Profile photo: 140pt with 1pt border
-- [ ] Typography: .title + .bold (name), .subheadline + .secondary (email)
-- [ ] Edit Profile button: blue, full-width, pencil icon
-- [ ] Account Information section: proper spacing and styling
-- [ ] All spacing follows 8pt grid
-- [ ] Light/Dark Mode tested and working
-- [ ] All device sizes tested (SE to Pro Max)
-- [ ] Edit Profile navigation works (0 regressions)
-- [ ] Manual testing completed (all gates pass)
-- [ ] Performance targets met (<100ms render)
-- [ ] Code review checklist completed
-- [ ] No console warnings or errors
-- [ ] Screenshots captured (before/after)
-- [ ] PR created and approved
-- [ ] Merged to develop
+- [x] Branch created from develop (using feat/pr-006-minimal-redesign)
+- [x] All TODO tasks completed and checked off
+- [x] ProfileView updated with all design changes
+- [x] Profile photo: 140pt with 1pt border
+- [x] Typography: .title + .bold (name), .subheadline + .secondary (email)
+- [x] Edit Profile button: blue, full-width, pencil icon
+- [x] Account Information section: proper spacing and styling
+- [x] All spacing follows 8pt grid
+- [x] Light/Dark Mode tested and working (user verified)
+- [x] All device sizes tested (SE to Pro Max) (user verified)
+- [x] Edit Profile navigation works (0 regressions)
+- [x] Manual testing completed (all gates pass) (user verified)
+- [x] Performance targets met (<100ms render)
+- [x] Code review checklist completed
+- [x] No console warnings or errors
+- [ ] Screenshots captured (before/after) (deferred - changes are subtle)
+- [x] Code committed to branch
+- [ ] PR created and approved (will be part of larger PR #006 series)
+- [ ] Merged to develop (pending with other PR #006 work)
 
 ---
 
