@@ -10,13 +10,20 @@ service cloud.firestore {
     match /users/{userId} {
       // Anyone authenticated can read user profiles
       allow read: if request.auth != null;
-      
+
       // Users can create their own profile during signup
-      allow create: if request.auth != null && request.auth.uid == userId;
-      
+      // PR #6.5: Validate role field is present and valid
+      allow create: if request.auth != null &&
+                       request.auth.uid == userId &&
+                       request.resource.data.role in ['trainer', 'client'];
+
       // Users can update their own profile
-      allow update: if request.auth != null && request.auth.uid == userId;
-      
+      // PR #6.5: Prevent role changes (role is immutable)
+      allow update: if request.auth != null &&
+                       request.auth.uid == userId &&
+                       (!request.resource.data.keys().hasAny(['role']) ||
+                        request.resource.data.role == resource.data.role);
+
       // Users cannot delete profiles
       allow delete: if false;
     }
@@ -55,31 +62,54 @@ service cloud.firestore {
     // AI Conversations collection
     match /ai_conversations/{conversationId} {
       // Trainers can read their own AI conversations
-      allow read: if request.auth != null && 
+      allow read: if request.auth != null &&
                      request.auth.uid == resource.data.trainerId;
-      
+
       // Trainers can create their own AI conversations
-      allow create: if request.auth != null && 
+      allow create: if request.auth != null &&
                        request.auth.uid == request.resource.data.trainerId;
-      
+
       // Trainers can update their own AI conversations
-      allow update: if request.auth != null && 
+      allow update: if request.auth != null &&
                        request.auth.uid == resource.data.trainerId;
-      
+
       // AI Messages subcollection
       match /messages/{messageId} {
         // Trainers can read messages in their own AI conversations
-        allow read: if request.auth != null && 
+        allow read: if request.auth != null &&
                        request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
-        
+
         // Trainers can create messages in their own AI conversations
-        allow create: if request.auth != null && 
+        allow create: if request.auth != null &&
                          request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
-        
+
         // Trainers can update messages in their own AI conversations
-        allow update: if request.auth != null && 
+        allow update: if request.auth != null &&
                          request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
       }
+    }
+
+    // Client Profiles collection (PR #007)
+    match /clientProfiles/{clientId} {
+      // Allow read if:
+      // 1. User is authenticated AND
+      // 2. Either the document doesn't exist yet (resource == null) OR
+      //    the user is the trainer or client in the profile
+      allow read: if request.auth != null &&
+                     (resource == null ||
+                      request.auth.uid == resource.data.trainerId ||
+                      request.auth.uid == resource.data.clientId);
+
+      // Allow create if authenticated (Cloud Functions will create profiles)
+      allow create: if request.auth != null;
+
+      // Allow update if authenticated (Cloud Functions will update profiles)
+      allow update: if request.auth != null;
+
+      // Trainers can delete their clients' profiles
+      allow delete: if request.auth != null &&
+                       resource != null &&
+                       request.auth.uid == resource.data.trainerId;
     }
   }
 }
