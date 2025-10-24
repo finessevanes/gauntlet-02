@@ -14,6 +14,7 @@
 		262227012EA71CD200303C16 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000003 /* FirebaseDatabase */; };
 		262227022EA71CD200303C16 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000004 /* FirebaseMessaging */; };
 		262227032EA71CD200303C16 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000005 /* FirebaseStorage */; };
+		262227042EA71CD200303C16 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = FB0000012EA7100000000006 /* FirebaseFunctions */; };
 		2626E8002EA703CF00F8567B /* architecture.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FD2EA703CF00F8567B /* architecture.md */; };
 		2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F42EA703CF00F8567B /* caleb-agent.md */; };
 		2626E8032EA703CF00F8567B /* test-template.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FA2EA703CF00F8567B /* test-template.md */; };
@@ -97,6 +98,7 @@
 				262227002EA71CD200303C16 /* FirebaseFirestore in Frameworks */,
 				262226FF2EA71CD200303C16 /* FirebaseAuth in Frameworks */,
 				262227032EA71CD200303C16 /* FirebaseStorage in Frameworks */,
+				262227042EA71CD200303C16 /* FirebaseFunctions in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -186,6 +188,7 @@
 				FB0000012EA7100000000003 /* FirebaseDatabase */,
 				FB0000012EA7100000000004 /* FirebaseMessaging */,
 				FB0000012EA7100000000005 /* FirebaseStorage */,
+				FB0000012EA7100000000006 /* FirebaseFunctions */,
 				2615AFC52EA73C3500F56968 /* GoogleSignIn */,
 				2615AFC72EA73C3500F56968 /* GoogleSignInSwift */,
 			);
@@ -708,6 +711,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		FB0000012EA7100000000006 /* FirebaseFunctions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FB0000012EA7100000000000 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFunctions;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

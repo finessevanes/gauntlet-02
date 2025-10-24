@@ -8,11 +8,11 @@
 
 import Foundation
 import FirebaseAuth
+import FirebaseFunctions
 
 /// Handles communication with AI backend (Cloud Functions)
 class AIService: ObservableObject {
-    // TODO: Add FirebaseFunctions import in PR #003 when implementing real Cloud Function calls
-    // private let functions = Functions.functions()
+    private let functions = Functions.functions()
     
     // MARK: - Public Methods
     
@@ -46,6 +46,48 @@ class AIService: ObservableObject {
             messages: [],
             createdAt: Date(),
             updatedAt: Date()
+        )
+    }
+    
+    /// TEST METHOD: Calls real production chatWithAI function
+    /// - Parameter message: User's message
+    /// - Returns: Real AIResponse from backend
+    func testRealChatWithAI(message: String) async throws -> AIResponse {
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw AIError.notAuthenticated
+        }
+        
+        let data: [String: Any] = [
+            "userId": userId,
+            "message": message
+        ]
+        
+        let result = try await functions.httpsCallable("chatWithAI").call(data)
+        
+        guard let responseData = result.data as? [String: Any],
+              let success = responseData["success"] as? Bool,
+              success,
+              let responseText = responseData["response"] as? String,
+              let conversationId = responseData["conversationId"] as? String else {
+            throw AIError.invalidResponse
+        }
+        
+        let tokensUsed = responseData["tokensUsed"] as? Int ?? 0
+        
+        print("✅ AI Response received:")
+        print("   Response: \(responseText)")
+        print("   Conversation ID: \(conversationId)")
+        print("   Tokens Used: \(tokensUsed)")
+        
+        return AIResponse(
+            messageId: UUID().uuidString,
+            text: responseText,
+            timestamp: Date(),
+            metadata: AIResponse.AIResponseMetadata(
+                modelUsed: "gpt-4",
+                tokensUsed: tokensUsed,
+                responseTime: 0.0
+            )
         )
     }
     
