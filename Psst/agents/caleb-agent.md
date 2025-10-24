@@ -101,7 +101,8 @@ git checkout -b feat/pr-{number}-{feature-name}
 
 **Code quality:**
 - Follow patterns in `Psst/agents/shared-standards.md`
-- Use proper Swift types
+- **Backend code:** MUST use TypeScript (`.ts` files), NEVER JavaScript (`.js` files)
+- **Swift code:** Use proper Swift types
 - Include comments for complex logic
 - Keep functions small and focused
 

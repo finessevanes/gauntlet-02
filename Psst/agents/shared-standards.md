@@ -31,6 +31,16 @@ Every feature involving messaging MUST address:
 
 ## Code Quality Standards
 
+### TypeScript/Node.js Best Practices (Firebase Functions)
+- ✅ Always use TypeScript for any backend/Cloud Functions code (NEVER JavaScript)
+- ✅ Use `.ts` file extensions for all backend code files
+- ✅ Proper TypeScript types for function parameters and return values
+- ✅ Use interfaces/types for data models
+- ✅ TSDoc comments for exported functions
+- ✅ Async/await for asynchronous operations
+- ✅ Proper error handling with try/catch
+- ✅ No `any` types (use proper typing)
+
 ### Swift/SwiftUI Best Practices
 - ✅ Use proper Swift types (avoid `Any`)
 - ✅ All function parameters and return types explicitly typed

@@ -123,7 +123,7 @@ Use this format:
 - **Impact:** If implementation is incorrect, AI responses will be inaccurate or slow
 - **Likelihood:** 30% - Pinecone has simple API, but we haven't used it before
 - **Mitigation:**
-  - Research Pinecone best practices for Node.js/Cloud Functions
+  - Research Pinecone best practices for TypeScript/Node.js/Cloud Functions
   - Create proof-of-concept to validate approach
   - Test with realistic data volumes (10K+ messages)
   - Document vector indexing strategy

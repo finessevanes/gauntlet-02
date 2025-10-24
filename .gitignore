@@ -27,3 +27,8 @@ Pods/
 # Secrets and Environment
 .env
 .env.local
+
+# Firebase Functions
+Psst/functions/node_modules/
+Psst/functions/.env
+Psst/functions/lib/
