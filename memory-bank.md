@@ -1,365 +1,378 @@
 # Memory Bank
 
-I am Alex, an expert software engineer with a unique characteristic: my memory resets completely between sessions. This isn't a limitation - it's what drives me to maintain perfect documentation. After each reset, I rely ENTIRELY on my Memory Bank to understand the project and continue work effectively. I MUST read ALL memory bank files at the start of EVERY task - this is not optional.
+I am an expert software engineer with memory that resets between sessions. This Memory Bank is my single source of truth. I MUST read this file at the start of EVERY task - this is not optional.
 
 ---
 
-## 1. Brief
+## 1. Project Brief
 
-**Project:** Simplified MessageAI  
-**Tagline:** Building Cross-Platform Messaging Apps  
-**Type:** Native iOS Chat Application
+**Project:** Psst - Personal Trainer Messaging App with AI  
+**Type:** Native iOS Chat Application (SwiftUI + Firebase)  
+**Current Phase:** MVP Complete ✅ | Next: AI Features (Phase 1-5)
 
-### Core Requirements (10 Must-Haves)
-1. One-on-one chat functionality
-2. Real-time message delivery (2+ users)
-3. Message persistence (survives app restarts)
-4. Optimistic UI updates
-5. Online/offline status indicators
-6. Message timestamps
-7. User authentication (accounts/profiles)
-8. Basic group chat functionality (3+ users)
-9. Message read receipts
-10. Push notifications (foreground)
+### Core Foundation (MVP Complete ✅)
+1. ✅ One-on-one chat functionality
+2. ✅ Real-time message delivery (2+ users)
+3. ✅ Message persistence (survives app restarts)
+4. ✅ Optimistic UI updates
+5. ✅ Online/offline status indicators
+6. ✅ Message timestamps
+7. ✅ User authentication (email/password + Google Sign-In)
+8. ✅ Group chat functionality (3+ users)
+9. ✅ Message read receipts
+10. ✅ Push notifications
 
-### Project Goals
-- Build a simple, reliable, native iOS messaging app
-- Focus on seamless user experience
-- Provide robust offline capabilities
-- Support both 1-on-1 and group conversations
-- Enable real-time synchronization
+### AI Features (Next Build - Phase 1-5)
+1. AI Chat Assistant (semantic search over conversations)
+2. YOLO Mode (auto-responses in trainer's voice)
+3. Proactive Assistant (client retention, follow-ups)
+4. Function Calling (schedule, remind, send messages)
+5. Voice Interface (speech-to-text, voice commands)
+6. Contextual AI Actions (summarize, surface context, set reminders)
 
 ---
 
 ## 2. Product Context
 
 ### Why This Exists
-To create a native iOS chat application that prioritizes simplicity, reliability, and seamless user experience over feature bloat. The focus is on doing core messaging features exceptionally well.
+**For personal trainers** managing 15-30+ clients across messaging platforms. Solves **3 core problems**:
 
-### Problems It Solves
-- **Real-time Communication:** Users need instant message delivery with low latency
-- **Offline Reliability:** Users must access messages and queue sends without connectivity
-- **Status Awareness:** Users need to know if contacts are online/offline
-- **Message Confirmation:** Users need read receipts to know messages were seen
-- **Group Coordination:** Users need to communicate in groups of 3+ people
+1. **Information Overload** - Can't remember every client's history, injuries, goals
+2. **No Boundaries** - Always "on", repetitive questions, can't scale
+3. **Client Retention** - Clients go quiet, trainers forget to follow up, 30-50% churn
 
-### How It Works
+### How AI Solves These Problems
 
-**User Journey:**
-1. **Onboarding:** Download app → Sign up (email/password or social auth) → Log in
-2. **Home:** View conversation list with recent messages, timestamps, and user status
-3. **Initiate Chat:** Start new 1-on-1 or group chat by selecting from contacts
-4. **Conversation:** 
-   - Send/receive messages with instant UI updates
-   - See real-time message arrivals
-   - View timestamps on all messages
-   - See read receipts on sent messages
-5. **Offline/Background:**
-   - Receive push notifications when app is closed
-   - Read persisted messages while offline
-   - Queue messages to send when reconnected
+**AI as "Second Brain":**
+- RAG Pipeline: Semantic search ("What did John say about his knee?")
+- Memory/State: Tracks client contexts, engagement patterns
+- User Preferences: Learns trainer's voice, rates, style
+- Function Calling: AI can actually send messages, book calls, set reminders
+- Error Handling: Graceful failures, always functional
 
-### User Experience Goals
-- **Instant Feedback:** Optimistic UI shows messages immediately
-- **Always Available:** Offline persistence keeps conversations accessible
-- **Status Transparency:** Clear online/offline indicators
-- **Message Confidence:** Read receipts confirm message delivery
-- **Modern Design:** Beautiful, intuitive SwiftUI interface
+**Key Personas:**
+- **Marcus** (Remote Worker Trainer) - Needs boundaries, struggles with retention
+- **Alex** (Adaptive Trainer) - Info overload, too many clients to track mentally
+
+### Rubric Alignment
+**Chosen Persona:** Content Creator/Influencer  
+**Required AI Features:**
+1. Auto-categorization (sort by topic)
+2. Response drafting (YOLO mode)
+3. FAQ auto-responder (lead qualification)
+4. Sentiment analysis (churn prediction)
+5. Collaboration scoring (engagement tracking)
+
+**Target Score:** 90+ / 100
 
 ---
 
-## 3. Active Context
+## 3. Agent System
+
+### The Team
+
+**Brenda (Brief Creator)**
+- Creates PR briefs from feature requirements or documents
+- Assigns PR numbers, defines scope
+- Command: `/brenda [feature-name-or-document-paths]`
+
+**Pam (Planning Agent)**
+- Creates PRDs and TODOs from briefs
+- Supports greenfield + brownfield modes
+- Command: `/pam pr-N [brownfield] [yolo]`
+
+**Arnold (The Architect)**
+- Documents existing codebase for brownfield work
+- Identifies integration points
+- Command: `/arnold [document]`
+
+**Claudia (UX Expert)**
+- Creates UI/UX specs, wireframes
+- Designs user flows and interactions
+- Command: `/claudia pr-N`
+
+**Quinn (Test Architect & Risk Analyst)**
+- Assesses risks, costs, and integration complexity
+- Identifies new tools and learning curves
+- Command: `/quinn pr-N`
+
+**Caleb (Coder Agent)**
+- Implements features from PRDs/TODOs
+- Checks off tasks, creates tests
+- Command: `/caleb pr-N`
+
+### Workflows
+
+**Greenfield (New Features):**
+```
+Brenda → Pam → Claudia (optional) → Caleb
+```
+
+**Brownfield (Enhancements to Existing Code):**
+```
+Arnold → Brenda → Pam (brownfield mode) → Caleb
+```
+
+---
+
+## 4. Active Context
 
 ### Current Work Focus
-**Phase:** Project Initialization  
-**Status:** Setting up Memory Bank and project structure
+**Phase:** Post-MVP / Pre-AI Development  
+**Status:** Documentation refactored, ready to build AI features
 
-### Recent Changes
-- Created PRD with full technical specifications
-- Defined database schema (Firestore NoSQL)
-- Established 4-phase implementation plan
-- Completed Memory Bank structure
+### Recent Major Changes
+- ✅ AI-PRODUCT-VISION.md finalized (3 problems, 2 personas, no translation)
+- ✅ Testing strategy refactored (user-centric: happy path, edge cases, error handling)
+- ✅ Added Arnold agent for brownfield documentation
+- ✅ Added brownfield mode to Pam
+- ✅ Removed translation features (not needed for rubric)
+- ✅ Created ai-tone-presets.md reference
 
 ### Next Steps
-1. **Setup Firebase project**
-   - Configure Firebase Authentication
-   - Set up Firestore database
-   - Configure Firebase Cloud Messaging
-   - Enable Firestore offline persistence
-
-2. **Initialize iOS Project**
-   - Create SwiftUI project in Xcode
-   - Add Firebase SDK dependencies
-   - Set up basic navigation structure
-   - Configure project settings
-
-3. **Phase 1: Core Foundation**
-   - Implement user authentication (sign up, log in, log out)
-   - Build basic SwiftUI app structure
-   - Create users collection and profile model
-   - Set up navigation framework
+1. **Run Arnold** to document existing Psst iOS codebase
+2. **Create AI PR briefs** with Brenda
+3. **Start Phase 1:** Pinecone setup + iOS AI scaffolding (parallel build)
+4. **Build in 5 phases:** Foundation → Basic Chat → RAG → Advanced → Polish
 
 ### Active Decisions
-- **SwiftUI over UIKit:** Chosen for faster development, native data binding, and cross-platform future
-- **Firebase as BaaS:** Chosen to bundle Auth, Firestore, Realtime DB (for presence), and FCM in one platform
-- **NoSQL Schema:** Using Firestore's document-subcollection pattern for chats and messages
 
-### Important Patterns
-- **Optimistic UI Pattern:** Add message to local state immediately, then sync with server
-- **Offline-First:** All data cached locally via Firestore persistence
-- **Real-time Listeners:** Use Firestore snapshot listeners for live updates
-- **Server Timestamps:** Always use `FieldValue.serverTimestamp()` for accurate time across devices
+**AI Feature Scope:**
+- ✅ Focus on 3 universal trainer problems (not 4)
+- ✅ Remove translation (niche problem, not needed for 90+ score)
+- ✅ Align with Content Creator/Influencer rubric persona
+
+**Testing Approach:**
+- ✅ User-centric manual validation (not automated yet)
+- ✅ 3 scenarios per PR: Happy path, 1-2 edge cases, error handling
+- ✅ Multi-device testing optional (only for real-time features)
+- ✅ Automated testing deferred to Phase 6+
+
+**Build Strategy:**
+- ✅ Parallel build with 2 agents (40% faster)
+- ✅ Agent 1: Backend (functions/, Pinecone)
+- ✅ Agent 2: Frontend (Psst/Psst/, iOS)
 
 ---
 
-## 4. System Patterns
+## 5. System Patterns
 
 ### Architecture Overview
 **Pattern:** MVVM (Model-View-ViewModel) with SwiftUI  
-**Backend:** Firebase Backend-as-a-Service (BaaS)
+**Backend:** Firebase (Auth, Firestore, Realtime DB, FCM, Functions)  
+**AI Backend:** Firebase Cloud Functions + OpenAI GPT-4 + Pinecone (vector search)
 
-### System Components
+### Tech Stack
 
-```
-┌─────────────────────────────────────────┐
-│           SwiftUI Views                 │
-│  (ConversationList, ChatView, etc.)     │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│        ViewModels (@Observable)         │
-│  Handle UI state & business logic       │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│          Service Layer                  │
-│  - FirebaseService (setup)              │
-│  - MessageService (CRUD, listeners)     │
-│  - AuthService (sign in/up)             │
-│  - PresenceService (online/offline)     │
-└───────────────┬─────────────────────────┘
-                │
-┌───────────────▼─────────────────────────┐
-│         Firebase Platform               │
-│  - Authentication                       │
-│  - Firestore (main DB)                  │
-│  - Realtime DB (presence)               │
-│  - Cloud Messaging (FCM)                │
-│  - Cloud Functions (push triggers)      │
-└─────────────────────────────────────────┘
-```
-
-### Database Schema (Firestore NoSQL)
-
-**users** (Collection)
-```
-{userID} (Document)
-├── uid: String
-├── displayName: String
-├── email: String
-└── profilePhotoURL: String? (optional)
-```
-
-**chats** (Collection)
-```
-{chatID} (Document)
-├── members: [String] (array of userIDs)
-├── lastMessage: String
-├── lastMessageTimestamp: Timestamp
-├── isGroupChat: Boolean
-└── messages (Sub-collection)
-    └── {messageID} (Document)
-        ├── text: String
-        ├── senderID: String
-        ├── timestamp: Timestamp (server)
-        └── readBy: [String] (array of userIDs)
-```
-
-### Key Technical Decisions
-
-1. **Real-time Delivery:** Firestore `addSnapshotListener` on messages subcollection
-2. **Persistence:** Firestore offline cache with `isPersistenceEnabled = true`
-3. **Presence System:** Firebase Realtime Database with `onDisconnect` hook
-4. **Timestamps:** `FieldValue.serverTimestamp()` for consistency
-5. **Read Receipts:** `readBy` array field updated when user views message
-6. **Push Notifications:** Cloud Functions triggered on new message writes
-
-### Critical Implementation Paths
-
-**Sending a Message:**
-1. User taps Send
-2. Message added to local SwiftUI @State (marked "sending")
-3. Async write to Firestore messages subcollection
-4. Server confirms write
-5. Update local message status to "delivered"
-6. Cloud Function triggers push notification to other members
-
-**Receiving a Message:**
-1. Firestore snapshot listener detects new document
-2. Message pushed to all listening clients
-3. SwiftUI View automatically updates via data binding
-4. When user views message, update `readBy` array
-
-**Offline Handling:**
-1. App loses connectivity
-2. Firestore cache serves all previously loaded data
-3. User can send messages (queued locally)
-4. On reconnection, Firestore syncs queued messages automatically
-
----
-
-## 5. Tech Context
-
-### Technology Stack
-
-**Frontend:**
-- **SwiftUI** (iOS 13+) - Modern declarative UI framework
-- **Swift** - Primary programming language
-- **Combine** - Reactive programming (if needed)
-
-**Backend-as-a-Service (Firebase):**
-- **Firebase Authentication** - User sign up/login/session management
-- **Firestore** - Primary NoSQL database (chats, messages)
-- **Firebase Realtime Database** - Presence/online status only
-- **Firebase Cloud Messaging (FCM)** - Push notifications
-- **Cloud Functions** - Serverless triggers for notifications
-- **Apple Push Notification service (APNs)** - iOS notification delivery
-
-### Development Setup
-
-**Requirements:**
-- macOS (latest)
-- Xcode (latest stable)
-- iOS Simulator or physical device (iOS 13+)
-- Firebase account
-- Apple Developer account (for APNs)
-
-**Dependencies (Swift Package Manager):**
+**iOS App:**
+- SwiftUI (iOS 16+)
+- Swift 5.9+
 - Firebase iOS SDK
-  - FirebaseAuth
-  - FirebaseFirestore
-  - FirebaseDatabase (for presence)
-  - FirebaseMessaging
+- Async/await concurrency
 
-### Technical Constraints
+**AI Backend:**
+- Firebase Cloud Functions (Node.js)
+- AI SDK by Vercel (agent framework)
+- OpenAI GPT-4 (AI model)
+- Pinecone (vector search)
 
-**Platform:**
-- iOS 13+ minimum target (for SwiftUI)
-- iPhone and iPad support
-- Portrait and landscape orientations
+**Data Storage:**
+- Firestore: Chats, messages, users
+- Pinecone: Message embeddings (vector search)
+- Firebase Realtime DB: Presence only
 
-**Performance:**
-- Real-time message latency: < 3 seconds
-- Offline persistence: all previously loaded data
-- Optimistic UI: instant local updates
+### Critical Patterns
 
-**Security:**
-- Firebase Authentication for user identity
-- Firestore Security Rules to restrict data access
-- HTTPS/SSL for all network traffic
+**Existing (MVP):**
+- Optimistic UI: Local updates before server confirm
+- Offline-first: Firestore persistence enabled
+- Real-time listeners: Firestore snapshots
+- Server timestamps: `FieldValue.serverTimestamp()`
 
-### Tool Usage Patterns
-
-**SwiftUI State Management:**
-- `@State` for local view state
-- `@Observable` for ViewModels (iOS 17+) or `@ObservableObject` + `@Published` (iOS 13-16)
-- `@StateObject` for ViewModel lifecycle management
-- `@EnvironmentObject` for app-wide services
-
-**Firestore Patterns:**
-- Use `addSnapshotListener` for real-time subscriptions
-- Use `getDocument()` for one-time reads
-- Use `setData()` for writes
-- Use `FieldValue.serverTimestamp()` for timestamps
-- Use `FieldValue.arrayUnion()` for readBy updates
+**New (AI Features):**
+- RAG Pipeline: Vector search with embeddings
+- Function Calling: AI triggers actions (schedule, send, remind)
+- Multi-turn conversations: State management in Firestore
+- Error handling: Graceful fallbacks at every layer
 
 ---
 
-## 6. Progress
+## 6. Documentation Structure
 
-### What Works
-✅ Project requirements defined  
-✅ PRD completed with full specifications  
-✅ Database schema designed  
-✅ Implementation plan established  
-✅ Memory Bank structure created  
+### Core Documents (Read These)
 
-### What's Left to Build
+**Product & Planning:**
+- `Psst/docs/AI-PRODUCT-VISION.md` - What/Why (3 problems, 2 personas) **[REQUIRED]**
+- `Psst/docs/AI-BUILD-PLAN.md` - 5-phase implementation plan **[REQUIRED]**
 
-**Phase 1: Core Foundation**
-- [ ] Setup Firebase project (Auth, Firestore, FCM)
-- [ ] Initialize iOS SwiftUI project in Xcode
-- [ ] Add Firebase SDK dependencies
-- [ ] Implement User Authentication (Sign up, Log in, Log out)
-- [ ] Create basic SwiftUI app structure and navigation
-- [ ] Build users collection and basic user profile model
+**Technical Architecture:**
+- `Psst/docs/architecture.md` - System architecture (Arnold creates/updates) **[REQUIRED]**
 
-**Phase 2: 1-on-1 Chat**
-- [ ] Build Conversation List screen (displays chats)
-- [ ] Build Chat View screen (displays messages)
-- [ ] Implement real-time message sending/receiving using Firestore listeners
-- [ ] Implement Optimistic UI and server timestamps
-- [ ] Implement Firestore offline persistence
+**Standards & Templates:**
+- `Psst/agents/shared-standards.md` - Code quality, testing standards
+- `Psst/agents/prd-template.md` - PRD format
+- `Psst/agents/todo-template.md` - TODO format
 
-**Phase 3: Group Chats & Presence**
-- [ ] Implement "Create New Chat" flow (selecting 1 or 3+ users)
-- [ ] Ensure group chat logic works (sending to N members)
-- [ ] Integrate Firebase Realtime Database for online/offline presence indicators
+**Reference Materials:**
+- `Psst/docs/reference/AI-ASSIGNMENT-SPEC.md` - Assignment requirements
+- `Psst/docs/reference/ai-tone-presets.md` - AI tone examples
+- `Psst/docs/testing-strategy.md` - Testing approach
 
-**Phase 4: Polish & Notifications**
-- [ ] Implement message read receipts logic (client-side and Firestore updates)
-- [ ] Configure APNs and Firebase Cloud Messaging
-- [ ] Write and deploy Cloud Function to trigger push notifications
-- [ ] Test notifications (foreground, background, terminated)
-- [ ] Bug fixing and UI polish
+### Agent Instructions
+- `Psst/agents/arnold-agent.md` - Architect
+- `Psst/agents/pam-agent.md` - Planning
+- `Psst/agents/caleb-agent.md` - Coding
+- `Psst/agents/creative-claudia-agent.md` - UX Design
 
-### Current Status
-**Stage:** Pre-development / Planning  
-**Next Milestone:** Phase 1 - Core Foundation
-
-### Known Issues
-None yet - project has not started development.
-
-### Evolution of Project Decisions
-
-**SwiftUI vs UIKit Decision:**
-- **Decision:** Use SwiftUI
-- **Rationale:** Faster development, native data binding perfect for real-time chat, modern and future-proof, cross-platform potential
-- **Trade-off:** iOS 13+ minimum (acceptable - >90% market adoption)
-
-**Firebase vs Custom Backend:**
-- **Decision:** Use Firebase BaaS
-- **Rationale:** Bundles all needed features (Auth, real-time DB, push, offline sync), faster development, proven scalability
-- **Trade-off:** Vendor lock-in (acceptable for MVP)
-
-**Firestore + Realtime DB Hybrid:**
-- **Decision:** Use Firestore for main data, Realtime DB only for presence
-- **Rationale:** Firestore has better offline support and data modeling, but Realtime DB has superior `onDisconnect` for presence
-- **Trade-off:** Slightly more complex but each service used for its strength
+### File Organization
+```
+Psst/docs/
+├── pr-briefs.md           ← All PR descriptions
+├── prds/pr-{N}-prd.md     ← Individual PRDs
+├── todos/pr-{N}-todo.md   ← Individual TODOs
+└── ux-specs/pr-{N}-ux-spec.md ← UI/UX specs
+```
 
 ---
 
-## Success Criteria Reference
+## 7. Key Reminders
 
-### MVP Must-Haves (P0)
-All 10 hard requirements must be met:
-- ✅ User authentication working
-- ✅ 1-on-1 conversations working
-- ✅ Group (3+) conversations working
-- ✅ Real-time delivery (< 3 sec latency)
-- ✅ Local persistence (viewable offline)
-- ✅ Optimistic UI (instant display)
-- ✅ Online/offline status indicators
-- ✅ Server-synced timestamps
-- ✅ Read receipts visible
-- ✅ Push notifications working
+### Testing Standards (Updated!)
+**Philosophy:** User-centric manual validation
 
-### Should Have (P1) - Post-MVP
-- "Is typing..." indicator
-- Edit display name and profile picture
-- Search contacts to start chat
+**Every PR tests 3 scenarios:**
+1. **Happy Path** - Main user flow works end-to-end
+2. **Edge Cases** - 1-2 non-standard inputs handled gracefully
+3. **Error Handling** - Offline/timeout/invalid input show clear messages
 
-### Could Have (P2) - Future
-- Image and media message sharing
-- Emoji reactions to messages
-- Search conversation history
+**Not:** Complex multi-device, automated unit tests (Phase 6+)
+
+### Brownfield Best Practices
+When enhancing existing code:
+1. Run `/arnold document` first
+2. Use `/pam pr-N brownfield` for planning
+3. Pam reads architecture.md before writing PRD
+4. PRD includes "Affected Existing Code" section
+5. Caleb respects existing patterns (MVVM, service layer)
+6. Include regression testing requirements
+
+### Git Strategy
+- **Base branch:** `develop` (never `main`)
+- **Branch naming:** `feat/pr-{number}-{feature-name}`
+- **PR target:** Always `develop`
+
+### Performance Targets (From shared-standards.md)
+- App load: < 2-3 seconds
+- Message delivery: < 100ms
+- Scrolling: 60fps with 100+ messages
+- Tap feedback: < 50ms
+
+---
+
+## 8. Current Status
+
+### What's Complete ✅
+**MVP (14/14 PRs):**
+- User authentication (email + Google Sign-In)
+- One-on-one messaging
+- Group chat (3+ users)
+- Real-time sync across devices
+- Offline persistence
+- Read receipts
+- Typing indicators
+- Push notifications
+- Presence system
+- Profile management
+- Message queuing
+
+### What's Next 🚀
+**AI Features (Phase 1-5):**
+
+**Phase 1:** Foundation
+- Pinecone vector database setup
+- iOS AI scaffolding
+- Parallel build (2 agents)
+
+**Phase 2:** Basic AI Chat
+- AI Assistant chat screen
+- chatWithAI Cloud Function
+- Simple Q&A
+
+**Phase 3:** RAG + UI
+- Vector search implementation
+- Semantic query handling
+- Contextual AI menu (long-press)
+
+**Phase 4:** Advanced Features
+- Function calling (schedule, send, remind)
+- Voice interface
+
+**Phase 5:** Polish
+- User preferences (AI tone customization)
+- Advanced agents (YOLO mode)
+- Final integration
+
+### Known Context
+- MVP is complete and functional
+- AI features are greenfield (new code) + brownfield (enhance existing)
+- Documentation refactored for clarity
+- Ready to start building AI features
+
+---
+
+## 9. Important Commands
+
+### Quick Start AI Development
+```bash
+/arnold document                        # Document existing codebase
+/brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md  # Create all AI feature briefs
+/pam pr-010a                            # Backend PRD
+/pam pr-010b                            # Frontend PRD
+/caleb pr-010a                          # Agent 1 builds backend
+/caleb pr-010b                          # Agent 2 builds frontend
+```
+
+### Standard Workflow
+```bash
+/brenda [feature-or-docs]               # Create brief(s)
+/pam pr-N [brownfield] [yolo]           # Create PRD + TODO
+/claudia pr-N                           # Optional: UX specs
+/caleb pr-N                             # Implement feature
+```
+
+---
+
+## 10. Tech Decisions Summary
+
+| Decision | Rationale | Status |
+|----------|-----------|--------|
+| SwiftUI + Firebase | Fast development, real-time built-in | ✅ Working |
+| MVVM architecture | Clean separation, testable | ✅ Working |
+| Firestore + Realtime DB hybrid | Best of both for messaging + presence | ✅ Working |
+| AI SDK by Vercel | Simpler than LangChain, great for Cloud Functions | 📋 Planned |
+| OpenAI GPT-4 | Best function calling for agent tasks | 📋 Planned |
+| Pinecone | Purpose-built vector database, simple API, free tier | 📋 Planned |
+| User-centric testing | Speed over automation (for now) | ✅ Adopted |
+| 3-scenario testing | Happy path + edge cases + error handling | ✅ Adopted |
+
+---
+
+## Success Criteria
+
+### MVP (Completed) ✅
+All 10 core requirements met - messaging app fully functional
+
+### AI Features (Next)
+**Assignment Rubric Requirements:**
+- RAG Pipeline ✅ Planned (Phase 3)
+- User Preferences ✅ Planned (Phase 5)
+- Function Calling ✅ Planned (Phase 4)
+- Memory/State Management ✅ Planned (Phase 2-5)
+- Error Handling ✅ Planned (All phases)
+
+**Target:** 90+ / 100 score on MessageAI rubric
+
+---
+
+**Last Updated:** October 23, 2025  
+**Next Milestone:** Phase 1 - AI Backend Infrastructure + iOS Scaffolding

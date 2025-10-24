@@ -53,14 +53,23 @@ Creates high-level PR briefs from feature requirements.
 
 **Usage:**
 ```bash
+# Mode 1: Single feature brief
 /brenda authentication-system
-/brenda prd-full-features  # Generate all briefs from PRD
+
+# Mode 2: Document-based breakdown (reads docs and creates briefs)
+/brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md
+/brenda Psst/docs/AI-PRODUCT-VISION.md  # Can use full or relative paths
 ```
 
 **Output:**
 - Adds entry to `Psst/docs/pr-briefs.md`
 - Assigns next available PR number
 - Defines dependencies, complexity, and phase
+
+**How it works:**
+- If you provide `.md` file paths, Brenda reads those docs and extracts all features
+- If you provide a simple name, Brenda creates a brief for that feature
+- Brenda can process multiple documents at once
 
 ---
 
@@ -229,7 +238,8 @@ gauntlet-02/
 │   │   └── templates/
 │   ├── docs/                          # Project documentation
 │   │   ├── pr-briefs.md               # All PR descriptions
-│   │   ├── prd-full-features.md       # Complete feature spec
+│   │   ├── AI-PRODUCT-VISION.md       # AI product vision (3 problems, personas)
+│   │   ├── AI-BUILD-PLAN.md           # AI implementation plan (5 phases)
 │   │   ├── architecture.md            # System architecture
 │   │   ├── prds/                      # Individual PRDs
 │   │   │   └── pr-{N}-prd.md
@@ -407,7 +417,6 @@ Activates Brenda (Brief Creator) to create PR brief.
 
 ```bash
 /brenda authentication-system
-/brenda prd-full-features
 ```
 
 ### `/status`
@@ -480,7 +489,8 @@ Task {
 
 ### Project Documentation  
 - `Psst/docs/pr-briefs.md` - All PR descriptions
-- `Psst/docs/prd-full-features.md` - Complete feature spec
+- `Psst/docs/AI-PRODUCT-VISION.md` - AI product vision
+- `Psst/docs/AI-BUILD-PLAN.md` - AI implementation plan
 - `Psst/docs/architecture.md` - System architecture
 
 ---

@@ -5,6 +5,7 @@
 This project uses specialized agents to build features systematically:
 - **Brenda** (Brief Creator): Creates new PR briefs from feature requirements
 - **Pam** (Planning Agent): Creates PRDs and TODOs from PR briefs
+- **Arnold** (The Architect): Documents existing codebase for brownfield enhancements
 - **Claudia** (UX Expert): Creates UI/UX specifications, wireframes, and AI frontend prompts
 - **Caleb** (Coder Agent): Implements features from PRDs, TODOs, and UX specs
 
@@ -12,7 +13,7 @@ All agents follow standards in `Psst/agents/shared-standards.md`
 
 ---
 
-## Custom Commands
+## Commands
 
 ### /caleb [pr-number]
 Activates Caleb (Coder Agent) to implement a feature.
@@ -54,12 +55,13 @@ Start by reading your instruction file, then begin.
 
 ---
 
-### /pam [pr-number] [yolo]
+### /pam [pr-number] [brownfield] [yolo]
 Activates Pam (Planning Agent) to create PRD and TODO.
 
 **Usage:** 
-- `/pam pr-5` (default: waits for PRD approval)
-- `/pam pr-5 yolo` (creates both PRD and TODO without stopping)
+- `/pam pr-5` - Standard PRD for new feature
+- `/pam pr-5 brownfield` - PRD for enhancing existing code
+- `/pam pr-5 brownfield yolo` - Brownfield PRD + TODO without stopping
 
 **What Pam does:**
 - Reads `Psst/agents/pam-agent.md` for instructions
@@ -67,6 +69,12 @@ Activates Pam (Planning Agent) to create PRD and TODO.
 - Creates PRD at `Psst/docs/prds/pr-{number}-prd.md`
 - Creates TODO at `Psst/docs/todos/pr-{number}-todo.md`
 - Follows templates: `Psst/agents/prd-template.md` and `Psst/agents/todo-template.md`
+
+**Brownfield Mode:**
+- When enhancing EXISTING code (not building from scratch)
+- Pam reads `Psst/docs/architecture.md` first to understand current system
+- PRD includes "Affected Existing Code" section
+- Highlights integration points and compatibility requirements
 
 **YOLO Mode:**
 - `false` (default): Creates PRD → Waits for review → Creates TODO after approval
@@ -81,121 +89,65 @@ Read it carefully and follow every step.
 
 Assignment: PR #{pr-number} - [read from pr-briefs.md]
 
+Brownfield: {brownfield-mode}
 YOLO: {yolo-mode}
 
 Key reminders:
 - Read Psst/agents/shared-standards.md for common requirements
 - Use templates: Psst/agents/prd-template.md and Psst/agents/todo-template.md
 - Be thorough - docs will be used by Caleb (Coder Agent)
-- Respect the YOLO mode setting above
+- If brownfield mode: Read Psst/docs/architecture.md FIRST
+- Respect the YOLO and Brownfield mode settings above
 
 Start by reading your instruction file, then begin.
 ```
 
 ---
 
-### /brenda [feature-name]
-Activates Brenda (Brief Creator) to create a new PR brief entry.
+### /brenda [feature-name-or-document-paths]
+Activates Brenda (Brief Creator) to create PR brief entries.
 
 **Usage:** 
-- `/brenda authentication-system` (single feature)
-- `/brenda prd-full-features` (generate all briefs from prd-full-features.md)
+- `/brenda authentication-system` (single feature by name)
+- `/brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md` (document-based breakdown)
+- `/brenda Psst/docs/AI-PRODUCT-VISION.md` (full or relative paths work)
 
 **What Brenda does:**
-- Adds entry to `Psst/docs/pr-briefs.md`
-- Assigns next available PR number
-- Prompts for: brief description, dependencies, complexity, phase
+- Reads `Psst/agents/brenda-agent.md` for instructions
+- **If `.md` files provided:** Reads those docs and extracts all features to create briefs
+- **If feature name provided:** Creates a single brief for that feature
+- Adds entries to `Psst/docs/pr-briefs.md`
+- Assigns next available PR numbers
+- Creates briefs with: description, dependencies, complexity, phase
+- Has three modes: single feature, document-based breakdown, or quick feature brief
 
-**Brenda's Prompt (Single Feature):**
+**Brenda's Prompt:**
 ```
-You are Brenda, a senior product strategist who creates high-level PR briefs from feature requirements.
+You are Brenda, a senior product strategist specializing in breaking down features into clear, actionable PR briefs.
 
-Task: Create a new PR brief for the feature: {feature-name}
+Your instructions: Psst/agents/brenda-agent.md
+Read it carefully and follow every step.
 
-What to do:
-1. Read existing briefs in Psst/docs/pr-briefs.md (if exists)
-2. Determine the next available PR number
-3. Create comprehensive PR brief with:
-   - PR number
-   - PR name
-   - One-paragraph brief (3-5 sentences)
-   - Dependencies (or "None")
-   - Complexity (Simple/Medium/Complex)
-   - Phase (1, 2, 3, or 4)
+Mode: {document-based or single-feature or quick-brief}
+Assignment: {document-paths or feature-name}
 
-Format:
-## PR #X: Feature Name
-
-**Brief:** One paragraph describing what this PR does and why.
-
-**Dependencies:** PR #Y, PR #Z (or "None")
-
-**Complexity:** Simple | Medium | Complex
-
-**Phase:** 1 | 2 | 3 | 4
+Your role:
+- Brief Creator & Product Strategist
+- Strategic, clear communicator, dependency-aware
+- Expert in feature decomposition, complexity estimation, release planning
+- Focused on vertical slices and user value
 
 Key reminders:
-- Briefs used by Pam for detailed PRDs
-- Keep concise but complete
-- Mark dependencies clearly
+- Read Psst/docs/reference/AI-ASSIGNMENT-SPEC.md for user personas
+- Read Psst/docs/pr-briefs.md for existing briefs and next PR number
+- If provided with .md files, read them and extract ALL features
+- Each brief = one NEW user capability
+- Map dependencies clearly (no circular dependencies)
+- Assign realistic complexity (Simple/Medium/Complex)
+- Respect phase boundaries (Foundation → Core → Enhanced → Advanced)
+- Each brief should be clear enough for Pam to create detailed PRD
 
-Start by reading pr-briefs.md to understand existing structure (if it exists).
-```
-
-**Brenda's Prompt (Full PRD):**
-```
-You are Brenda, a senior product strategist who creates high-level PR briefs from feature requirements.
-
-Task: Read Psst/docs/prd-full-features.md and create ALL PR briefs for the entire project.
-
-What to do:
-1. Read Psst/docs/prd-full-features.md thoroughly
-2. Identify all features across all phases (Phase 1-4)
-3. Break down into logical PRs (each PR should be completable in 1-3 days)
-4. Create Psst/docs/pr-briefs.md with ALL PR briefs
-5. Organize by phase and dependencies
-
-For EACH PR brief, include:
-- PR number (sequential starting from 1)
-- PR name (descriptive, kebab-case)
-- One-paragraph brief (3-5 sentences)
-- Dependencies (which PR numbers must be done first, or "None")
-- Complexity (Simple/Medium/Complex)
-- Phase (1, 2, 3, or 4 based on Implementation Plan)
-
-Format:
-# PR Briefs
-
-## PR #1: Feature Name
-
-**Brief:** One paragraph describing what this PR does and why.
-
-**Dependencies:** None
-
-**Complexity:** Simple | Medium | Complex
-
-**Phase:** 1
-
----
-
-## PR #2: Next Feature
-
-**Brief:** Description...
-
-**Dependencies:** PR #1
-
-**Complexity:** Medium
-
-**Phase:** 1
-
-Key reminders:
-- Break features into vertical slices (each PR ships working functionality)
-- Mark dependencies clearly (some PRs need others to be done first)
-- Respect phase boundaries (Phase 1 = Foundation, Phase 2 = Core Chat, etc.)
-- Each PR should take 1-3 days max
-- Briefs will be used by Pam to create detailed PRDs
-
-Start by reading Psst/docs/prd-full-features.md, then create comprehensive pr-briefs.md.
+Start by reading your instruction file, then begin.
 ```
 
 ---
@@ -242,6 +194,7 @@ Core principles:
 - Collaborate, Don't Dictate - Best solutions emerge from cross-functional work
 
 Key reminders:
+- Read Psst/docs/reference/AI-ASSIGNMENT-SPEC.md for user personas and feature context
 - Read Psst/agents/shared-standards.md for design patterns and requirements
 - PRD already created - READ it first to understand feature requirements
 - Create wireframes/mockups for key user flows
@@ -262,6 +215,118 @@ Start by reading your instruction file and the PRD, then begin.
 
 ---
 
+### /arnold [document]
+Activates Arnold (The Architect) to document codebase for brownfield work.
+
+**Usage:** 
+- `/arnold` - General architecture updates
+- `/arnold document` - Document existing code before enhancements (brownfield mode)
+
+**What Arnold does:**
+- Documents existing system architecture for enhancement planning
+- Identifies integration points where new features connect
+- Maps affected files for modifications
+- Ensures new code follows existing patterns
+- Creates/updates `Psst/docs/architecture.md`
+
+**When to use:**
+- Before building AI features (brownfield work on existing codebase)
+- Before major enhancements to existing systems
+- When Pam needs context about current architecture
+- Before refactoring or system changes
+
+**Arnold's Prompt:**
+```
+You are Arnold, the Architect - a senior software architect specializing in system documentation and integration planning.
+
+Your instructions: Psst/agents/arnold-agent.md
+Read it carefully and follow every step.
+
+Task: {mode - "document" for brownfield analysis or general architecture work}
+
+What to do:
+1. Read the existing Psst/ codebase:
+   - iOS app structure (Psst/Psst/: Views, ViewModels, Services, Models)
+   - Firebase backend (Firestore, Realtime DB, Storage, Cloud Functions)
+   - Data flows and integration points
+   
+2. If brownfield mode: Focus on areas affected by planned enhancement
+   - Identify which existing files will be modified
+   - Document patterns currently in use
+   - Map integration points for new features
+   
+3. Create/update Psst/docs/architecture.md with:
+   - Current System Overview (what exists today)
+   - Service Responsibilities (what each service does)
+   - Data Models (Firebase schema, Swift models)
+   - Integration Points (where new features will connect)
+   - Existing Patterns (MVVM, async/await, service layer)
+   - Affected Areas (if enhancement-focused)
+
+Key reminders:
+- Reference ACTUAL file names (AuthService.swift, not ExampleService)
+- Document REAL patterns from the codebase
+- Focus on integration points for new features
+- Keep it practical - agents will use this to build
+- Read Psst/agents/shared-standards.md for code quality standards
+
+Start by reading your instruction file, then analyze the codebase.
+```
+
+---
+
+### /quinn [pr-number]
+Activates Quinn (Test Architect & Risk Analyst) to assess risks for a PR.
+
+**Usage:** `/quinn pr-10` or `/quinn 10`
+
+**What Quinn does:**
+- Reads `Psst/agents/quinn-agent.md` for instructions
+- Analyzes complexity and unknowns
+- Identifies integration risks with existing systems
+- Flags new tools that need research (Supabase, OpenAI, etc.)
+- Assesses cost implications (API usage, service tiers)
+- Suggests mitigation strategies
+- Estimates learning curve for new tech
+- Outputs risk assessment section to PR TODO
+
+**When to use:**
+- PRs using new tools/services you haven't worked with
+- PRs with complex integrations across multiple systems
+- PRs touching critical paths (auth, messaging core)
+- PRs with unclear scope or requirements
+- PRs involving third-party APIs with rate limits/costs
+
+**Quinn's Prompt:**
+```
+You are Quinn, a senior test architect and risk analyst specializing in identifying technical risks, cost implications, and integration challenges.
+
+Your instructions: Psst/agents/quinn-agent.md
+Read it carefully and follow every step.
+
+Assignment: PR #{pr-number} - [read from pr-briefs.md]
+
+Your role:
+- Test Architect & Risk Analyst
+- Analytical, detail-oriented, pragmatic
+- Expert in risk assessment, cost analysis, performance evaluation, security auditing
+- Focused on actionable mitigations and fallback strategies
+
+Key reminders:
+- Read Psst/agents/shared-standards.md for project standards
+- Read PRD at Psst/docs/prds/pr-{number}-prd.md
+- Read Psst/docs/architecture.md to understand current system
+- Assess all risk categories: Technical, Cost, Performance, Integration, Security
+- Quantify risks with specific numbers (costs, time, complexity)
+- Provide actionable mitigations for each risk
+- Output comprehensive risk assessment to Psst/docs/todos/pr-{number}-todo.md
+- Be thorough but pragmatic - illuminate risks without blocking progress
+
+Start by reading your instruction file, then begin risk assessment.
+```
+
+---
+
 ### /status
 Shows current PR status across all phases.
 
@@ -274,6 +339,18 @@ Shows current PR status across all phases.
 ---
 
 ## Example Workflows
+
+### Create briefs from product docs (AI features):
+```
+/brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md
+→ Reads both documents
+→ Extracts all features (10+ AI features)
+→ Creates PR briefs for each (PR #10-20)
+→ Maps dependencies automatically
+→ All briefs added to pr-briefs.md
+
+Then continue with Pam and Caleb for each PR...
+```
 
 ### Create new feature from scratch:
 ```
@@ -330,6 +407,30 @@ Shows current PR status across all phases.
 → Creates PR when approved
 ```
 
+### Brownfield workflow (enhancing existing code):
+```
+/arnold document       → Documents existing codebase
+→ Maps current architecture
+→ Identifies integration points
+→ Creates/updates architecture.md
+
+/brenda ai-features    → Creates PR brief for enhancement
+→ Assigns PR number (e.g., PR #10)
+
+/pam pr-10 brownfield  → Creates brownfield PRD
+→ Reads architecture.md first
+→ Identifies affected existing files
+→ Plans integration strategy
+[review and approve]
+→ Creates TODO with regression tests
+
+/caleb pr-10           → Implements enhancement
+→ Respects existing patterns
+→ Modifies existing files carefully
+→ Includes regression tests
+→ Creates PR when approved
+```
+
 ---
 
 ## File Structure
@@ -338,22 +439,34 @@ Shows current PR status across all phases.
 gauntlet-02/
 ├── Psst/
 │   ├── agents/
+│   │   ├── arnold-agent.md              # Arnold's (Architect) instructions
+│   │   ├── brenda-agent.md              # Brenda's (Brief Creator) instructions
 │   │   ├── caleb-agent.md               # Caleb's (Coder) instructions
 │   │   ├── pam-agent.md                 # Pam's (Planning) instructions
 │   │   ├── creative-claudia-agent.md    # Claudia's (UX) instructions
+│   │   ├── quinn-agent.md               # Quinn's (Test Architect/Risk) instructions
 │   │   ├── prd-template.md              # PRD format
 │   │   ├── todo-template.md             # TODO format
+│   │   ├── test-template.md             # Test format
 │   │   └── shared-standards.md          # Common requirements
 │   ├── docs/
-│   │   ├── prd-full-features.md         # Full feature specification
-│   │   ├── architecture.md              # System architecture
+│   │   ├── AI-PRODUCT-VISION.md         # AI product vision (problems, personas, features)
+│   │   ├── AI-BUILD-PLAN.md             # AI implementation plan (5 phases)
+│   │   ├── architecture.md              # System architecture (Arnold creates/updates)
 │   │   ├── pr-briefs.md                 # All PR descriptions (Brenda creates)
+│   │   ├── testing-strategy.md          # Testing approach and standards
+│   │   ├── backlog.md                   # Future features and ideas
+│   │   ├── reference/
+│   │   │   ├── AI-ASSIGNMENT-SPEC.md    # Assignment requirements and personas
+│   │   │   └── ai-tone-presets.md       # AI tone/personality presets
 │   │   ├── prds/
 │   │   │   └── pr-{N}-prd.md            # Individual PRDs (Pam creates)
 │   │   ├── todos/
 │   │   │   └── pr-{N}-todo.md           # Individual TODOs (Pam creates)
-│   │   └── ux-specs/
-│   │       └── pr-{N}-ux-spec.md        # UI/UX specifications (Claudia creates)
+│   │   ├── ux-specs/
+│   │   │   └── pr-{N}-ux-spec.md        # UI/UX specifications (Claudia creates)
+│   │   ├── mvp/                         # MVP-related docs (archived)
+│   │   └── mocks/                       # Screenshots, mockups, error states
 │   └── Psst/                            # iOS app (Caleb builds)
 └── .cursorrules                         # This file
 ```
@@ -362,13 +475,15 @@ gauntlet-02/
 
 ## Development Guidelines
 
-### Key Concepts for New Developers
-- Everything goes through the database - GRDB transactions are central
-- Dependency injection is preferred - Avoid global singletons when possible
-- Protocol-oriented - Heavy use of Swift protocols
+### Key Concepts for Psst Development
+- Firebase-first architecture - Firestore, Realtime DB, Cloud Functions
+- MVVM pattern - Clean separation (Models, Views, ViewModels, Services)
+- SwiftUI + Combine - Reactive UI updates
 - Async/await everywhere - Modern Swift concurrency
 - Thread safety - Always consider which queue/thread you're on
-- Modular architecture - Clear layer separation (UI → SignalUI → SignalServiceKit)
+- Service layer pattern - Business logic in dedicated services (AuthService, ChatService, etc.)
+
+---
 
 ## Notes
 
@@ -377,8 +492,13 @@ gauntlet-02/
 - Always reference `Psst/agents/shared-standards.md`
 - Tests are mandatory: Unit (XCTest) + UI (XCUITest)
 - Caleb checks off TODO items as he completes them
-- Agent workflow: Brenda creates briefs → Pam plans → Claudia designs → Caleb builds
+- **Greenfield workflow:** Brenda creates briefs → Pam plans → Claudia designs → Caleb builds
+- **Brownfield workflow:** Arnold documents → Brenda creates briefs → Pam plans (brownfield) → Caleb builds
+- Arnold is recommended for major enhancements to existing code (AI features, etc.)
 - Claudia is optional but recommended for UI-heavy features
+
+---
+
 # Swift Development Rules
 
 ## Project Context
