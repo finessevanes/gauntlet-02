@@ -154,10 +154,10 @@ export const chatWithAIFunction = functions.https.onCall(
           
           // Search for relevant past messages
           const searchStartTime = Date.now();
-          // TEMPORARILY lowered threshold from 0.7 to 0.5 for debugging
+          // Lowered threshold to 0.2 to catch semantic variations in queries
           const searchResults = await searchVectors(queryEmbedding, authenticatedUserId, {
             topK: 10,
-            relevanceThreshold: 0.5
+            relevanceThreshold: 0.2
           });
           const searchDuration = Date.now() - searchStartTime;
           
