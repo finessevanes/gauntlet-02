@@ -50,7 +50,6 @@ class ContextualAIViewModel: ObservableObject {
         lastChatID = chatID
         lastMessages = messages
         lastSenderName = senderName
-        lastMessage = message
         
         activeAction = action
         isLoading = true

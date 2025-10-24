@@ -16,5 +16,28 @@ struct RelatedMessage: Identifiable, Codable {
     let senderName: String
     let timestamp: Date
     let relevanceScore: Double // 0.0 - 1.0 (higher = more relevant)
+
+    // MARK: - Relevance Thresholds
+
+    private static let highRelevanceThreshold = 0.9
+    private static let mediumRelevanceThreshold = 0.8
+}
+
+// MARK: - UI Helpers
+
+import SwiftUI
+
+extension RelatedMessage {
+    /// Color indicating the relevance level of this message
+    var relevanceColor: Color {
+        switch relevanceScore {
+        case Self.highRelevanceThreshold...:
+            return .green
+        case Self.mediumRelevanceThreshold...:
+            return .orange
+        default:
+            return .gray
+        }
+    }
 }
 

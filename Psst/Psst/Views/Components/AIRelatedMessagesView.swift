@@ -89,19 +89,9 @@ struct RelatedMessageRow: View {
                 
                 HStack(spacing: 4) {
                     // Relevance indicator
-                    if message.relevanceScore >= 0.9 {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundColor(.green)
-                    } else if message.relevanceScore >= 0.8 {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundColor(.orange)
-                    } else {
-                        Image(systemName: "circle.fill")
-                            .font(.system(size: 6))
-                            .foregroundColor(.gray)
-                    }
+                    Image(systemName: "circle.fill")
+                        .font(.system(size: 6))
+                        .foregroundColor(message.relevanceColor)
                     
                     Text(message.timestamp, style: .relative)
                         .font(.caption)

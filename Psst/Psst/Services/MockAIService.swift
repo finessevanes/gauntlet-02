@@ -11,12 +11,38 @@ import Foundation
 /// Mock AI service providing realistic contextual action responses for development
 /// Simulates network delay and returns contextually appropriate data
 class MockAIService {
-    
+
+    // MARK: - Configuration
+
+    /// Configuration constants for mock service behavior
+    private enum MockConfig {
+        static let delayRange = 0.5...1.5
+        static let maxKeyPoints = 5
+        static let messagePreviewLength = 50
+        static let relatedMessagesCount = 3
+        static let reminderHour = 9
+        static let reminderMinute = 0
+
+        // Relevance scores
+        static let highRelevanceScore = 0.92
+        static let mediumRelevanceScore = 0.87
+        static let lowRelevanceScore = 0.81
+
+        // Relevance thresholds
+        static let highRelevanceThreshold = 0.9
+        static let mediumRelevanceThreshold = 0.8
+
+        // Time intervals (in seconds)
+        static let twoWeeksAgo: TimeInterval = -14 * 24 * 60 * 60
+        static let tenDaysAgo: TimeInterval = -10 * 24 * 60 * 60
+        static let fiveDaysAgo: TimeInterval = -5 * 24 * 60 * 60
+    }
+
     // MARK: - Private Helpers
     
     /// Simulates network delay for realistic UX testing
     private static func simulateDelay() async {
-        let delay = Double.random(in: 0.5...1.5)
+        let delay = Double.random(in: MockConfig.delayRange)
         try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
     }
     
@@ -61,31 +87,31 @@ class MockAIService {
         // Detect keywords from message to return contextually appropriate results
         let messageText = message.text.lowercased()
         
-        // Generate 3 related messages with decreasing relevance scores
+        // Generate related messages with decreasing relevance scores
         return [
             RelatedMessage(
                 id: UUID().uuidString,
                 messageID: "mock_1",
                 text: generateRelatedMessageText(for: messageText, relevance: .high),
                 senderName: "John Doe",
-                timestamp: Date().addingTimeInterval(-14 * 24 * 60 * 60), // 2 weeks ago
-                relevanceScore: 0.92
+                timestamp: Date().addingTimeInterval(MockConfig.twoWeeksAgo),
+                relevanceScore: MockConfig.highRelevanceScore
             ),
             RelatedMessage(
                 id: UUID().uuidString,
                 messageID: "mock_2",
                 text: generateRelatedMessageText(for: messageText, relevance: .medium),
                 senderName: "John Doe",
-                timestamp: Date().addingTimeInterval(-10 * 24 * 60 * 60), // 10 days ago
-                relevanceScore: 0.87
+                timestamp: Date().addingTimeInterval(MockConfig.tenDaysAgo),
+                relevanceScore: MockConfig.mediumRelevanceScore
             ),
             RelatedMessage(
                 id: UUID().uuidString,
                 messageID: "mock_3",
                 text: generateRelatedMessageText(for: messageText, relevance: .low),
                 senderName: "John Doe",
-                timestamp: Date().addingTimeInterval(-5 * 24 * 60 * 60), // 5 days ago
-                relevanceScore: 0.81
+                timestamp: Date().addingTimeInterval(MockConfig.fiveDaysAgo),
+                relevanceScore: MockConfig.lowRelevanceScore
             )
         ]
     }
@@ -98,16 +124,16 @@ class MockAIService {
     static func mockReminder(from message: Message, senderName: String) async -> ReminderSuggestion {
         await simulateDelay()
         
-        // Extract first 50 characters from message for reminder text
-        let messagePreview = String(message.text.prefix(50))
-        let reminderText = messagePreview.count < message.text.count 
+        // Extract first characters from message for reminder text
+        let messagePreview = String(message.text.prefix(MockConfig.messagePreviewLength))
+        let reminderText = messagePreview.count < message.text.count
             ? "Follow up with \(senderName) about: \(messagePreview)..."
             : "Follow up with \(senderName) about: \(messagePreview)"
-        
-        // Suggest tomorrow at 9am
+
+        // Suggest tomorrow at configured time
         var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        components.hour = 9
-        components.minute = 0
+        components.hour = MockConfig.reminderHour
+        components.minute = MockConfig.reminderMinute
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let suggestedDate = Calendar.current.date(from: components) ?? tomorrow
         
@@ -125,47 +151,33 @@ class MockAIService {
     
     /// Generates mock key points from messages
     private static func generateMockKeyPoints(from messages: [Message]) -> [String] {
-        var keyPoints: [String] = []
-        
         // Analyze message content for common keywords
         let allText = messages.map { $0.text.lowercased() }.joined(separator: " ")
-        
-        if allText.contains("pain") || allText.contains("knee") || allText.contains("shoulder") || allText.contains("injury") {
-            keyPoints.append("Discussed injury concerns and modifications needed")
-        }
-        
-        if allText.contains("workout") || allText.contains("exercise") || allText.contains("training") {
-            keyPoints.append("Reviewed workout plan and exercise progression")
-        }
-        
-        if allText.contains("diet") || allText.contains("nutrition") || allText.contains("eating") || allText.contains("protein") {
-            keyPoints.append("Covered nutrition and dietary adjustments")
-        }
-        
-        if allText.contains("progress") || allText.contains("weight") || allText.contains("goal") {
-            keyPoints.append("Tracked progress toward fitness goals")
-        }
-        
-        if allText.contains("schedule") || allText.contains("time") || allText.contains("session") {
-            keyPoints.append("Discussed scheduling and session availability")
-        }
-        
+
+        // Detect categories and extract their key points
+        let detectedCategories = KeywordDetector.detectCategories(in: allText)
+        let keyPoints = detectedCategories.map { $0.keyPoint }
+
         // If no keywords detected, provide generic key points
         if keyPoints.isEmpty {
-            keyPoints = [
+            return [
                 "General fitness discussion and questions",
                 "Planning next steps and adjustments",
                 "Client motivation and check-in"
             ]
         }
-        
-        return Array(keyPoints.prefix(5)) // Return max 5 key points
+
+        return Array(keyPoints.prefix(MockConfig.maxKeyPoints))
     }
     
     /// Generates related message text based on detected keywords
     private static func generateRelatedMessageText(for messageText: String, relevance: RelevanceLevel) -> String {
-        // Detect keywords and return contextually similar messages
-        if messageText.contains("knee") || messageText.contains("pain") {
+        // Detect primary category
+        let primaryCategory = KeywordDetector.detectPrimaryCategory(in: messageText)
+
+        // Return messages based on detected topic
+        switch primaryCategory?.topic {
+        case "Injury management":
             switch relevance {
             case .high:
                 return "My knee has been bothering me after squats"
@@ -174,7 +186,8 @@ class MockAIService {
             case .low:
                 return "Knee feels better after trying lighter weights"
             }
-        } else if messageText.contains("diet") || messageText.contains("nutrition") {
+
+        case "Nutrition guidance":
             switch relevance {
             case .high:
                 return "Question about protein intake and macros"
@@ -183,7 +196,8 @@ class MockAIService {
             case .low:
                 return "Noticed better energy with the new diet"
             }
-        } else if messageText.contains("workout") || messageText.contains("exercise") {
+
+        case "Workout planning":
             switch relevance {
             case .high:
                 return "Can we adjust the workout schedule?"
@@ -192,7 +206,8 @@ class MockAIService {
             case .low:
                 return "Completed all sets this week!"
             }
-        } else {
+
+        default:
             // Generic related messages for any other content
             switch relevance {
             case .high:
@@ -208,26 +223,18 @@ class MockAIService {
     /// Extracts contextual information from message text
     private static func extractInfo(from text: String, senderName: String) -> [String: String] {
         var info: [String: String] = [
-            "client": senderName,
-            "topic": "Message follow-up"
+            "client": senderName
         ]
-        
-        let lowercasedText = text.lowercased()
-        
-        // Detect topic
-        if lowercasedText.contains("pain") || lowercasedText.contains("injury") {
-            info["topic"] = "Injury management"
-            info["priority"] = "high"
-        } else if lowercasedText.contains("workout") || lowercasedText.contains("exercise") {
-            info["topic"] = "Workout planning"
-            info["priority"] = "medium"
-        } else if lowercasedText.contains("diet") || lowercasedText.contains("nutrition") {
-            info["topic"] = "Nutrition guidance"
-            info["priority"] = "medium"
+
+        // Detect primary category using KeywordDetector
+        if let primaryCategory = KeywordDetector.detectPrimaryCategory(in: text) {
+            info["topic"] = primaryCategory.topic
+            info["priority"] = primaryCategory.priority.rawValue
         } else {
+            info["topic"] = "Message follow-up"
             info["priority"] = "medium"
         }
-        
+
         return info
     }
     
