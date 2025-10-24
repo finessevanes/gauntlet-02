@@ -33,6 +33,27 @@ class AIAssistantViewModel: ObservableObject {
         self.conversation = aiService.createConversation()
     }
     
+    // MARK: - Private Methods
+    
+    /// Updates the status of a message in the conversation
+    /// - Parameters:
+    ///   - messageId: ID of the message to update
+    ///   - status: New status to set
+    private func updateMessageStatus(_ messageId: String, to status: AIMessage.AIMessageStatus) {
+        guard let index = conversation.messages.firstIndex(where: { $0.id == messageId }) else {
+            return
+        }
+        
+        let currentMessage = conversation.messages[index]
+        conversation.messages[index] = AIMessage(
+            id: currentMessage.id,
+            text: currentMessage.text,
+            isFromUser: currentMessage.isFromUser,
+            timestamp: currentMessage.timestamp,
+            status: status
+        )
+    }
+    
     // MARK: - Public Methods
     
     /// Send user message and get AI response
@@ -65,17 +86,7 @@ class AIAssistantViewModel: ObservableObject {
         Task {
             do {
                 // Update user message status to delivered
-                if let index = conversation.messages.firstIndex(where: { $0.id == userMessage.id }) {
-                    var updatedMessage = conversation.messages[index]
-                    updatedMessage = AIMessage(
-                        id: updatedMessage.id,
-                        text: updatedMessage.text,
-                        isFromUser: updatedMessage.isFromUser,
-                        timestamp: updatedMessage.timestamp,
-                        status: .delivered
-                    )
-                    conversation.messages[index] = updatedMessage
-                }
+                updateMessageStatus(userMessage.id, to: .delivered)
                 
                 // Get AI response
                 let response = try await aiService.sendMessage(
@@ -106,17 +117,7 @@ class AIAssistantViewModel: ObservableObject {
                 isLoading = false
                 
                 // Update user message status to failed
-                if let index = conversation.messages.firstIndex(where: { $0.id == userMessage.id }) {
-                    var updatedMessage = conversation.messages[index]
-                    updatedMessage = AIMessage(
-                        id: updatedMessage.id,
-                        text: updatedMessage.text,
-                        isFromUser: updatedMessage.isFromUser,
-                        timestamp: updatedMessage.timestamp,
-                        status: .failed
-                    )
-                    conversation.messages[index] = updatedMessage
-                }
+                updateMessageStatus(userMessage.id, to: .failed)
                 
                 // Set error message
                 if let aiError = error as? AIError {

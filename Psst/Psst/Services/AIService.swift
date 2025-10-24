@@ -56,23 +56,8 @@ class AIService: ObservableObject {
         // Simulate network delay
         try? await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
         
-        let lowercasedMessage = message.lowercased()
-        let responseText: String
-        
-        // Generate contextual mock responses
-        if lowercasedMessage.contains("hello") || lowercasedMessage.contains("hi") {
-            responseText = "Hi! I'm your AI assistant. How can I help you today?"
-        } else if lowercasedMessage.contains("help") || lowercasedMessage.contains("what can you do") {
-            responseText = "I can help you search past conversations, summarize chats, and answer questions about your clients. What would you like to know?"
-        } else if lowercasedMessage.contains("client") || lowercasedMessage.contains("message") {
-            responseText = "I can help you find messages from specific clients. Try asking 'Show me recent messages from [client name]' or 'Summarize my conversation with [client name]'."
-        } else if lowercasedMessage.contains("search") {
-            responseText = "I can search through all your conversations. What would you like to search for?"
-        } else if lowercasedMessage.contains("summarize") {
-            responseText = "I can summarize conversations to help you quickly catch up. Which conversation would you like me to summarize?"
-        } else {
-            responseText = "I understand you're asking about '\(message)'. Once the AI backend is ready, I'll be able to provide more detailed answers. For now, try asking about searching messages, summarizing conversations, or finding client information."
-        }
+        // Use centralized mock response logic
+        let responseText = MockAIData.mockResponse(for: message)
         
         return AIResponse(
             messageId: UUID().uuidString,
