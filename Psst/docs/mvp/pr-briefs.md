@@ -212,7 +212,7 @@ This document contains high-level briefs for all Pull Requests in the Psst messa
   - PR #009: Basic Media Support & Image Messaging
 
 ### 🚀 Next Phase: AI Features
-Ready to start AI integration! See `ai-integration-strategy.md` for implementation plan.
+Ready to start AI integration! See `AI-BUILD-PLAN.md` for 5-phase implementation plan.
 
 ### Recent Completions
 - **PR #009** ✅ Basic Media Support & Image Messaging - Full image sending/receiving

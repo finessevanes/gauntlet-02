@@ -10,6 +10,53 @@ When starting, you will receive:
 - **PR Number**: `#___`
 - **PR Name**: `___________`
 - **YOLO Mode**: `true` or `false` default: `false`
+- **Brownfield Mode**: `true` or `false` default: `false`
+
+---
+
+## Brownfield Mode (Enhancing Existing Code)
+
+**When brownfield: true**, this PR modifies existing code rather than adding new features from scratch.
+
+### Additional Steps for Brownfield
+
+1. **Read architecture FIRST**: `Psst/docs/architecture.md` - understand current system
+2. **Identify affected files**: List which existing files will be modified
+3. **Respect existing patterns**: Follow MVVM, service layer, async/await conventions already in use
+4. **Plan for compatibility**: Don't break existing features
+
+### Additional PRD Sections for Brownfield
+
+Add these sections to your PRD:
+
+**After Section 5 (Users & Stories), add:**
+```markdown
+## 5b. Affected Existing Code
+
+List files that will be MODIFIED (not created):
+
+**Services:**
+- `Services/AuthService.swift` - Add new method...
+- `Services/MessageService.swift` - Modify to support...
+
+**Views:**
+- `Views/ChatList/ChatListView.swift` - Update to display...
+
+**ViewModels:**
+- `ViewModels/ChatListViewModel.swift` - Add state for...
+```
+
+**In Section 12 (Test Plan), add:**
+```markdown
+### Regression Testing
+- [ ] Existing feature X still works after changes
+- [ ] Existing feature Y not affected by modifications
+- [ ] Integration with current Z unchanged
+```
+
+**In Section 13 (Risks), include:**
+- Risk: Breaking existing functionality
+- Risk: Pattern inconsistency with current codebase
 
 ---
 
@@ -18,7 +65,7 @@ When starting, you will receive:
 **Read these before starting:**
 - `Psst/docs/pr-briefs.md` — Your specific PR details
 - `Psst/docs/architecture.md` — Codebase structure
-- `Psst/docs/prd-full-features.md` — Big picture context
+- `Psst/docs/AI-PRODUCT-VISION.md` — Big picture context (for AI features)
 - `Psst/agents/prd-template.md` — Template to fill out
 - `Psst/agents/todo-template.md` — Template to fill out
 - `Psst/agents/shared-standards.md` — Common requirements and standards
@@ -36,7 +83,7 @@ When starting, you will receive:
 ### Step 1: Read and Understand
 
 1. Find your PR in `Psst/docs/pr-briefs.md`
-2. Read supporting docs (architecture, full features, existing PRDs)
+2. Read supporting docs (architecture, AI product vision, existing PRDs)
 3. Answer key questions:
    - What problem does this solve?
    - Who is the user?
