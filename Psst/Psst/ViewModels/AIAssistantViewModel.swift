@@ -24,6 +24,9 @@ class AIAssistantViewModel: ObservableObject {
     
     private let aiService: AIService
     
+    // Track backend conversation ID (nil until first message is sent)
+    private var backendConversationId: String?
+    
     // MARK: - Initialization
     
     /// Initialize AIAssistantViewModel
@@ -96,10 +99,17 @@ class AIAssistantViewModel: ObservableObject {
                 updateMessageStatus(userMessage.id, to: .delivered)
                 
                 // Get AI response from Cloud Function
+                // Only pass conversationId if we have one from the backend
                 let response = try await aiService.chatWithAI(
                     message: messageToSend,
-                    conversationId: conversation.id
+                    conversationId: backendConversationId
                 )
+                
+                // Store the backend conversation ID for future messages
+                if backendConversationId == nil {
+                    // Get the conversation ID from the backend
+                    backendConversationId = aiService.conversationIdFromBackend
+                }
                 
                 // Create AI message from response
                 let aiMessage = AIMessage(
@@ -153,14 +163,10 @@ class AIAssistantViewModel: ObservableObject {
         errorMessage = nil
     }
     
-    /// Load mock conversation for testing and development
-    func loadMockConversation() {
-        conversation = MockAIData.sampleConversation
-    }
-    
     /// Clear current conversation and start fresh
     func clearConversation() {
         conversation = aiService.createConversation()
+        backendConversationId = nil // Reset backend conversation ID
         errorMessage = nil
         currentInput = ""
     }

@@ -31,11 +31,6 @@ struct SettingsView: View {
     /// Show notification test view
     @State private var showNotificationTest = false
     
-    /// AI backend test state
-    @State private var testingAI = false
-    @State private var aiTestResult = ""
-    @State private var showAITestResult = false
-    
     // MARK: - Body
     
     var body: some View {
@@ -74,20 +69,6 @@ struct SettingsView: View {
                                 .fontWeight(.semibold)
                         }
                     }
-                    
-                    Button(action: testAIBackend) {
-                        HStack {
-                            if testingAI {
-                                ProgressView()
-                                    .padding(.trailing, 8)
-                            } else {
-                                Image(systemName: "brain")
-                            }
-                            Text(testingAI ? "Testing AI..." : "Test AI Backend")
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    .disabled(testingAI)
                 }
                 #endif
                 
@@ -108,11 +89,6 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showNotificationTest) {
                 NotificationTestView()
-            }
-            .alert("AI Backend Test Result", isPresented: $showAITestResult) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(aiTestResult)
             }
         }
     }
@@ -196,51 +172,6 @@ struct SettingsView: View {
                 isLoggingOut = false
             }
             // Navigation handled by AuthViewModel (returns to LoginView)
-        }
-    }
-    
-    /// Tests the AI backend (PR #003)
-    /// Calls the production chatWithAI Cloud Function
-    private func testAIBackend() {
-        testingAI = true
-        
-        Task {
-            do {
-                let aiService = AIService()
-                let response = try await aiService.testRealChatWithAI(
-                    message: "Hhey, what did jameson say last?"
-                )
-                
-                await MainActor.run {
-                    aiTestResult = """
-                    ✅ SUCCESS!
-                    
-                    AI Response:
-                    \(response.text)
-                    
-                    Tokens Used: \(response.metadata?.tokensUsed ?? 0)
-                    Model: \(response.metadata?.modelUsed ?? "unknown")
-                    """
-                    showAITestResult = true
-                    testingAI = false
-                }
-                
-                print("✅ AI Backend Test Successful!")
-                print("Response: \(response.text)")
-                
-            } catch {
-                await MainActor.run {
-                    aiTestResult = """
-                    ❌ ERROR
-                    
-                    \(error.localizedDescription)
-                    """
-                    showAITestResult = true
-                    testingAI = false
-                }
-                
-                print("❌ AI Backend Test Failed: \(error)")
-            }
         }
     }
     
