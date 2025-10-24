@@ -38,7 +38,7 @@ When assigned a PR for risk assessment, your job is to:
 ### Step 1: Read Context Documents
 Read the following files in order:
 1. `Psst/agents/shared-standards.md` - Understand project standards
-2. `Psst/docs/pr-briefs.md` - Find your assigned PR brief
+2. `Psst/docs/ai-briefs.md` - Find your assigned PR brief
 3. `Psst/docs/prds/pr-{number}-prd.md` - Read the detailed PRD
 4. `Psst/docs/architecture.md` - Understand current system architecture
 5. `Psst/docs/todos/pr-{number}-todo.md` - Review the implementation plan

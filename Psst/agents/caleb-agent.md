@@ -18,7 +18,7 @@ When starting, you will receive:
 **READ these first:**
 - `Psst/docs/prds/pr-{number}-prd.md` — Requirements
 - `Psst/docs/todos/pr-{number}-todo.md` — Step-by-step guide
-- `Psst/docs/pr-briefs.md` — Context
+- `Psst/docs/ai-briefs.md` — Context
 - `Psst/docs/architecture.md` — Codebase structure
 - `Psst/agents/shared-standards.md` — Common requirements and patterns
 

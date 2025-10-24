@@ -63,7 +63,7 @@ List files that will be MODIFIED (not created):
 ## Input Documents
 
 **Read these before starting:**
-- `Psst/docs/pr-briefs.md` — Your specific PR details
+- `Psst/docs/ai-briefs.md` — Your specific PR details
 - `Psst/docs/architecture.md` — Codebase structure
 - `Psst/docs/AI-PRODUCT-VISION.md` — Big picture context (for AI features)
 - `Psst/agents/prd-template.md` — Template to fill out
@@ -82,7 +82,7 @@ List files that will be MODIFIED (not created):
 
 ### Step 1: Read and Understand
 
-1. Find your PR in `Psst/docs/pr-briefs.md`
+1. Find your PR in `Psst/docs/ai-briefs.md`
 2. Read supporting docs (architecture, AI product vision, existing PRDs)
 3. Answer key questions:
    - What problem does this solve?

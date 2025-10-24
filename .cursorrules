@@ -37,7 +37,7 @@ You are Caleb, a senior software engineer specializing in building features from
 Your instructions: Psst/agents/caleb-agent.md
 Read it carefully and follow every step.
 
-Assignment: PR #{pr-number} - [read from pr-briefs.md]
+Assignment: PR #{pr-number} - [read from ai-briefs.md]
 
 Key reminders:
 - Read Psst/agents/shared-standards.md for patterns and requirements
@@ -65,7 +65,7 @@ Activates Pam (Planning Agent) to create PRD and TODO.
 
 **What Pam does:**
 - Reads `Psst/agents/pam-agent.md` for instructions
-- Reads PR brief from `Psst/docs/pr-briefs.md`
+- Reads PR brief from `Psst/docs/ai-briefs.md`
 - Creates PRD at `Psst/docs/prds/pr-{number}-prd.md`
 - Creates TODO at `Psst/docs/todos/pr-{number}-todo.md`
 - Follows templates: `Psst/agents/prd-template.md` and `Psst/agents/todo-template.md`
@@ -87,7 +87,7 @@ You are Pam, a senior product manager specializing in breaking down features int
 Your instructions: Psst/agents/pam-agent.md
 Read it carefully and follow every step.
 
-Assignment: PR #{pr-number} - [read from pr-briefs.md]
+Assignment: PR #{pr-number} - [read from ai-briefs.md]
 
 Brownfield: {brownfield-mode}
 YOLO: {yolo-mode}
@@ -116,7 +116,7 @@ Activates Brenda (Brief Creator) to create PR brief entries.
 - Reads `Psst/agents/brenda-agent.md` for instructions
 - **If `.md` files provided:** Reads those docs and extracts all features to create briefs
 - **If feature name provided:** Creates a single brief for that feature
-- Adds entries to `Psst/docs/pr-briefs.md`
+- Adds entries to `Psst/docs/ai-briefs.md`
 - Assigns next available PR numbers
 - Creates briefs with: description, dependencies, complexity, phase
 - Has three modes: single feature, document-based breakdown, or quick feature brief
@@ -139,7 +139,7 @@ Your role:
 
 Key reminders:
 - Read Psst/docs/reference/AI-ASSIGNMENT-SPEC.md for user personas
-- Read Psst/docs/pr-briefs.md for existing briefs and next PR number
+- Read Psst/docs/ai-briefs.md for existing briefs and next PR number
 - If provided with .md files, read them and extract ALL features
 - Each brief = one NEW user capability
 - Map dependencies clearly (no circular dependencies)
@@ -178,7 +178,7 @@ You are Claudia, a senior UX designer and UI specialist focused on creating beau
 Your instructions: Psst/agents/creative-claudia-agent.md
 Read it carefully and follow every step.
 
-Assignment: PR #{pr-number} - [read from pr-briefs.md]
+Assignment: PR #{pr-number} - [read from ai-briefs.md]
 
 Your role:
 - User Experience Designer & UI Specialist
@@ -304,7 +304,7 @@ You are Quinn, a senior test architect and risk analyst specializing in identify
 Your instructions: Psst/agents/quinn-agent.md
 Read it carefully and follow every step.
 
-Assignment: PR #{pr-number} - [read from pr-briefs.md]
+Assignment: PR #{pr-number} - [read from ai-briefs.md]
 
 Your role:
 - Test Architect & Risk Analyst
@@ -347,7 +347,7 @@ Shows current PR status across all phases.
 → Extracts all features (10+ AI features)
 → Creates PR briefs for each (PR #10-20)
 → Maps dependencies automatically
-→ All briefs added to pr-briefs.md
+→ All briefs added to ai-briefs.md
 
 Then continue with Pam and Caleb for each PR...
 ```
@@ -453,7 +453,7 @@ gauntlet-02/
 │   │   ├── AI-PRODUCT-VISION.md         # AI product vision (problems, personas, features)
 │   │   ├── AI-BUILD-PLAN.md             # AI implementation plan (5 phases)
 │   │   ├── architecture.md              # System architecture (Arnold creates/updates)
-│   │   ├── pr-briefs.md                 # All PR descriptions (Brenda creates)
+│   │   ├── ai-briefs.md                 # All PR descriptions (Brenda creates)
 │   │   ├── testing-strategy.md          # Testing approach and standards
 │   │   ├── backlog.md                   # Future features and ideas
 │   │   ├── reference/

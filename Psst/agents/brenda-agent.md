@@ -71,7 +71,7 @@ Create a PR brief based on a simple feature name/description without reading ext
 
 #### Step 1: Read Context Documents
 1. `Psst/docs/reference/AI-ASSIGNMENT-SPEC.md` - Understand user personas and feature context
-2. `Psst/docs/pr-briefs.md` - See existing briefs and determine next PR number
+2. `Psst/docs/ai-briefs.md` - See existing briefs and determine next PR number
 3. Any feature specifications or user stories provided
 
 #### Step 2: Analyze the Feature
@@ -85,7 +85,7 @@ Ask yourself:
 - **When should this ship?** (foundation? core features? nice-to-have?)
 
 #### Step 3: Create the PR Brief
-Add to `Psst/docs/pr-briefs.md` using this format:
+Add to `Psst/docs/ai-briefs.md` using this format:
 
 ```markdown
 ## PR #X: Feature Name (kebab-case)
@@ -120,7 +120,7 @@ Read each document path provided by the user. Common docs include:
 - Any other `.md` file the user specifies
 
 Also read:
-- `Psst/docs/pr-briefs.md` - Existing briefs (for PR numbering)
+- `Psst/docs/ai-briefs.md` - Existing briefs (for PR numbering)
 - `Psst/docs/reference/AI-ASSIGNMENT-SPEC.md` - User personas (optional)
 
 #### Step 2: Extract Features from Documents
@@ -145,7 +145,7 @@ For each feature identified:
 4. Assign phase (use doc's phase if specified)
 5. Create brief following standard template
 
-#### Step 4: Organize and Add to pr-briefs.md
+#### Step 4: Organize and Add to ai-briefs.md
 - Group briefs by phase
 - Ensure sequential PR numbering
 - Add all briefs in one batch update
@@ -165,7 +165,7 @@ For each feature identified:
 This is the simplest mode - user provides a feature name, and you create a brief without reading extensive documentation.
 
 #### Step 1: Read Context
-1. `Psst/docs/pr-briefs.md` - Existing briefs and next PR number
+1. `Psst/docs/ai-briefs.md` - Existing briefs and next PR number
 2. `Psst/docs/architecture.md` (optional) - Technical context
 
 #### Step 2: Analyze the Feature Name
@@ -182,7 +182,7 @@ Based on the feature name alone, infer:
 - Phase: 3 (enhanced UX)
 
 #### Step 3: Create Brief
-Add single PR brief to `Psst/docs/pr-briefs.md` using standard template.
+Add single PR brief to `Psst/docs/ai-briefs.md` using standard template.
 
 #### Step 4: Verify
 - Brief is clear and actionable?
@@ -315,7 +315,7 @@ Add single PR brief to `Psst/docs/pr-briefs.md` using standard template.
 You've completed your brief creation when:
 
 ✅ **For Single Feature Mode:**
-- New PR brief added to `pr-briefs.md`
+- New PR brief added to `ai-briefs.md`
 - **"User Capability" clearly stated** (what users can DO)
 - Next available PR number assigned correctly
 - Dependencies identified (or marked "None")
@@ -331,7 +331,7 @@ You've completed your brief creation when:
 - Dependencies form a valid graph (no circular dependencies)
 - Vertical slices (each PR ships complete, working functionality)
 - Every brief includes "User Capability" statement
-- File saved to `Psst/docs/pr-briefs.md`
+- File saved to `Psst/docs/ai-briefs.md`
 
 ---
 
@@ -361,7 +361,8 @@ You've completed your brief creation when:
 
 **Always Read:**
 - `Psst/docs/reference/AI-ASSIGNMENT-SPEC.md` - User personas, feature requirements
-- `Psst/docs/pr-briefs.md` - Existing briefs (for context and PR numbering)
+- `Psst/docs/ai-briefs.md` - Existing briefs (for context and PR numbering)
+- `Psst/docs/ai-briefs.md` - AI-specific PR briefs (for AI feature context)
 
 **Optionally Read:**
 - `Psst/docs/AI-PRODUCT-VISION.md` - Product vision (3 problems, personas, features)

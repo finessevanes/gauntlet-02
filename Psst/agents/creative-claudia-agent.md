@@ -23,7 +23,7 @@ persona:
 
 dependencies:
   data:
-    - pr-briefs.md
+    - ai-briefs.md
     - architecture.mdtasks:
   tasks:
     - create-doc.md

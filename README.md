@@ -62,7 +62,7 @@ Creates high-level PR briefs from feature requirements.
 ```
 
 **Output:**
-- Adds entry to `Psst/docs/pr-briefs.md`
+- Adds entry to `Psst/docs/ai-briefs.md`
 - Assigns next available PR number
 - Defines dependencies, complexity, and phase
 
@@ -237,7 +237,7 @@ gauntlet-02/
 │   │   ├── shared-standards.md
 │   │   └── templates/
 │   ├── docs/                          # Project documentation
-│   │   ├── pr-briefs.md               # All PR descriptions
+│   │   ├── ai-briefs.md               # All PR descriptions
 │   │   ├── AI-PRODUCT-VISION.md       # AI product vision (3 problems, personas)
 │   │   ├── AI-BUILD-PLAN.md           # AI implementation plan (5 phases)
 │   │   ├── architecture.md            # System architecture
@@ -488,7 +488,7 @@ Task {
 - `Psst/agents/shared-standards.md` - Development standards
 
 ### Project Documentation  
-- `Psst/docs/pr-briefs.md` - All PR descriptions
+- `Psst/docs/ai-briefs.md` - All PR descriptions
 - `Psst/docs/AI-PRODUCT-VISION.md` - AI product vision
 - `Psst/docs/AI-BUILD-PLAN.md` - AI implementation plan
 - `Psst/docs/architecture.md` - System architecture

@@ -227,7 +227,7 @@ Arnold → Brenda → Pam (brownfield mode) → Caleb
 ### File Organization
 ```
 Psst/docs/
-├── pr-briefs.md           ← All PR descriptions
+├── ai-briefs.md           ← All PR descriptions
 ├── prds/pr-{N}-prd.md     ← Individual PRDs
 ├── todos/pr-{N}-todo.md   ← Individual TODOs
 └── ux-specs/pr-{N}-ux-spec.md ← UI/UX specs
