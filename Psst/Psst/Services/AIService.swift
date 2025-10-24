@@ -178,9 +178,78 @@ class AIService: ObservableObject {
         messages: [Message],
         chatID: String
     ) async throws -> (summary: String, keyPoints: [String]) {
-        // For now, use mock service
-        // TODO: When PR #005 merges, call real Cloud Function with RAG context
-        return await MockAIService.mockSummarize(messages: messages)
+        // Validate authentication
+        guard Auth.auth().currentUser != nil else {
+            throw AIError.notAuthenticated
+        }
+
+        // Format messages for summary prompt
+        let messageCount = messages.count
+        let messageTexts = messages.map { "- \($0.text)" }.joined(separator: "\n")
+
+        // Create summarization prompt
+        let prompt = """
+        Please provide a concise summary of this conversation with \(messageCount) messages. Format your response as:
+
+        SUMMARY: [One paragraph summary]
+
+        KEY POINTS:
+        - [Key point 1]
+        - [Key point 2]
+        - [Key point 3]
+
+        Conversation messages:
+        \(messageTexts)
+        """
+
+        // Call chatWithAI to generate summary
+        let response = try await chatWithAI(message: prompt, conversationId: nil)
+
+        // Parse response to extract summary and key points
+        let responseText = response.text
+        let (summary, keyPoints) = parseSummaryResponse(responseText)
+
+        return (summary, keyPoints)
+    }
+
+    /// Parses AI response to extract summary and key points
+    /// - Parameter response: The AI's formatted response
+    /// - Returns: Tuple of (summary, key points array)
+    private func parseSummaryResponse(_ response: String) -> (String, [String]) {
+        var summary = ""
+        var keyPoints: [String] = []
+
+        let lines = response.components(separatedBy: .newlines)
+        var inKeyPoints = false
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.hasPrefix("SUMMARY:") {
+                summary = trimmed.replacingOccurrences(of: "SUMMARY:", with: "").trimmingCharacters(in: .whitespaces)
+            } else if !summary.isEmpty && !trimmed.isEmpty && !trimmed.hasPrefix("KEY POINTS:") && !trimmed.hasPrefix("-") {
+                // Continue summary if it spans multiple lines
+                summary += " " + trimmed
+            } else if trimmed.hasPrefix("KEY POINTS:") {
+                inKeyPoints = true
+            } else if inKeyPoints && trimmed.hasPrefix("-") {
+                let point = trimmed.replacingOccurrences(of: "- ", with: "").trimmingCharacters(in: .whitespaces)
+                if !point.isEmpty {
+                    keyPoints.append(point)
+                }
+            }
+        }
+
+        // Fallback if parsing fails
+        if summary.isEmpty {
+            summary = response
+        }
+
+        if keyPoints.isEmpty {
+            keyPoints = ["Summary generated from conversation"]
+        }
+
+        return (summary, keyPoints)
     }
     
     /// Surfaces related context for a specific message
@@ -195,9 +264,76 @@ class AIService: ObservableObject {
         chatID: String,
         limit: Int = 5
     ) async throws -> [RelatedMessage] {
-        // For now, use mock service
-        // TODO: When PR #005 merges, call RAG pipeline for semantic similarity search
-        return await MockAIService.mockSurfaceContext(for: message)
+        // Validate authentication
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw AIError.notAuthenticated
+        }
+
+        // Call semanticSearch Cloud Function
+        let searchFunction = functions.httpsCallable("semanticSearch")
+
+        let parameters: [String: Any] = [
+            "query": message.text,
+            "userId": userId,
+            "limit": limit
+        ]
+
+        do {
+            let result = try await searchFunction.call(parameters)
+
+            // Parse response
+            guard let data = result.data as? [String: Any],
+                  let success = data["success"] as? Bool,
+                  success,
+                  let results = data["results"] as? [[String: Any]] else {
+                throw AIError.invalidResponse
+            }
+
+            // Convert to RelatedMessage array
+            let relatedMessages = results.compactMap { resultDict -> RelatedMessage? in
+                guard let messageId = resultDict["messageId"] as? String,
+                      let text = resultDict["text"] as? String,
+                      let timestampMs = resultDict["timestamp"] as? Double,
+                      let score = resultDict["score"] as? Double else {
+                    return nil
+                }
+
+                let senderName = resultDict["senderName"] as? String ?? "Unknown"
+                let timestamp = Date(timeIntervalSince1970: timestampMs / 1000)
+
+                return RelatedMessage(
+                    id: UUID().uuidString,
+                    messageID: messageId,
+                    text: text,
+                    senderName: senderName,
+                    timestamp: timestamp,
+                    relevanceScore: score
+                )
+            }
+
+            return relatedMessages
+
+        } catch let error as NSError {
+            // Map Firebase errors to AIError
+            if error.domain == "com.firebase.functions" {
+                switch error.code {
+                case FunctionsErrorCode.unauthenticated.rawValue:
+                    throw AIError.notAuthenticated
+                case FunctionsErrorCode.deadlineExceeded.rawValue:
+                    throw AIError.serviceTimeout
+                case FunctionsErrorCode.unavailable.rawValue:
+                    throw AIError.serviceUnavailable
+                default:
+                    throw AIError.serverError(error.localizedDescription)
+                }
+            }
+
+            if error.domain == NSURLErrorDomain {
+                throw AIError.networkUnavailable
+            }
+
+            throw AIError.unknownError(error.localizedDescription)
+        }
     }
     
     /// Creates a reminder suggestion from a message
@@ -210,9 +346,84 @@ class AIService: ObservableObject {
         from message: Message,
         senderName: String
     ) async throws -> ReminderSuggestion {
-        // For now, use mock service
-        // TODO: When PR #005 merges, use AI to extract action items and suggest optimal time
-        return await MockAIService.mockReminder(from: message, senderName: senderName)
+        // Validate authentication
+        guard Auth.auth().currentUser != nil else {
+            throw AIError.notAuthenticated
+        }
+
+        // Create prompt for AI to extract action items
+        let prompt = """
+        Extract a reminder from this message from \(senderName):
+
+        "\(message.text)"
+
+        Provide your response in this exact format:
+
+        REMINDER TEXT: [Brief reminder text about what to follow up on]
+        TOPIC: [Main topic/category - one or two words]
+        PRIORITY: [low/medium/high]
+
+        Be concise and actionable.
+        """
+
+        // Call chatWithAI to extract reminder info
+        let response = try await chatWithAI(message: prompt, conversationId: nil)
+
+        // Parse response
+        let (reminderText, extractedInfo) = parseReminderResponse(response.text, senderName: senderName, originalMessage: message.text)
+
+        // Suggest tomorrow at 9 AM
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
+        components.day! += 1
+        components.hour = 9
+        components.minute = 0
+        let suggestedDate = Calendar.current.date(from: components) ?? Date().addingTimeInterval(86400)
+
+        return ReminderSuggestion(
+            text: reminderText,
+            suggestedDate: suggestedDate,
+            extractedInfo: extractedInfo
+        )
+    }
+
+    /// Parses AI response to extract reminder information
+    /// - Parameters:
+    ///   - response: The AI's formatted response
+    ///   - senderName: Name of the message sender
+    ///   - originalMessage: The original message text
+    /// - Returns: Tuple of (reminder text, extracted info dictionary)
+    private func parseReminderResponse(_ response: String, senderName: String, originalMessage: String) -> (String, [String: String]) {
+        var reminderText = ""
+        var topic = "Message follow-up"
+        var priority = "medium"
+
+        let lines = response.components(separatedBy: .newlines)
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            if trimmed.hasPrefix("REMINDER TEXT:") {
+                reminderText = trimmed.replacingOccurrences(of: "REMINDER TEXT:", with: "").trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("TOPIC:") {
+                topic = trimmed.replacingOccurrences(of: "TOPIC:", with: "").trimmingCharacters(in: .whitespaces)
+            } else if trimmed.hasPrefix("PRIORITY:") {
+                priority = trimmed.replacingOccurrences(of: "PRIORITY:", with: "").trimmingCharacters(in: .whitespaces).lowercased()
+            }
+        }
+
+        // Fallback if parsing fails
+        if reminderText.isEmpty {
+            let preview = String(originalMessage.prefix(50))
+            reminderText = "Follow up with \(senderName) about: \(preview)\(originalMessage.count > 50 ? "..." : "")"
+        }
+
+        let extractedInfo: [String: String] = [
+            "client": senderName,
+            "topic": topic,
+            "priority": priority
+        ]
+
+        return (reminderText, extractedInfo)
     }
 }
 
