@@ -82,8 +82,11 @@ struct AIAssistantView: View {
                 }
             }
             .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("OK") {
-                    viewModel.errorMessage = nil
+                Button("Retry") {
+                    viewModel.retry()
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.clearError()
                 }
             } message: {
                 if let errorMessage = viewModel.errorMessage {

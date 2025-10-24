@@ -18,6 +18,7 @@ struct ChatListView: View {
     @State private var showingNewChatView = false
     @State private var selectedChat: Chat?
     @State private var navigateToChat = false
+    @State private var showingAIAssistant = false
     
     /// Notification service for deep linking
     @EnvironmentObject private var notificationService: NotificationService
@@ -48,13 +49,21 @@ struct ChatListView: View {
                     }
                 }
                 
-                // Floating Action Button - positioned bottom-right
+                // Floating Buttons - positioned bottom-right
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
-                        FloatingActionButton {
-                            showingNewChatView = true
+                        VStack(spacing: 16) {
+                            // AI Assistant Button
+                            FloatingAIButton {
+                                showingAIAssistant = true
+                            }
+                            
+                            // New Chat Button
+                            FloatingActionButton {
+                                showingNewChatView = true
+                            }
                         }
                         .padding(.trailing, 16)
                         .padding(.bottom, 16)
@@ -87,6 +96,9 @@ struct ChatListView: View {
                     navigateToChat = true
                     showingNewChatView = false
                 })
+            }
+            .sheet(isPresented: $showingAIAssistant) {
+                AIAssistantView()
             }
             .background(
                 NavigationLink(

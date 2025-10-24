@@ -61,6 +61,13 @@ class AIAssistantViewModel: ObservableObject {
         // Validate input
         let trimmedInput = currentInput.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedInput.isEmpty else {
+            errorMessage = "Message cannot be empty"
+            return
+        }
+        
+        // Validate message length
+        guard aiService.validateMessage(trimmedInput) else {
+            errorMessage = "Message is too long. Please keep it under 2000 characters."
             return
         }
         
@@ -88,8 +95,8 @@ class AIAssistantViewModel: ObservableObject {
                 // Update user message status to delivered
                 updateMessageStatus(userMessage.id, to: .delivered)
                 
-                // Get AI response
-                let response = try await aiService.sendMessage(
+                // Get AI response from Cloud Function
+                let response = try await aiService.chatWithAI(
                     message: messageToSend,
                     conversationId: conversation.id
                 )
@@ -127,6 +134,23 @@ class AIAssistantViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    /// Retry last failed message
+    func retry() {
+        // Find the last user message that failed
+        guard let failedMessage = conversation.messages.last(where: { $0.isFromUser && $0.status == .failed }) else {
+            return
+        }
+        
+        // Resend the message
+        currentInput = failedMessage.text
+        sendMessage()
+    }
+    
+    /// Clear current error message
+    func clearError() {
+        errorMessage = nil
     }
     
     /// Load mock conversation for testing and development
