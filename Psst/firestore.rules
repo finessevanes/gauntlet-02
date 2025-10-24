@@ -51,6 +51,36 @@ service cloud.firestore {
                          request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.members;
       }
     }
+    
+    // AI Conversations collection
+    match /ai_conversations/{conversationId} {
+      // Trainers can read their own AI conversations
+      allow read: if request.auth != null && 
+                     request.auth.uid == resource.data.trainerId;
+      
+      // Trainers can create their own AI conversations
+      allow create: if request.auth != null && 
+                       request.auth.uid == request.resource.data.trainerId;
+      
+      // Trainers can update their own AI conversations
+      allow update: if request.auth != null && 
+                       request.auth.uid == resource.data.trainerId;
+      
+      // AI Messages subcollection
+      match /messages/{messageId} {
+        // Trainers can read messages in their own AI conversations
+        allow read: if request.auth != null && 
+                       request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
+        
+        // Trainers can create messages in their own AI conversations
+        allow create: if request.auth != null && 
+                         request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
+        
+        // Trainers can update messages in their own AI conversations
+        allow update: if request.auth != null && 
+                         request.auth.uid == get(/databases/$(database)/documents/ai_conversations/$(conversationId)).data.trainerId;
+      }
+    }
   }
 }
 
