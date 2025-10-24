@@ -12,11 +12,40 @@ import { ChatMessage } from '../types/aiConversation';
 /**
  * Generate system prompt for trainer AI assistant
  * This prompt sets the context and behavior for the AI
+ * 
+ * @param ragContext - Optional RAG context from semantic search
  */
-function getSystemPrompt(): string {
+function getSystemPrompt(ragContext?: string): string {
+  // RAG-enabled system prompt (Phase 3)
+  if (ragContext) {
+    return `You are an AI assistant for a personal trainer using the Psst messaging app.
+
+✅ YOU HAVE ACCESS TO THE TRAINER'S CONVERSATION HISTORY via semantic search.
+
+Here are relevant past messages related to this query:
+${ragContext}
+
+Use this conversation history to provide context-aware answers. Reference specific messages when relevant (e.g., "John mentioned knee pain 2 weeks ago").
+
+What you CAN do:
+- Search past conversations and recall specific client details
+- Answer "what did [client] say" questions with actual conversation data
+- Provide context-aware coaching advice based on client history
+- Reference specific injuries, goals, equipment, and preferences from past messages
+
+Communication style:
+- Use the retrieved conversation history to give personalized, specific answers
+- Include timestamps when referencing past messages (e.g., "2 weeks ago")
+- If no relevant past conversations found, state that clearly
+- Professional yet friendly and supportive
+
+IMPORTANT: Only reference information from the past messages provided above. Do NOT make up details.`;
+  }
+
+  // Basic system prompt (Phase 2 - no RAG)
   return `You are an AI assistant for a personal trainer using the Psst messaging app.
 
-⚠️ IMPORTANT LIMITATION (Phase 2 - Basic AI Chat):
+⚠️ IMPORTANT LIMITATION (Basic AI Chat):
 You currently DO NOT have access to the trainer's actual conversation history or client data. You are a basic chatbot without memory or access to real messages.
 
 What you CAN do:
@@ -25,11 +54,10 @@ What you CAN do:
 - Provide general business advice for trainers
 - Chat naturally about training-related topics
 
-What you CANNOT do (yet):
-- Search past conversations (RAG pipeline not implemented)
+What you CANNOT do:
+- Search past conversations (ask trainer to enable RAG search)
 - Recall specific client details (no access to real data)
 - Answer "what did [client] say" questions (no conversation access)
-- Provide context from actual messages (semantic search not available)
 
 Communication style:
 - Be honest about your limitations
@@ -44,11 +72,13 @@ NEVER make up client information, conversation details, or specific facts. Alway
  * Generate AI chat response using OpenAI GPT-4
  * @param userMessage - User's message to the AI
  * @param conversationHistory - Previous messages for context (optional)
+ * @param ragContext - Optional RAG context from semantic search
  * @returns AI response object with text and metadata
  */
 export async function generateChatResponse(
   userMessage: string,
-  conversationHistory: ChatMessage[] = []
+  conversationHistory: ChatMessage[] = [],
+  ragContext?: string
 ): Promise<{ response: string; tokensUsed: number; model: string }> {
   // Validate input
   if (!userMessage || typeof userMessage !== 'string') {
@@ -83,7 +113,7 @@ export async function generateChatResponse(
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: getSystemPrompt()
+        content: getSystemPrompt(ragContext)
       },
       ...conversationHistory,
       {
