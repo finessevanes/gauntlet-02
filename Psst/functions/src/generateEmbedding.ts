@@ -5,6 +5,7 @@
  */
 
 import * as functions from 'firebase-functions';
+import * as admin from 'firebase-admin';
 import { generateEmbedding } from './services/openaiService';
 import { upsertEmbedding, PineconeMetadata } from './services/pineconeService';
 
@@ -77,10 +78,27 @@ export const generateEmbeddingFunction = functions.firestore
         return null;
       }
 
+      // Fetch chat members for proper filtering in RAG
+      let members: string[] = [];
+      try {
+        const chatDoc = await admin.firestore().collection('chats').doc(chatId).get();
+        if (chatDoc.exists) {
+          const chatData = chatDoc.data();
+          members = chatData?.members || [];
+          console.log(`[GenerateEmbedding] Chat ${chatId} has ${members.length} members`);
+        } else {
+          console.warn(`[GenerateEmbedding] Chat ${chatId} not found in Firestore`);
+        }
+      } catch (error: any) {
+        console.error(`[GenerateEmbedding] Failed to fetch chat members:`, error.message);
+        // Continue without members - better to have incomplete metadata than fail
+      }
+
       // Prepare metadata for Pinecone
       const metadata: PineconeMetadata = {
         chatId: chatId,
         senderId: senderID,
+        members: members,  // Store all chat participants
         timestamp: timestamp.toMillis ? timestamp.toMillis() : Date.now(),
         text: text
       };
