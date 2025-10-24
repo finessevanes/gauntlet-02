@@ -97,29 +97,5 @@ struct MockAIData {
         // Default response
         return "I understand you're asking about '\(query)'. Once the AI backend is ready, I'll be able to provide more detailed answers. For now, try asking about searching messages, summarizing conversations, or finding client information."
     }
-    
-    // MARK: - Sample Messages
-    
-    /// Collection of sample user messages for testing
-    static let sampleUserQueries: [String] = [
-        "Hello AI",
-        "What can you do?",
-        "Show me recent messages from Sarah",
-        "Summarize my conversation with Mike",
-        "Find messages about the project deadline",
-        "When did I last talk to Jennifer?",
-        "Help me search for client updates"
-    ]
-    
-    /// Collection of sample AI responses for testing
-    static let sampleAIResponses: [String] = [
-        "Hi! I'm your AI assistant. How can I help you today?",
-        "I can help you search past conversations, summarize chats, and answer questions about your clients.",
-        "Here are Sarah's recent messages from the past week...",
-        "I've summarized Mike's conversation: He asked about the project timeline and confirmed availability for next week.",
-        "I found 3 messages mentioning 'project deadline'...",
-        "You last spoke with Jennifer 2 days ago at 3:45 PM.",
-        "What type of client updates are you looking for?"
-    ]
 }
 
