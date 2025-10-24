@@ -122,7 +122,7 @@ class AIService: ObservableObject {
                 throw AIError.networkError
             }
             
-            throw AIError.unknownError
+            throw AIError.unknownError(error.localizedDescription)
         }
     }
     
@@ -165,21 +165,73 @@ class AIService: ObservableObject {
             )
         )
     }
+    
+    // MARK: - Contextual Actions (PR #006)
+    
+    /// Generates a conversation summary for the given messages
+    /// - Parameters:
+    ///   - messages: Array of messages to summarize
+    ///   - chatID: The chat ID for context
+    /// - Returns: Summary text and key points
+    /// - Throws: AIError if service fails
+    func summarizeConversation(
+        messages: [Message],
+        chatID: String
+    ) async throws -> (summary: String, keyPoints: [String]) {
+        // For now, use mock service
+        // TODO: When PR #005 merges, call real Cloud Function with RAG context
+        return await MockAIService.mockSummarize(messages: messages)
+    }
+    
+    /// Surfaces related context for a specific message
+    /// - Parameters:
+    ///   - message: The message to find context for
+    ///   - chatID: The chat ID to search within
+    ///   - limit: Maximum number of related messages (default: 5)
+    /// - Returns: Array of related messages with relevance scores
+    /// - Throws: AIError if service fails
+    func surfaceContext(
+        for message: Message,
+        chatID: String,
+        limit: Int = 5
+    ) async throws -> [RelatedMessage] {
+        // For now, use mock service
+        // TODO: When PR #005 merges, call RAG pipeline for semantic similarity search
+        return await MockAIService.mockSurfaceContext(for: message)
+    }
+    
+    /// Creates a reminder suggestion from a message
+    /// - Parameters:
+    ///   - message: The message to extract reminder from
+    ///   - senderName: Name of the message sender
+    /// - Returns: Reminder suggestion with pre-filled text and date
+    /// - Throws: AIError if service fails
+    func createReminderSuggestion(
+        from message: Message,
+        senderName: String
+    ) async throws -> ReminderSuggestion {
+        // For now, use mock service
+        // TODO: When PR #005 merges, use AI to extract action items and suggest optimal time
+        return await MockAIService.mockReminder(from: message, senderName: senderName)
+    }
 }
 
 // MARK: - Error Handling
 
 /// Errors that can occur when using AI services
-enum AIError: LocalizedError {
+enum AIError: LocalizedError, Equatable {
     case notAuthenticated
     case invalidMessage
     case networkError
+    case networkUnavailable  // PR #006: Contextual AI Actions
     case timeout
+    case serviceTimeout      // PR #006: Contextual AI Actions
     case serverError(String)
-    case unknownError
+    case unknownError(String) // PR #006: Updated to include message
     case rateLimitExceeded
     case serviceUnavailable
     case invalidResponse
+    case invalidRequest      // PR #006: Contextual AI Actions
     
     var errorDescription: String? {
         switch self {
@@ -189,18 +241,24 @@ enum AIError: LocalizedError {
             return "Message cannot be empty or longer than 2000 characters"
         case .networkError:
             return "No internet connection. Check your network and try again."
+        case .networkUnavailable:
+            return "No internet connection. AI features require connectivity."
         case .timeout:
             return "Request took too long. Try asking in a different way."
+        case .serviceTimeout:
+            return "AI is taking too long. Try again in a moment."
         case .serverError(let message):
             return "AI Error: \(message)"
-        case .unknownError:
-            return "Something went wrong. Please try again."
+        case .unknownError(let message):
+            return "AI error: \(message)"
         case .rateLimitExceeded:
-            return "Too many requests. Please wait a moment."
+            return "Too many requests. Please wait 30 seconds."
         case .serviceUnavailable:
             return "AI assistant is temporarily unavailable. Try again in a moment."
         case .invalidResponse:
             return "Received invalid response from AI service"
+        case .invalidRequest:
+            return "Couldn't process this message. Try a different one."
         }
     }
 }

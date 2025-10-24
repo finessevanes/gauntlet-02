@@ -2,67 +2,44 @@
 //  AILoadingIndicator.swift
 //  Psst
 //
-//  Created by AI Assistant on PR #002
-//  iOS AI Infrastructure Foundation
+//  Created by Caleb (AI Agent) on PR #006
+//  Loading indicator for AI action processing
 //
 
 import SwiftUI
 
-/// Animated "AI is thinking..." typing indicator
+/// Displays a pulsing loading indicator while AI processes a request
 struct AILoadingIndicator: View {
-    @State private var animationPhase: Int = 0
+    var message: String = "AI is analyzing..."
+    @State private var isAnimating = false
     
     var body: some View {
-        HStack {
-            HStack(spacing: 8) {
-                // "AI is thinking" text
-                Text("AI is thinking")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                
-                // Animated dots
-                HStack(spacing: 4) {
-                    ForEach(0..<3) { index in
-                        Circle()
-                            .fill(Color.secondary)
-                            .frame(width: 6, height: 6)
-                            .opacity(animationPhase == index ? 1.0 : 0.3)
-                            .animation(
-                                Animation.easeInOut(duration: 0.6)
-                                    .repeatForever(autoreverses: false)
-                                    .delay(Double(index) * 0.2),
-                                value: animationPhase
-                            )
-                    }
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 10)
-            .background(Color(.systemGray5))
-            .cornerRadius(18)
+        HStack(spacing: 12) {
+            ProgressView()
+                .scaleEffect(0.8)
+                .tint(.accentColor)
             
-            Spacer()
+            Text(message)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 4)
+        .padding()
+        .background(.ultraThinMaterial)
+        .cornerRadius(12)
+        .shadow(radius: 4)
+        .opacity(isAnimating ? 1.0 : 0.3)
         .onAppear {
-            startAnimation()
-        }
-    }
-    
-    private func startAnimation() {
-        Timer.scheduledTimer(withTimeInterval: 0.6, repeats: true) { _ in
-            animationPhase = (animationPhase + 1) % 3
+            withAnimation(.easeInOut(duration: 1.0).repeatForever(autoreverses: true)) {
+                isAnimating = true
+            }
         }
     }
 }
-
-// MARK: - Previews
 
 #Preview {
-    VStack {
-        AILoadingIndicator()
-        Spacer()
-    }
+    AILoadingIndicator()
 }
 
+#Preview("Custom Message") {
+    AILoadingIndicator(message: "Searching conversations...")
+}
