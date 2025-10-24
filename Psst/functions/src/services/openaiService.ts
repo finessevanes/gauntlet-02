@@ -53,7 +53,7 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
         console.log('[OpenAIService] Generating embedding...');
         
         const response = await openai.embeddings.create({
-          model: aiConfig.openai.model,
+          model: aiConfig.openai.embeddingModel,
           input: trimmedText,
           dimensions: aiConfig.openai.dimensions
         });
