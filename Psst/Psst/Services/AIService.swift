@@ -3,40 +3,34 @@
 //  Psst
 //
 //  Created by AI Assistant on PR #002
+//  Enhanced in PR #003 - AI Chat Backend (real Cloud Function)
 //  Enhanced in PR #004 - AI Chat UI
-//
-//  📝 HOW TO ENABLE REAL CLOUD FUNCTIONS (when PR #003 backend is deployed):
-//  1. Add FirebaseFunctions package to Xcode project (Package Dependencies)
-//  2. Uncomment `import FirebaseFunctions` below
-//  3. Uncomment `private let functions = Functions.functions()`
-//  4. Set `useRealBackend = true`
-//  5. Uncomment the Cloud Function code in chatWithAI() method
-//  6. Remove the mock fallback at the bottom of chatWithAI()
 //
 
 import Foundation
 import FirebaseAuth
-// TODO: Uncomment when PR #003 backend is deployed and FirebaseFunctions package is added
-// import FirebaseFunctions
+import FirebaseFunctions
 
 /// Handles communication with AI backend (Cloud Functions)
 class AIService: ObservableObject {
-    // TODO: Uncomment when PR #003 backend is deployed
-    // private let functions = Functions.functions()
+    private let functions = Functions.functions()
     private let timeout: TimeInterval = 30.0 // 30 second timeout for AI responses
     
     // Feature flag: Set to true when backend is ready (PR #003 deployed)
-    private let useRealBackend = false
+    private let useRealBackend = true // ✅ Backend deployed and tested!
+    
+    // Store conversation ID from backend (accessible to ViewModel)
+    private(set) var conversationIdFromBackend: String?
     
     // MARK: - Public Methods
     
     /// Sends a message to the AI assistant via Cloud Function and returns the response
     /// - Parameters:
     ///   - message: The user's message text
-    ///   - conversationId: Conversation ID for context tracking
+    ///   - conversationId: Optional conversation ID for context tracking (nil for new conversations)
     /// - Returns: AIResponse with AI's reply
     /// - Throws: AIError if request fails
-    func chatWithAI(message: String, conversationId: String) async throws -> AIResponse {
+    func chatWithAI(message: String, conversationId: String?) async throws -> AIResponse {
         // Validate authentication
         guard Auth.auth().currentUser != nil else {
             throw AIError.notAuthenticated
@@ -47,28 +41,44 @@ class AIService: ObservableObject {
             throw AIError.invalidMessage
         }
         
-        // Use mock backend until PR #003 is deployed
+        // Use mock backend until useRealBackend flag is enabled
         if !useRealBackend {
             return await getMockResponse(for: message)
         }
         
-        // TODO: Uncomment when PR #003 backend is deployed and FirebaseFunctions package added
-        /*
+        // Get current user ID
+        guard let userId = Auth.auth().currentUser?.uid else {
+            throw AIError.notAuthenticated
+        }
+        
         // Call Cloud Function
         let chatFunction = functions.httpsCallable("chatWithAI")
         
+        // Build parameters (only include conversationId if it exists)
+        var parameters: [String: Any] = [
+            "userId": userId,
+            "message": message
+        ]
+        
+        if let conversationId = conversationId, !conversationId.isEmpty {
+            parameters["conversationId"] = conversationId
+        }
+        
         do {
-            let result = try await chatFunction.call([
-                "message": message,
-                "conversationId": conversationId
-            ])
+            let result = try await chatFunction.call(parameters)
             
             // Parse response
             guard let data = result.data as? [String: Any],
-                  let responseMessage = data["message"] as? String,
+                  let success = data["success"] as? Bool,
+                  success,
+                  let responseMessage = data["response"] as? String,
                   let returnedConversationId = data["conversationId"] as? String else {
                 throw AIError.invalidResponse
             }
+            
+            // Store the conversation ID for future use (temporary solution)
+            // TODO: Return conversationId properly
+            conversationIdFromBackend = returnedConversationId
             
             // Handle timestamp from backend (if provided, otherwise use Date())
             let timestamp: Date
@@ -83,9 +93,9 @@ class AIService: ObservableObject {
                 text: responseMessage,
                 timestamp: timestamp,
                 metadata: AIResponse.AIResponseMetadata(
-                    modelUsed: data["modelUsed"] as? String,
+                    modelUsed: "gpt-4",
                     tokensUsed: data["tokensUsed"] as? Int,
-                    responseTime: data["responseTime"] as? TimeInterval
+                    responseTime: nil
                 )
             )
             
@@ -114,10 +124,6 @@ class AIService: ObservableObject {
             
             throw AIError.unknownError
         }
-        */
-        
-        // Fallback to mock (should never reach here when useRealBackend is false)
-        return await getMockResponse(for: message)
     }
     
     /// Validates user message before sending
@@ -139,23 +145,22 @@ class AIService: ObservableObject {
         )
     }
     
-    /// Loads mock AI response for development (fallback)
+    /// Loads mock AI response for development (fallback when backend is disabled)
     /// - Parameter message: User's message
     /// - Returns: Mock AIResponse
     func getMockResponse(for message: String) async -> AIResponse {
         // Simulate network delay
         try? await Task.sleep(nanoseconds: 1_500_000_000) // 1.5 seconds
         
-        // Use centralized mock response logic
-        let responseText = MockAIData.mockResponse(for: message)
+        let responseText = "⚠️ AI Backend is currently disabled. Enable real backend to chat with AI."
         
         return AIResponse(
             messageId: UUID().uuidString,
             text: responseText,
             timestamp: Date(),
             metadata: AIResponse.AIResponseMetadata(
-                modelUsed: "mock-model",
-                tokensUsed: responseText.count,
+                modelUsed: "mock-fallback",
+                tokensUsed: 0,
                 responseTime: 1.5
             )
         )
@@ -199,4 +204,3 @@ enum AIError: LocalizedError {
         }
     }
 }
-

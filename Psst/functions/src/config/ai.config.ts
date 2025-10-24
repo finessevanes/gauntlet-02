@@ -5,8 +5,15 @@
 
 export const aiConfig = {
   openai: {
-    model: 'text-embedding-3-small',
+    // Embedding model settings
+    embeddingModel: 'text-embedding-3-small',
     dimensions: 1536,
+    
+    // Chat model settings
+    chatModel: 'gpt-4',
+    maxTokens: 500, // Max tokens for AI response
+    temperature: 0.7, // Response creativity (0-2)
+    
     timeout: 30000 // 30 seconds
   },
   pinecone: {
@@ -20,6 +27,10 @@ export const aiConfig = {
     maxAttempts: 3,
     initialDelay: 1000, // 1 second
     maxDelay: 8000 // 8 seconds
+  },
+  chat: {
+    conversationContextLimit: 10, // Number of recent messages to include for context
+    messageMaxLength: 4000 // Max characters in a user message
   }
 };
 

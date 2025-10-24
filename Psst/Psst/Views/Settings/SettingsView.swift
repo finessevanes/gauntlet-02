@@ -30,6 +30,7 @@ struct SettingsView: View {
     
     /// Show notification test view
     @State private var showNotificationTest = false
+    
     // MARK: - Body
     
     var body: some View {
