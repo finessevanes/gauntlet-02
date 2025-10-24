@@ -95,7 +95,7 @@ When creating the User Preferences PRD, include:
    - Example: Default = "Friendly", but John (corporate exec) = "Professional"
 
 3. **System Prompt Construction**
-   ```javascript
+   ```typescript
    // In Cloud Function
    const systemPrompt = `
    You are an AI assistant for a personal trainer.

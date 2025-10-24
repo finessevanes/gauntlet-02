@@ -157,14 +157,9 @@ struct ChatView: View {
                 .environmentObject(presenceService)
         }
         .onAppear {
-            print("📱 [CHAT VIEW] User entered chat: \(chat.id)")
-            print("📱 [CHAT VIEW] Chat type: \(chat.isGroupChat ? "Group" : "1-on-1")")
-            print("📱 [CHAT VIEW] Current message count: \(messageViewModel.messages.count)")
-            
             // Get current user ID from Firebase Auth
             if let uid = Auth.auth().currentUser?.uid {
                 currentUserID = uid
-                print("📱 [CHAT VIEW] Current user ID: \(uid)")
                 
                 // Initialize all view models
                 messageViewModel.initialize(currentUserID: uid)
@@ -173,9 +168,6 @@ struct ChatView: View {
             }
         }
         .onDisappear {
-            print("📱 [CHAT VIEW] User left chat: \(chat.id)")
-            print("📱 [CHAT VIEW] Final message count: \(messageViewModel.messages.count)")
-            
             // Clean up all view models
             messageViewModel.cleanup()
             presenceViewModel.cleanup()

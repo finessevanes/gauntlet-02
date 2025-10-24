@@ -277,15 +277,15 @@ Used for real-time presence tracking (faster than Firestore for high-frequency u
 
 ```
 functions/
-├── index.js                        # Exports all functions
+├── index.ts                        # Exports all functions
 ├── services/
-│   ├── embeddingService.js         # OpenAI embeddings + Pinecone storage
-│   ├── aiService.js                # AI SDK integration
-│   └── vectorSearchService.js      # Semantic search queries
+│   ├── embeddingService.ts         # OpenAI embeddings + Pinecone storage
+│   ├── aiService.ts                # AI SDK integration
+│   └── vectorSearchService.ts      # Semantic search queries
 ├── functions/
-│   ├── chatWithAI.js               # Main AI chat endpoint
-│   ├── embedMessage.js             # Firestore trigger for new messages
-│   └── backfillEmbeddings.js       # One-time migration script
+│   ├── chatWithAI.ts               # Main AI chat endpoint
+│   ├── embedMessage.ts             # Firestore trigger for new messages
+│   └── backfillEmbeddings.ts       # One-time migration script
 └── package.json                    # Dependencies: @pinecone-database/pinecone, ai, @ai-sdk/openai
 ```
 
@@ -297,7 +297,7 @@ functions/
 **Cloud:** AWS (free tier)
 
 **Vector Metadata Structure:**
-```javascript
+```typescript
 {
   id: messageId,  // Firestore message ID
   values: [0.123, -0.456, ...],  // 1536-dim embedding vector
@@ -457,7 +457,7 @@ You have **2 agents available** (can work in parallel). We've outlined two strat
 1. Create Pinecone account and index (free tier)
 2. Configure index: 1536 dimensions, cosine similarity
 3. Set up Cloud Functions project dependencies
-4. Implement `embeddingService.js` with OpenAI API + Pinecone SDK
+4. Implement `embeddingService.ts` with OpenAI API + Pinecone SDK
 5. Create Firestore trigger: `embedMessage` (auto-embed new messages)
 6. Create backfill script for existing messages
 7. Set up environment variables (OpenAI key, Pinecone API key)

@@ -66,7 +66,6 @@ class ImageCacheService {
                     return
                 }
                 
-                let sw = Stopwatch()
                 // Cache in memory first
                 self.memoryCache.setObject(image, forKey: userID as NSString)
                 
@@ -89,8 +88,6 @@ class ImageCacheService {
                         ofItemAtPath: fileURL.path
                     )
                     
-                    Log.i("ImageCacheService", "cache done userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
-                    
                     // Clean up cache if needed
                     Task {
                         await self.cleanupCacheIfNeeded()
@@ -111,7 +108,6 @@ class ImageCacheService {
     func getCachedProfilePhoto(userID: String) async -> UIImage? {
         // Check memory cache first (fastest)
         if let cachedImage = memoryCache.object(forKey: userID as NSString) {
-            Log.i("ImageCacheService", "memory hit userID=\(userID)")
             return cachedImage
         }
         
@@ -131,15 +127,12 @@ class ImageCacheService {
                 }
                 
                 // Load image from disk
-                let sw = Stopwatch()
                 guard let imageData = try? Data(contentsOf: fileURL),
                       let image = UIImage(data: imageData) else {
                     Log.e("ImageCacheService", "Failed to load cached image userID=\(userID)")
                     continuation.resume(returning: nil)
                     return
                 }
-                
-                Log.i("ImageCacheService", "disk hit userID=\(userID) bytes=\(imageData.count) took=\(sw.ms)ms")
                 
                 // Cache in memory for faster future access
                 self.memoryCache.setObject(image, forKey: userID as NSString)
@@ -165,7 +158,6 @@ class ImageCacheService {
                     return
                 }
                 
-                let sw = Stopwatch()
                 // Remove from memory cache
                 self.memoryCache.removeObject(forKey: userID as NSString)
                 
