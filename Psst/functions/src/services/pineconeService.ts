@@ -14,6 +14,7 @@ import { retryWithBackoff, isRetryableError } from '../utils/retryHelper';
 export interface PineconeMetadata {
   chatId: string;
   senderId: string;
+  members: string[];  // All participants in the chat (for RAG filtering)
   timestamp: number;
   text: string;
 }
@@ -79,6 +80,7 @@ export async function upsertEmbedding(
             metadata: {
               chatId: metadata.chatId,
               senderId: metadata.senderId,
+              members: metadata.members,  // Store all chat participants
               timestamp: metadata.timestamp,
               text: metadata.text
             }

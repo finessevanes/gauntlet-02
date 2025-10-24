@@ -5,6 +5,7 @@
  * - onMessageCreate: Send push notifications when messages are created
  * - generateEmbedding: Generate and store AI embeddings for semantic search
  * - chatWithAI: AI chat assistant for trainers
+ * - semanticSearch: Semantic search across message history using RAG
  */
 
 import * as admin from 'firebase-admin';
@@ -20,4 +21,7 @@ export { generateEmbeddingFunction as generateEmbedding } from './generateEmbedd
 
 // Export AI chat function
 export { chatWithAIFunction as chatWithAI } from './chatWithAI';
+
+// Export semantic search function
+export { semanticSearchFunction as semanticSearch } from './semanticSearch';
 
