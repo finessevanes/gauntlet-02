@@ -66,7 +66,6 @@ class ImageCacheService {
                     return
                 }
                 
-                let sw = Stopwatch()
                 // Cache in memory first
                 self.memoryCache.setObject(image, forKey: userID as NSString)
                 
@@ -159,7 +158,6 @@ class ImageCacheService {
                     return
                 }
                 
-                let sw = Stopwatch()
                 // Remove from memory cache
                 self.memoryCache.removeObject(forKey: userID as NSString)
                 

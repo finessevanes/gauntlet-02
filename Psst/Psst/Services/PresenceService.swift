@@ -53,12 +53,10 @@ class PresenceService: ObservableObject {
         }
         
         // Fetch email asynchronously and cache it for future use
-        Task {
+        Task { @MainActor in
             do {
                 let user = try await userService.getUser(id: userID)
-                await MainActor.run {
-                    self.userEmailCache[userID] = user.email
-                }
+                self.userEmailCache[userID] = user.email
             } catch {
                 // Silently fail - just use abbreviated ID
             }
