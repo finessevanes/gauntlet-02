@@ -89,8 +89,11 @@ class MessageManagementViewModel: ObservableObject {
                 text: trimmedText,
                 optimisticCompletion: { optimisticMessage in
                     // Add message to UI immediately (before Firestore confirms)
-                    self.messages.append(optimisticMessage)
-                    self.updateLatestMessageIDs()
+                    // MUST run on main thread for @Published property updates
+                    Task { @MainActor in
+                        self.messages.append(optimisticMessage)
+                        self.updateLatestMessageIDs()
+                    }
                 }
             )
         } catch MessageError.offline {
@@ -115,8 +118,11 @@ class MessageManagementViewModel: ObservableObject {
                 chatID: chat.id,
                 image: image,
                 optimisticCompletion: { optimisticMessage in
-                    self.messages.append(optimisticMessage)
-                    self.updateLatestMessageIDs()
+                    // MUST run on main thread for @Published property updates
+                    Task { @MainActor in
+                        self.messages.append(optimisticMessage)
+                        self.updateLatestMessageIDs()
+                    }
                 }
             )
         } catch MessageError.offline {
@@ -252,10 +258,13 @@ class MessageManagementViewModel: ObservableObject {
             // Sort by timestamp
             updatedMessages.sort { $0.timestamp < $1.timestamp }
             
-            self.messages = updatedMessages
-            
-            // Update latest message IDs for each status type
-            self.updateLatestMessageIDs()
+            // MUST update @Published properties on main thread
+            Task { @MainActor in
+                self.messages = updatedMessages
+                
+                // Update latest message IDs for each status type
+                self.updateLatestMessageIDs()
+            }
         }
     }
     
@@ -277,10 +286,16 @@ class MessageManagementViewModel: ObservableObject {
         
         do {
             let name = try await chatService.fetchUserName(userID: senderID)
-            senderNames[senderID] = name
+            // MUST update @Published property on main thread
+            await MainActor.run {
+                senderNames[senderID] = name
+            }
         } catch {
             print("⚠️ Failed to fetch sender name for \(senderID): \(error.localizedDescription)")
-            senderNames[senderID] = "Unknown User"
+            // MUST update @Published property on main thread
+            await MainActor.run {
+                senderNames[senderID] = "Unknown User"
+            }
         }
     }
     
