@@ -18,11 +18,9 @@
 		2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F42EA703CF00F8567B /* caleb-agent.md */; };
 		2626E8032EA703CF00F8567B /* test-template.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FA2EA703CF00F8567B /* test-template.md */; };
 		2626E8042EA703CF00F8567B /* pam-agent.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F52EA703CF00F8567B /* pam-agent.md */; };
-		2626E8052EA703CF00F8567B /* prompts.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F72EA703CF00F8567B /* prompts.md */; };
 		2626E8062EA703CF00F8567B /* shared-standards.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F92EA703CF00F8567B /* shared-standards.md */; };
 		2626E8072EA703CF00F8567B /* todo-template.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7FB2EA703CF00F8567B /* todo-template.md */; };
 		2626E8082EA703CF00F8567B /* prd-template.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F62EA703CF00F8567B /* prd-template.md */; };
-		2626E8092EA703CF00F8567B /* quick-commands.md in Resources */ = {isa = PBXBuildFile; fileRef = 2626E7F82EA703CF00F8567B /* quick-commands.md */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,8 +45,6 @@
 		2626E7F42EA703CF00F8567B /* caleb-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "caleb-agent.md"; sourceTree = "<group>"; };
 		2626E7F52EA703CF00F8567B /* pam-agent.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "pam-agent.md"; sourceTree = "<group>"; };
 		2626E7F62EA703CF00F8567B /* prd-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "prd-template.md"; sourceTree = "<group>"; };
-		2626E7F72EA703CF00F8567B /* prompts.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = prompts.md; sourceTree = "<group>"; };
-		2626E7F82EA703CF00F8567B /* quick-commands.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "quick-commands.md"; sourceTree = "<group>"; };
 		2626E7F92EA703CF00F8567B /* shared-standards.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "shared-standards.md"; sourceTree = "<group>"; };
 		2626E7FA2EA703CF00F8567B /* test-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "test-template.md"; sourceTree = "<group>"; };
 		2626E7FB2EA703CF00F8567B /* todo-template.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = "todo-template.md"; sourceTree = "<group>"; };
@@ -127,8 +123,6 @@
 				2626E7F42EA703CF00F8567B /* caleb-agent.md */,
 				2626E7F52EA703CF00F8567B /* pam-agent.md */,
 				2626E7F62EA703CF00F8567B /* prd-template.md */,
-				2626E7F72EA703CF00F8567B /* prompts.md */,
-				2626E7F82EA703CF00F8567B /* quick-commands.md */,
 				2626E7F92EA703CF00F8567B /* shared-standards.md */,
 				2626E7FA2EA703CF00F8567B /* test-template.md */,
 				2626E7FB2EA703CF00F8567B /* todo-template.md */,
@@ -302,11 +296,9 @@
 				2626E8022EA703CF00F8567B /* caleb-agent.md in Resources */,
 				2626E8032EA703CF00F8567B /* test-template.md in Resources */,
 				2626E8042EA703CF00F8567B /* pam-agent.md in Resources */,
-				2626E8052EA703CF00F8567B /* prompts.md in Resources */,
 				2626E8062EA703CF00F8567B /* shared-standards.md in Resources */,
 				2626E8072EA703CF00F8567B /* todo-template.md in Resources */,
 				2626E8082EA703CF00F8567B /* prd-template.md in Resources */,
-				2626E8092EA703CF00F8567B /* quick-commands.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
