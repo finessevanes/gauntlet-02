@@ -236,8 +236,6 @@ class PresenceService: ObservableObject {
             listenerMap[userID] = listenerID
         }
         
-        print("[PresenceService] 📊 Observing group presence for \(userIDs.count) members")
-        
         return listenerMap
     }
     
@@ -271,8 +269,6 @@ class PresenceService: ObservableObject {
             stopObserving(userID: userID, listenerID: listenerID)
             cleanedCount += 1
         }
-        
-        print("[PresenceService] 🧹 Cleaned up \(cleanedCount) group presence listeners")
     }
 }
 

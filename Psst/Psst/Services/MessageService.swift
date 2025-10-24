@@ -118,8 +118,6 @@ class MessageService {
     ///   - completion: Called with array of messages on each update
     /// - Returns: ListenerRegistration to remove listener later
     func observeMessages(chatID: String, completion: @escaping ([Message]) -> Void) -> ListenerRegistration {
-        print("👂 [MESSAGE LOAD] Listening for messages in chat: \(chatID)")
-        
         // Create Firestore query ordered by timestamp
         let query = db
             .collection("chats")
@@ -138,12 +136,9 @@ class MessageService {
             
             // Parse snapshot to Message array
             guard let documents = snapshot?.documents else {
-                print("📨 [MESSAGE LOAD] Received 0 messages")
                 completion([])
                 return
             }
-            
-            print("📨 [MESSAGE LOAD] Received \(documents.count) documents from Firestore")
             
             // Decode messages from Firestore documents
             let messages = documents.compactMap { document -> Message? in
@@ -165,8 +160,6 @@ class MessageService {
                     return nil
                 }
             }
-            
-            print("📨 [MESSAGE LOAD] Successfully decoded \(messages.count) messages")
             
             // Call completion handler with messages
             completion(messages)
@@ -430,8 +423,6 @@ class MessageService {
             throw MessageError.invalidChatID
         }
         
-        print("📖 Fetching unread messages for chat: \(chatID)")
-        
         do {
             // Fetch all messages in chat
             let messagesSnapshot = try await db.collection("chats")
@@ -454,11 +445,8 @@ class MessageService {
             
             // Return early if no messages to mark
             if messagesToMark.isEmpty {
-                print("📖 No unread messages to mark")
                 return
             }
-            
-            print("📖 Marking \(messagesToMark.count) unread messages as read")
             
             // Handle large message counts with chunking (Firestore batch limit: 500 operations)
             let chunkSize = 500

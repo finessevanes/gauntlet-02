@@ -101,7 +101,6 @@ class UserService {
     func getUser(id: String) async throws -> User {
         // Check cache first
         if let cachedUser = userCache[id] {
-            Log.i("UserService", "User cache hit id=\(id)")
             return cachedUser
         }
 
@@ -535,8 +534,6 @@ class UserService {
     func loadProfilePhoto(userID: String) async throws -> UIImage {
         // Check cache first
         if let cachedImage = await ImageCacheService.shared.getCachedProfilePhoto(userID: userID) {
-            Log.i("UserService", "Loaded profile photo from cache userID=\(userID)")
-            
             // Background refresh: fetch latest photo from Firestore in background
             Task {
                 await refreshProfilePhotoInBackground(userID: userID)
@@ -546,8 +543,6 @@ class UserService {
         }
         
         // Cache miss - fetch from network
-        Log.i("UserService", "Cache miss, fetching from network userID=\(userID)")
-        
         // Get user to get photo URL
         let user = try await getUser(id: userID)
         
@@ -592,8 +587,6 @@ class UserService {
             
             // Update cache with latest image
             await ImageCacheService.shared.cacheProfilePhoto(image, userID: userID)
-            
-            Log.i("UserService", "Background refresh complete userID=\(userID)")
             
         } catch {
             Log.w("UserService", "Background refresh failed userID=\(userID): \(error.localizedDescription)")

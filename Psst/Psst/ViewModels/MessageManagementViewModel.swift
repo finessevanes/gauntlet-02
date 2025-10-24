@@ -213,11 +213,8 @@ class MessageManagementViewModel: ObservableObject {
     
     /// Start listening for real-time messages
     private func startListeningForMessages() {
-        print("👂 [MESSAGE VM] Starting message listener for chat: \(chat.id)")
-        
         // Attach Firestore snapshot listener
         messageListener = messageService.observeMessages(chatID: chat.id) { firestoreMessages in
-            print("📨 [MESSAGE VM] Received \(firestoreMessages.count) messages from Firestore")
             
             // Log image messages specifically
             let imageMessages = firestoreMessages.filter { $0.mediaType == "image" }
@@ -240,11 +237,9 @@ class MessageManagementViewModel: ObservableObject {
                     var updated = firestoreMessage
                     updated.sendStatus = nil  // Confirmed, no status indicator needed
                     updatedMessages[index] = updated
-                    print("🔄 [MESSAGE VM] Updated existing message: \(firestoreMessage.id)")
                 } else {
                     // New message from Firestore - add it
                     updatedMessages.append(firestoreMessage)
-                    print("➕ [MESSAGE VM] Added new message: \(firestoreMessage.id)")
                 }
             }
             
@@ -257,7 +252,6 @@ class MessageManagementViewModel: ObservableObject {
             // Sort by timestamp
             updatedMessages.sort { $0.timestamp < $1.timestamp }
             
-            print("📨 [MESSAGE VM] Final message count: \(updatedMessages.count)")
             self.messages = updatedMessages
             
             // Update latest message IDs for each status type
@@ -322,12 +316,6 @@ class MessageManagementViewModel: ObservableObject {
         latestFailedMessageID = currentUserMessages.last { message in
             message.sendStatus == .failed
         }?.id
-        
-        // Debug logging
-        print("📊 [MESSAGE VM Status Timeline]")
-        print("   Latest Read: \(latestReadMessageID ?? "none")")
-        print("   Latest Delivered: \(latestDeliveredMessageID ?? "none")")
-        print("   Latest Failed: \(latestFailedMessageID ?? "none")")
     }
     
     /// Marks all unread messages in this chat as read by the current user
@@ -336,7 +324,6 @@ class MessageManagementViewModel: ObservableObject {
             do {
                 // Validate current user ID
                 guard !currentUserID.isEmpty else {
-                    print("⚠️ Cannot mark messages as read: no current user ID")
                     return
                 }
                 
