@@ -6,6 +6,24 @@ This document contains high-level briefs for all AI-related Pull Requests in the
 
 ---
 
+## Phase 0: Prerequisites
+
+### PR #006.5: User Roles & Required Name
+
+**Brief:** Implement user role distinction (trainer vs client) and require displayName during signup to enable role-based AI features. Add `role` field to User model with values "trainer" or "client". Update SignupView and EmailSignInView to include role selection screen ("Are you a trainer or client?") before account creation. Make displayName field required (no skipping) during signup flow. Update Firestore User schema to include role field. Modify Firestore security rules to support role-based access controls for future features. Display user role badges in profile views and chat headers. Store role in UserDefaults for quick access. This foundational feature is required for PR #007 (Auto Client Profiles) where trainers build profiles for their clients, and other AI features that need to distinguish between trainer and client contexts.
+
+**User Capability:** Users select their role (trainer or client) during signup and provide required display name
+
+**Dependencies:** None (prerequisite for AI features)
+
+**Complexity:** Simple
+
+**Phase:** 0 (Prerequisite)
+
+**Blocks:** PR #007 (Auto Client Profiles), PR #011 (User Preferences), PR #012 (YOLO Mode)
+
+---
+
 ## Phase 1: Foundation
 
 ### PR #001: AI Backend Infrastructure

@@ -150,7 +150,7 @@
 
 **Status:** ⏳ Pending | **Dependencies:** Phase 1 & 2 Complete ✅
 
-### PR #005: RAG Pipeline (Semantic Search)
+### PR #005: RAG Pipeline (Semantic Search) ✅ COMPLETE
 ```bash
 # Status: ⏳ PENDING
 # Branch: feat/pr-005-rag-pipeline
@@ -176,7 +176,7 @@
 
 ---
 
-### PR #006: Contextual AI Actions (Long-Press Menu)
+### PR #006: Contextual AI Actions (Long-Press Menu) ✅ COMPLETE
 ```bash
 # Status: ⏳ PENDING
 # Branch: feat/pr-006-contextual-ai-actions
