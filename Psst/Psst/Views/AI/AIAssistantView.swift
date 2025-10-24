@@ -10,7 +10,7 @@ import SwiftUI
 
 /// Main AI Assistant chat interface
 struct AIAssistantView: View {
-    @StateObject var viewModel = AIAssistantViewModel()
+    @StateObject private var viewModel = AIAssistantViewModel()
     @FocusState private var isInputFocused: Bool
     
     var body: some View {
@@ -64,20 +64,10 @@ struct AIAssistantView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Menu {
-                        Button {
-                            viewModel.loadMockConversation()
-                        } label: {
-                            Label("Load Mock Data", systemImage: "doc.text")
-                        }
-                        
-                        Button(role: .destructive) {
-                            viewModel.clearConversation()
-                        } label: {
-                            Label("Clear Conversation", systemImage: "trash")
-                        }
+                    Button(role: .destructive) {
+                        viewModel.clearConversation()
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "trash")
                     }
                 }
             }
@@ -127,7 +117,7 @@ struct AIAssistantView: View {
                 ForEach(["Show me recent messages from John", "Summarize my conversation with Sarah", "Find messages about the project"], id: \.self) { suggestion in
                     Button {
                         viewModel.currentInput = suggestion
-                        isInputFocused = true
+                        viewModel.sendMessage()
                     } label: {
                         HStack {
                             Image(systemName: "lightbulb")
@@ -194,13 +184,7 @@ struct AIAssistantView: View {
 
 // MARK: - Previews
 
-#Preview("Empty State") {
+#Preview {
     AIAssistantView()
-}
-
-#Preview("With Messages") {
-    let view = AIAssistantView()
-    view.viewModel.loadMockConversation()
-    return view
 }
 
