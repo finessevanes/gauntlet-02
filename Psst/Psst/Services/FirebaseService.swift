@@ -33,13 +33,7 @@ class FirebaseService {
         settings.cacheSettings = PersistentCacheSettings()
         Firestore.firestore().settings = settings
         
-        // Log successful configuration
-        if let projectID = FirebaseApp.app()?.options.projectID {
-            print("✅ Firebase configured successfully")
-            print("📱 Project ID: \(projectID)")
-        } else {
-            print("⚠️ Firebase configured but project ID unavailable")
-        }
+        // Configuration complete
     }
     
     // MARK: - Convenience Accessors

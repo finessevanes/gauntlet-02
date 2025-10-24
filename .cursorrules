@@ -482,6 +482,7 @@ gauntlet-02/
 - Async/await everywhere - Modern Swift concurrency
 - Thread safety - Always consider which queue/thread you're on
 - Service layer pattern - Business logic in dedicated services (AuthService, ChatService, etc.)
+- **TypeScript-only for backend** - ALL Cloud Functions and backend code MUST be TypeScript (`.ts` files), NEVER JavaScript (`.js` files)
 
 ---
 
@@ -496,6 +497,42 @@ gauntlet-02/
 - **Brownfield workflow:** Arnold documents → Brenda creates briefs → Pam plans (brownfield) → Caleb builds
 - Arnold is recommended for major enhancements to existing code (AI features, etc.)
 - Claudia is optional but recommended for UI-heavy features
+
+---
+
+# Backend Development Rules (Firebase Cloud Functions)
+
+## TypeScript Requirement
+- **CRITICAL**: ALL backend/Cloud Functions code MUST be TypeScript
+- Use `.ts` file extensions (NEVER `.js`)
+- Proper TypeScript types for all function parameters and return values
+- Use interfaces/types for data models
+- TSDoc comments for exported functions
+- No `any` types - use proper typing
+- Async/await for asynchronous operations
+- Proper error handling with try/catch
+
+## Examples:
+```typescript
+// ✅ CORRECT - TypeScript file with proper typing
+// functions/services/openaiService.ts
+interface EmbeddingResponse {
+  embedding: number[];
+  model: string;
+}
+
+export async function generateEmbedding(text: string): Promise<number[]> {
+  // Implementation
+}
+```
+
+```javascript
+// ❌ WRONG - JavaScript file
+// functions/services/openaiService.js
+async function generateEmbedding(text) {
+  // Implementation
+}
+```
 
 ---
 

@@ -246,7 +246,7 @@ gauntlet-02/
 │   │   └── todos/                     # Individual TODOs
 │   │       └── pr-{N}-todo.md
 │   └── functions/                     # Firebase Cloud Functions
-│       └── index.js
+│       └── index.ts
 └── README.md                          # This file
 ```
 

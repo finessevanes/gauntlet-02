@@ -171,7 +171,7 @@ Arnold → Brenda → Pam (brownfield mode) → Caleb
 - Async/await concurrency
 
 **AI Backend:**
-- Firebase Cloud Functions (Node.js)
+- Firebase Cloud Functions (TypeScript/Node.js)
 - AI SDK by Vercel (agent framework)
 - OpenAI GPT-4 (AI model)
 - Pinecone (vector search)

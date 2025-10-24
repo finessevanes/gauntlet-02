@@ -53,12 +53,10 @@ class PresenceService: ObservableObject {
         }
         
         // Fetch email asynchronously and cache it for future use
-        Task {
+        Task { @MainActor in
             do {
                 let user = try await userService.getUser(id: userID)
-                await MainActor.run {
-                    self.userEmailCache[userID] = user.email
-                }
+                self.userEmailCache[userID] = user.email
             } catch {
                 // Silently fail - just use abbreviated ID
             }
@@ -236,8 +234,6 @@ class PresenceService: ObservableObject {
             listenerMap[userID] = listenerID
         }
         
-        print("[PresenceService] 📊 Observing group presence for \(userIDs.count) members")
-        
         return listenerMap
     }
     
@@ -271,8 +267,6 @@ class PresenceService: ObservableObject {
             stopObserving(userID: userID, listenerID: listenerID)
             cleanedCount += 1
         }
-        
-        print("[PresenceService] 🧹 Cleaned up \(cleanedCount) group presence listeners")
     }
 }
 
