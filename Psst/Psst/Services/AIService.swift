@@ -57,9 +57,10 @@ class AIService: ObservableObject {
         // Build parameters (only include conversationId if it exists)
         var parameters: [String: Any] = [
             "userId": userId,
-            "message": message
+            "message": message,
+            "timezone": TimeZone.current.identifier // Send user's timezone to backend
         ]
-        
+
         if let conversationId = conversationId, !conversationId.isEmpty {
             parameters["conversationId"] = conversationId
         }
@@ -88,6 +89,14 @@ class AIService: ObservableObject {
                 timestamp = Date()
             }
             
+            // Check if response includes a function call
+            var functionCall: (name: String, parameters: [String: Any])?
+            if let functionCallData = data["functionCall"] as? [String: Any],
+               let functionName = functionCallData["name"] as? String,
+               let parameters = functionCallData["parameters"] as? [String: Any] {
+                functionCall = (functionName, parameters)
+            }
+
             return AIResponse(
                 messageId: UUID().uuidString,
                 text: responseMessage,
@@ -96,7 +105,8 @@ class AIService: ObservableObject {
                     modelUsed: "gpt-4",
                     tokensUsed: data["tokensUsed"] as? Int,
                     responseTime: nil
-                )
+                ),
+                functionCall: functionCall
             )
             
         } catch let error as NSError {
@@ -132,6 +142,119 @@ class AIService: ObservableObject {
     func validateMessage(_ message: String) -> Bool {
         let trimmed = message.trimmingCharacters(in: .whitespacesAndNewlines)
         return !trimmed.isEmpty && trimmed.count <= 2000
+    }
+
+    // MARK: - Function Calling (PR #008)
+
+    /// Executes an AI function call after user confirmation
+    /// - Parameters:
+    ///   - functionName: Name of the function to execute
+    ///   - parameters: Function parameters
+    ///   - conversationId: Optional conversation context
+    /// - Returns: Function execution result
+    /// - Throws: AIError if execution fails
+    func executeFunctionCall(
+        functionName: String,
+        parameters: [String: Any],
+        conversationId: String? = nil
+    ) async throws -> FunctionExecutionResult {
+        print("📞 [AIService.executeFunctionCall] CALLED")
+        print("📞 Function: \(functionName)")
+        print("📞 Parameters: \(parameters)")
+        print("📞 ConversationId: \(conversationId ?? "nil")")
+
+        // Validate authentication
+        let currentUser = Auth.auth().currentUser
+        print("📞 Current user: \(currentUser?.uid ?? "NONE")")
+
+        guard currentUser != nil else {
+            print("❌ [AIService.executeFunctionCall] NOT AUTHENTICATED")
+            throw AIError.notAuthenticated
+        }
+
+        print("✅ [AIService.executeFunctionCall] User authenticated")
+
+        // Call executeFunctionCall Cloud Function
+        let executeFunction = functions.httpsCallable("executeFunctionCall")
+        print("📞 Created callable reference for 'executeFunctionCall'")
+
+        var requestParams: [String: Any] = [
+            "functionName": functionName,
+            "parameters": parameters
+        ]
+
+        if let conversationId = conversationId {
+            requestParams["conversationId"] = conversationId
+        }
+
+        print("📞 Request params: \(requestParams)")
+
+        // Debug: Check parameter types
+        if let params = requestParams["parameters"] as? [String: Any] {
+            print("📞 Parameters breakdown:")
+            for (key, value) in params {
+                print("📞   - \(key): \(value) (type: \(type(of: value)))")
+            }
+        }
+
+        print("📞 Calling Cloud Function...")
+
+        do {
+            let result = try await executeFunction.call(requestParams)
+            print("✅ [AIService.executeFunctionCall] Cloud Function returned")
+            print("📞 Raw result: \(result)")
+            print("📞 Result data type: \(type(of: result.data))")
+
+            // Parse response
+            guard let data = result.data as? [String: Any] else {
+                print("❌ [AIService.executeFunctionCall] Invalid response format")
+                print("❌ Result.data: \(result.data)")
+                throw AIError.invalidResponse
+            }
+
+            print("✅ [AIService.executeFunctionCall] Response parsed successfully")
+            print("📞 Response data: \(data)")
+
+            let executionResult = FunctionExecutionResult.fromResponse(data)
+            print("✅ [AIService.executeFunctionCall] Execution result: success=\(executionResult.success)")
+
+            return executionResult
+
+        } catch let error as NSError {
+            print("❌ [AIService.executeFunctionCall] ERROR CAUGHT")
+            print("❌ Error domain: \(error.domain)")
+            print("❌ Error code: \(error.code)")
+            print("❌ Error description: \(error.localizedDescription)")
+            print("❌ Error userInfo: \(error.userInfo)")
+
+            // Map Firebase errors to AIError
+            if error.domain == "com.firebase.functions" {
+                print("❌ Firebase Functions error detected")
+                switch error.code {
+                case FunctionsErrorCode.unauthenticated.rawValue:
+                    print("❌ Unauthenticated error (code: \(error.code))")
+                    throw AIError.notAuthenticated
+                case FunctionsErrorCode.permissionDenied.rawValue:
+                    print("❌ Permission denied error (code: \(error.code))")
+                    throw AIError.invalidRequest
+                case FunctionsErrorCode.unavailable.rawValue:
+                    print("❌ Service unavailable error (code: \(error.code))")
+                    throw AIError.serviceUnavailable
+                default:
+                    let errorMessage = error.localizedDescription
+                    print("❌ Unknown Firebase Functions error: \(errorMessage)")
+                    throw AIError.serverError(errorMessage)
+                }
+            }
+
+            if error.domain == NSURLErrorDomain {
+                print("❌ Network error detected")
+                throw AIError.networkError
+            }
+
+            print("❌ Unknown error type")
+            throw AIError.unknownError(error.localizedDescription)
+        }
     }
     
     /// Creates a new AI conversation

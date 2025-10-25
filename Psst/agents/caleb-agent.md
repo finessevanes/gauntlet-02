@@ -102,6 +102,7 @@ git checkout -b feat/pr-{number}-{feature-name}
 **Code quality:**
 - Follow patterns in `Psst/agents/shared-standards.md`
 - **Backend code:** MUST use TypeScript (`.ts` files), NEVER JavaScript (`.js` files)
+- **🚨 CRITICAL - Backend compilation:** Before deploying Cloud Functions, ALWAYS run `npm run build` in `functions/` directory to compile TypeScript → JavaScript. Firebase deploys the compiled `.js` files, not `.ts` files!
 - **Swift code:** Use proper Swift types
 - Include comments for complex logic
 - Keep functions small and focused
@@ -183,6 +184,48 @@ Check every gate from PRD Section 12:
 - **CHECK OFF the fix task in TODO when completed**
 - WAIT for user to test again
 - WAIT for approval again
+
+### Step 6.5: Deploy Cloud Functions (If Backend Changes Made)
+
+**⚠️ PREREQUISITE: User has tested and explicitly approved ⚠️**
+
+**If you made ANY changes to Cloud Functions (`functions/` directory):**
+
+1. **Navigate to functions directory:**
+   ```bash
+   cd functions
+   ```
+
+2. **🚨 CRITICAL: Rebuild TypeScript to JavaScript:**
+   ```bash
+   npm run build
+   ```
+   **WHY THIS IS CRITICAL:** Firebase deploys the compiled JavaScript files from `lib/` directory, NOT the TypeScript source files from `src/`. If you skip this step, your changes will NOT be deployed!
+
+3. **Deploy functions:**
+   ```bash
+   # Deploy all functions:
+   firebase deploy --only functions
+
+   # Or deploy specific function:
+   firebase deploy --only functions:chatWithAI
+   firebase deploy --only functions:executeFunctionCall
+   ```
+
+4. **Verify deployment:**
+   - Check Firebase console for successful deployment
+   - Test the deployed function to ensure changes are live
+   - Check Firebase logs if needed: `firebase functions:log`
+
+5. **Return to project root:**
+   ```bash
+   cd ..
+   ```
+
+**Common deployment issues:**
+- ❌ Forgot to rebuild → Old code gets deployed
+- ❌ TypeScript compilation errors → Fix errors then rebuild
+- ❌ Missing dependencies → Run `npm install` in functions directory
 
 ### Step 7: Commit Changes Functionally (ONLY AFTER USER APPROVAL)
 

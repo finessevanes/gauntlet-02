@@ -22,15 +22,17 @@ import * as admin from 'firebase-admin';
 
 /**
  * Search Pinecone for semantically similar messages
- * 
+ *
  * @param queryEmbedding - 1536-dimensional embedding vector for the search query
  * @param userId - User ID to filter results (trainers only see their own conversations)
+ * @param pineconeApiKey - Pinecone API key (passed from function handler)
  * @param options - Search options (topK, relevance threshold, additional filters)
  * @returns Array of search results with scores ≥ relevance threshold
  */
 export async function searchVectors(
   queryEmbedding: number[],
   userId: string,
+  pineconeApiKey: string,
   options?: Partial<VectorSearchOptions>
 ): Promise<SearchResult[]> {
   // Merge options with defaults
@@ -65,7 +67,7 @@ export async function searchVectors(
     };
 
     // Query Pinecone
-    const matches = await queryEmbeddings(queryEmbedding, topK, filter);
+    const matches = await queryEmbeddings(queryEmbedding, topK, filter, pineconeApiKey);
 
     console.log('[VectorSearchService] 📋 RAW PINECONE RESULTS:');
     if (!matches || matches.length === 0) {

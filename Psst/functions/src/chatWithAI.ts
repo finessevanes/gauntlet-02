@@ -1,7 +1,7 @@
 /**
  * chatWithAI Cloud Function
  * Main endpoint for AI chat functionality
- * 
+ *
  * Handles:
  * - User authentication
  * - Input validation
@@ -22,16 +22,26 @@ import {
 } from './services/conversationService';
 import { generateEmbedding } from './services/openaiService';
 import { searchVectors, formatContextForPrompt } from './services/vectorSearchService';
+import { openaiApiKey, pineconeApiKey } from './config/secrets';
 
 /**
  * Callable Cloud Function for AI chat
- * 
+ *
  * @param data - Request data containing userId, message, and optional conversationId
  * @param context - Firebase Functions context with auth information
  * @returns ChatWithAIResponse with AI-generated response
  */
-export const chatWithAIFunction = functions.https.onCall(
+export const chatWithAIFunction = functions
+  .runWith({
+    secrets: [openaiApiKey, pineconeApiKey],
+    timeoutSeconds: 540,
+    memory: '512MB'
+  })
+  .https.onCall(
   async (data: ChatWithAIRequest, context): Promise<ChatWithAIResponse> => {
+    // Get secret values
+    const openaiKey = openaiApiKey.value();
+    const pineconeKey = pineconeApiKey.value();
     const startTime = Date.now();
     
     try {
@@ -63,8 +73,8 @@ export const chatWithAIFunction = functions.https.onCall(
       // ========================================
       // 2. INPUT VALIDATION
       // ========================================
-      
-      const { message, conversationId } = data;
+
+      const { message, conversationId, timezone } = data;
 
       // Validate message
       if (!message || typeof message !== 'string') {
@@ -144,7 +154,7 @@ export const chatWithAIFunction = functions.https.onCall(
         
         // Generate embedding for user's query
         const embeddingStartTime = Date.now();
-        const queryEmbedding = await generateEmbedding(trimmedMessage);
+        const queryEmbedding = await generateEmbedding(trimmedMessage, openaiKey);
         const embeddingDuration = Date.now() - embeddingStartTime;
         
         console.log(`[chatWithAI] ⏱️  Embedding generation: ${embeddingDuration}ms`);
@@ -155,7 +165,7 @@ export const chatWithAIFunction = functions.https.onCall(
           // Search for relevant past messages
           const searchStartTime = Date.now();
           // Lowered threshold to 0.2 to catch semantic variations in queries
-          const searchResults = await searchVectors(queryEmbedding, authenticatedUserId, {
+          const searchResults = await searchVectors(queryEmbedding, authenticatedUserId, pineconeKey, {
             topK: 10,
             relevanceThreshold: 0.2
           });
@@ -208,24 +218,27 @@ export const chatWithAIFunction = functions.https.onCall(
       let aiResponse: string;
       let tokensUsed: number;
       let modelUsed: string;
+      let functionCall: any = undefined;
 
       try {
         const gptStartTime = Date.now();
-        
+
         console.log('[chatWithAI] ========================================');
         console.log('[chatWithAI] 🤖 CALLING GPT-4');
         console.log('[chatWithAI] RAG context available:', ragContext ? 'YES' : 'NO');
         console.log('[chatWithAI] Conversation context messages:', conversationContext.length);
+        console.log('[chatWithAI] User timezone:', timezone || 'UTC (not provided)');
         console.log('[chatWithAI] ========================================');
-        
+
         const chatMessages = convertToOpenAIFormat(conversationContext);
-        const result = await generateChatResponse(trimmedMessage, chatMessages, ragContext);
-        
+        const result = await generateChatResponse(trimmedMessage, chatMessages, ragContext, openaiKey, timezone);
+
         const gptDuration = Date.now() - gptStartTime;
-        
+
         aiResponse = result.response;
         tokensUsed = result.tokensUsed;
         modelUsed = result.model;
+        functionCall = result.functionCall;
         
         console.log('[chatWithAI] ========================================');
         console.log(`[chatWithAI] ✅ AI RESPONSE GENERATED`);
@@ -233,6 +246,7 @@ export const chatWithAIFunction = functions.https.onCall(
         console.log(`[chatWithAI] 📊 Tokens used: ${tokensUsed}`);
         console.log(`[chatWithAI] 🤖 Model: ${modelUsed}`);
         console.log(`[chatWithAI] 🎯 RAG was: ${ragContext ? 'ENABLED ✅' : 'DISABLED ❌'}`);
+        console.log(`[chatWithAI] 🔧 Function call: ${functionCall ? `${functionCall.name}` : 'NONE'}`);
         console.log(`[chatWithAI] Response preview: "${aiResponse.substring(0, 100)}..."`);
         console.log('[chatWithAI] ========================================');
         
@@ -327,12 +341,19 @@ export const chatWithAIFunction = functions.https.onCall(
       }
       console.log('[chatWithAI] ========================================');
 
-      return {
+      const response: ChatWithAIResponse = {
         success: true,
         response: aiResponse,
         conversationId: finalConversationId,
         tokensUsed
       };
+
+      // Include function call info if present
+      if (functionCall) {
+        response.functionCall = functionCall;
+      }
+
+      return response;
 
     } catch (error: any) {
       const duration = Date.now() - startTime;

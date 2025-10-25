@@ -29,3 +29,6 @@ export { semanticSearchFunction as semanticSearch } from './semanticSearch';
 // Export profile extraction function (PR #007)
 export { extractProfileInfoOnMessage } from './extractProfileInfoOnMessage';
 
+// Export function execution (PR #008)
+export { executeFunctionCallFunction as executeFunctionCall } from './executeFunctionCall';
+

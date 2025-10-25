@@ -4,7 +4,6 @@
  */
 
 import { Pinecone } from '@pinecone-database/pinecone';
-import * as functions from 'firebase-functions';
 import { aiConfig } from '../config/ai.config';
 import { retryWithBackoff, isRetryableError } from '../utils/retryHelper';
 
@@ -24,12 +23,14 @@ export interface PineconeMetadata {
  * @param messageId - Unique message ID (used as vector ID)
  * @param embedding - Array of 1536 floats
  * @param metadata - Message metadata
+ * @param apiKey - Pinecone API key (passed from function handler)
  * @returns True if successful, false otherwise
  */
 export async function upsertEmbedding(
   messageId: string,
   embedding: number[],
-  metadata: PineconeMetadata
+  metadata: PineconeMetadata,
+  apiKey: string
 ): Promise<boolean> {
   // Validate inputs
   if (!messageId || typeof messageId !== 'string') {
@@ -53,11 +54,9 @@ export async function upsertEmbedding(
   }
 
   try {
-    // Get API key from Firebase config
-    const apiKey = functions.config().pinecone?.api_key;
-    
+    // Validate API key
     if (!apiKey) {
-      throw new Error('Pinecone API key not configured. Set with: firebase functions:config:set pinecone.api_key="..."');
+      throw new Error('Pinecone API key not provided. Check secret configuration.');
     }
 
     // Initialize Pinecone client (serverless mode)
@@ -132,18 +131,19 @@ export async function upsertEmbedding(
  * @param embedding - Query embedding vector
  * @param topK - Number of results to return
  * @param filter - Optional metadata filter
+ * @param apiKey - Pinecone API key (passed from function handler)
  * @returns Array of matching vectors with scores
  */
 export async function queryEmbeddings(
   embedding: number[],
   topK: number = 5,
-  filter?: Record<string, any>
+  filter?: Record<string, any>,
+  apiKey?: string
 ): Promise<any[]> {
   try {
-    const apiKey = functions.config().pinecone?.api_key;
-    
+    // Validate API key
     if (!apiKey) {
-      throw new Error('Pinecone API key not configured');
+      throw new Error('Pinecone API key not provided. Check secret configuration.');
     }
 
     const pinecone = new Pinecone({

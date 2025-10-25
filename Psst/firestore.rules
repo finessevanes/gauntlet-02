@@ -110,6 +110,57 @@ service cloud.firestore {
                        resource != null &&
                        request.auth.uid == resource.data.trainerId;
     }
+
+    // Calendar collection (PR #008 - AI Function Calling)
+    match /calendar/{eventId} {
+      // Trainers can read their own calendar events
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.trainerId;
+
+      // Only Cloud Functions can create calendar events (AI-generated)
+      // Trainers cannot directly create - must go through Cloud Function
+      allow create: if false;
+
+      // Trainers can update their own calendar events (change status, etc.)
+      allow update: if request.auth != null &&
+                       request.auth.uid == resource.data.trainerId;
+
+      // Trainers can delete their own calendar events
+      allow delete: if request.auth != null &&
+                       request.auth.uid == resource.data.trainerId;
+    }
+
+    // Reminders collection (PR #008 - AI Function Calling)
+    match /reminders/{reminderId} {
+      // Trainers can read their own reminders
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.trainerId;
+
+      // Only Cloud Functions can create reminders (AI-generated)
+      // Trainers cannot directly create - must go through Cloud Function
+      allow create: if false;
+
+      // Trainers can update their own reminders (mark complete, etc.)
+      allow update: if request.auth != null &&
+                       request.auth.uid == resource.data.trainerId;
+
+      // Trainers can delete their own reminders
+      allow delete: if request.auth != null &&
+                       request.auth.uid == resource.data.trainerId;
+    }
+
+    // AI Actions audit log (PR #008 - AI Function Calling)
+    match /aiActions/{actionId} {
+      // Trainers can read their own AI action history
+      allow read: if request.auth != null &&
+                     request.auth.uid == resource.data.trainerId;
+
+      // Only Cloud Functions can create and update audit logs
+      // Trainers cannot modify audit trail
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
   }
 }
 
