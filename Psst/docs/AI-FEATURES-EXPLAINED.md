@@ -267,9 +267,132 @@ Result: Message sent ✓
 
 1. **OpenAI GPT-4** - The brain that understands and generates text
 2. **Function Calling** - How AI decides which action to take
-3. **Vector Search (Pinecone)** - How AI finds related past messages
+3. **Vector Search (Pinecone)** - How AI finds related past messages using semantic similarity
 4. **Firebase** - Stores all your conversations and client data
 5. **Swift/iOS** - The app you use on your phone
+
+### How Vector Database & Semantic RAG Work
+
+**The Problem:** How does AI find relevant past messages when there are thousands of conversations?
+
+Traditional keyword search would miss things like:
+- You ask: "What did Jake say about his knee?"
+- Jake actually said: "My left leg joint has been bothering me"
+- Keyword search for "knee" would miss this!
+
+**The Solution: Semantic RAG with Pinecone Vector Database**
+
+#### Step 1: Every Message Becomes a Vector (1536 Numbers)
+
+When any message is sent:
+```
+Jake's message: "My left leg joint has been bothering me"
+    ↓
+OpenAI text-embedding-3-small converts to vector
+    ↓
+[0.234, -0.891, 0.456, ..., 0.123] (1536 numbers)
+    ↓
+Stored in Pinecone vector database
+```
+
+**Why vectors?** Numbers capture the *meaning* of text, not just the words. "Knee pain" and "leg joint bothering me" have similar vector representations because they mean similar things.
+
+#### Step 2: Semantic Search Finds Meaning, Not Just Words
+
+When you ask a question:
+```
+Your query: "What did Jake say about his knee?"
+    ↓
+Convert query to vector: [0.245, -0.877, 0.441, ...]
+    ↓
+Pinecone searches for similar vectors using cosine similarity
+    ↓
+Finds Jake's message even though it says "leg joint" not "knee"!
+    ↓
+Returns relevant past messages ranked by similarity
+```
+
+#### Step 3: RAG (Retrieval Augmented Generation)
+
+Now the AI has context to answer intelligently:
+```
+Your question: "What did Jake say about his knee?"
+    ↓
+Pinecone retrieves: "My left leg joint has been bothering me"
+    ↓
+AI reads retrieved context + understands the question
+    ↓
+AI responds: "Jake mentioned his left leg joint has been
+bothering him. He didn't use the word 'knee' but was
+referring to joint pain in that area."
+```
+
+#### The Architecture
+
+**Pinecone Vector Database:**
+- Index name: `coachai`
+- Dimensions: 1536 (matches OpenAI embeddings)
+- Similarity metric: Cosine similarity
+- Infrastructure: Serverless (auto-scales)
+
+**How Messages Flow:**
+```
+1. Message Sent (Firestore)
+        ↓
+2. Cloud Function Triggered
+        ↓
+3. OpenAI Creates Embedding (1536 numbers)
+        ↓
+4. Embedding Stored in Pinecone with metadata:
+   - messageId
+   - conversationId
+   - timestamp
+   - sender (trainer/client)
+        ↓
+5. Available for semantic search instantly
+```
+
+**When You Search:**
+```
+1. Your Query → Converted to vector
+        ↓
+2. Pinecone finds top 10 most similar vectors
+        ↓
+3. Returns matching messages with similarity scores
+        ↓
+4. AI reads messages + generates answer
+        ↓
+5. You get contextual response
+```
+
+#### Why This Matters
+
+**Without Vector DB (keyword search):**
+- "knee pain" only finds exact matches
+- Misses: "leg hurts", "joint bothering me", "running injury"
+- Limited to literal word matching
+
+**With Vector DB (semantic search):**
+- Understands *meaning* not just words
+- Finds: knee, leg, joint, limb, running injury, discomfort
+- Works across synonyms, related concepts, context
+- Much smarter search!
+
+#### Real Example
+
+**Scenario:** Client mentions "shoulder discomfort"
+
+**Keyword search would find:**
+- Messages containing "shoulder" ✓
+- Messages containing "discomfort" ✓
+
+**Vector search also finds:**
+- "rotator cuff pain" (related concept)
+- "my arm hurts when lifting" (similar meaning)
+- "upper body injury" (broader context)
+- Previous discussions about shoulder exercises
+
+This is why "Surface Context" feels so smart - it understands relationships between concepts!
 
 ### The Data Flow
 
