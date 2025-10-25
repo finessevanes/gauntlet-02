@@ -45,11 +45,10 @@ class UserService {
     ///   - id: User's unique identifier (must match Firebase Auth UID)
     ///   - email: User's email address
     ///   - displayName: User's display name (1-50 characters)
-    ///   - role: User's role (trainer or client)
     ///   - photoURL: Optional profile photo URL
     /// - Returns: Created User object
     /// - Throws: UserServiceError if validation fails or Firestore operation fails
-    func createUser(id: String, email: String, displayName: String, role: UserRole, photoURL: String? = nil) async throws -> User {
+    func createUser(id: String, email: String, displayName: String, photoURL: String? = nil) async throws -> User {
         // Validate inputs
         guard !id.isEmpty else {
             throw UserServiceError.invalidUserID
@@ -69,7 +68,6 @@ class UserService {
             id: id,
             email: email,
             displayName: displayName,
-            role: role,
             photoURL: photoURL,
             createdAt: now,
             updatedAt: now

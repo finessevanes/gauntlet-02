@@ -72,21 +72,20 @@ class AuthViewModel: ObservableObject {
     /// - Parameters:
     ///   - email: User's email address
     ///   - password: User's password
-    ///   - displayName: Required display name (no longer optional)
-    ///   - role: User's role (trainer or client)
-    func signUp(email: String, password: String, displayName: String, role: UserRole) async {
+    ///   - displayName: Optional display name (defaults to email prefix if not provided)
+    func signUp(email: String, password: String, displayName: String? = nil) async {
         clearMessages()
         isLoading = true
-
+        
         do {
-            _ = try await authService.signUp(email: email, password: password, displayName: displayName, role: role)
+            _ = try await authService.signUp(email: email, password: password, displayName: displayName)
             // Success - currentUser will be updated automatically via ObservableObject
         } catch let error as AuthenticationError {
             errorMessage = error.errorDescription
         } catch {
             errorMessage = "An unexpected error occurred. Please try again."
         }
-
+        
         isLoading = false
     }
     
@@ -113,13 +112,12 @@ class AuthViewModel: ObservableObject {
     // MARK: - Google Sign-In Authentication
     
     /// Sign up a new user with Google authentication
-    /// - Parameter role: User's role (trainer or client)
-    func signUpWithGoogle(role: UserRole) async {
+    func signUpWithGoogle() async {
         clearMessages()
         isLoading = true
-
+        
         do {
-            _ = try await authService.signUpWithGoogle(role: role)
+            _ = try await authService.signUpWithGoogle()
             // Success - currentUser will be updated automatically via ObservableObject
         } catch let error as AuthenticationError {
             // Don't show error for user cancellation
@@ -131,7 +129,7 @@ class AuthViewModel: ObservableObject {
         } catch {
             errorMessage = "An unexpected error occurred. Please try again."
         }
-
+        
         isLoading = false
     }
     
