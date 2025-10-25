@@ -457,14 +457,17 @@ export async function executeSendMessage(
 
     // Create message
     const messagesRef = chatRef.collection('messages');
+    const messageDoc = messagesRef.doc(); // Generate document ID first
+
     const messageData = {
+      id: messageDoc.id, // Include the document ID as a field (matches iOS app pattern)
       text: messageText,
       senderID: trainerId,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       readBy: [trainerId]
     };
 
-    const messageDoc = await messagesRef.add(messageData);
+    await messageDoc.set(messageData); // Use set() instead of add() since we pre-generated the ID
 
     // Update chat's lastMessage and lastMessageTimestamp
     await chatRef.update({
