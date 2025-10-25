@@ -42,6 +42,15 @@ export interface ChatWithAIRequest {
   userId: string;
   message: string;
   conversationId?: string;
+  timezone?: string; // IANA timezone identifier (e.g., "America/Los_Angeles")
+}
+
+/**
+ * Function call information from AI
+ */
+export interface FunctionCallInfo {
+  name: string;
+  parameters: Record<string, any>;
 }
 
 /**
@@ -53,6 +62,7 @@ export interface ChatWithAIResponse {
   conversationId: string;
   error?: string;
   tokensUsed?: number;
+  functionCall?: FunctionCallInfo;
 }
 
 /**
