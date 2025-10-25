@@ -13,16 +13,19 @@ import FirebaseDatabase
 /// Handles broadcasting typing status, automatic timeouts, and observing other users' typing
 class TypingIndicatorService: ObservableObject {
     // MARK: - Properties
-    
+
+    /// Serial queue for thread-safe access to dictionaries
+    private let queue = DispatchQueue(label: "com.psst.typingIndicator", qos: .userInitiated)
+
     /// Firebase Realtime Database reference
     private let database = Database.database().reference()
-    
+
     /// Dictionary tracking active typing listeners by chat ID
     private var typingRefs: [String: DatabaseReference] = [:]
-    
+
     /// Dictionary tracking automatic timeout timers for typing status
     private var typingTimers: [String: Timer] = [:]
-    
+
     /// Dictionary tracking last broadcast time per chat (for throttling)
     private var lastBroadcastTime: [String: Date] = [:]
     
@@ -45,30 +48,41 @@ class TypingIndicatorService: ObservableObject {
         guard !chatID.isEmpty, !userID.isEmpty else {
             return
         }
-        
-        // Debounce: Check if we recently broadcasted
+
+        // Debounce: Check if we recently broadcasted (thread-safe)
         let key = "\(chatID)_\(userID)"
-        if let lastBroadcast = lastBroadcastTime[key],
-           Date().timeIntervalSince(lastBroadcast) < broadcastThrottle {
+        let shouldSkip = queue.sync { () -> Bool in
+            if let lastBroadcast = lastBroadcastTime[key],
+               Date().timeIntervalSince(lastBroadcast) < broadcastThrottle {
+                return true
+            }
+            return false
+        }
+
+        if shouldSkip {
             // Skip this broadcast (too soon after last one)
             return
         }
-        
+
         let typingRef = database.child("typing").child(chatID).child(userID)
-        
+
         // Calculate expiration time (current time + 3 seconds in milliseconds)
         let currentTime = Date().timeIntervalSince1970 * 1000
         let expirationTime = currentTime + 3000
-        
+
         let typingData: [String: Any] = [
             "status": "typing",
             "timestamp": ServerValue.timestamp(),
             "expiresAt": expirationTime
         ]
-        
+
         do {
             try await typingRef.setValue(typingData)
-            lastBroadcastTime[key] = Date()
+
+            // Update last broadcast time (thread-safe)
+            queue.sync {
+                lastBroadcastTime[key] = Date()
+            }
 
             // Set up auto-clear after 3 seconds (client-side timeout)
             setupTypingTimeout(chatID: chatID, userID: userID)
@@ -94,10 +108,12 @@ class TypingIndicatorService: ObservableObject {
             // Remove typing data from Firebase
             try await typingRef.removeValue()
 
-            // Cancel timer
+            // Cancel timer (thread-safe)
             let key = "\(chatID)_\(userID)"
-            typingTimers[key]?.invalidate()
-            typingTimers.removeValue(forKey: key)
+            queue.sync {
+                typingTimers[key]?.invalidate()
+                typingTimers.removeValue(forKey: key)
+            }
         } catch {
             throw error
         }
@@ -130,33 +146,39 @@ class TypingIndicatorService: ObservableObject {
 
             completion(Array(typingUserIDs))
         }
-        
-        // Store reference for cleanup
-        typingRefs[chatID] = typingRef
+
+        // Store reference for cleanup (thread-safe)
+        queue.sync {
+            typingRefs[chatID] = typingRef
+        }
         return typingRef
     }
-    
+
     /// Stop observing typing users for a chat
     /// - Parameter chatID: The chat ID to stop observing
     func stopObserving(chatID: String) {
-        if let ref = typingRefs[chatID] {
-            ref.removeAllObservers()
-            typingRefs.removeValue(forKey: chatID)
+        queue.sync {
+            if let ref = typingRefs[chatID] {
+                ref.removeAllObservers()
+                typingRefs.removeValue(forKey: chatID)
+            }
         }
     }
-    
+
     /// Stop all active typing listeners (call on logout)
     func stopAllObservers() {
-        typingRefs.forEach { _, ref in
-            ref.removeAllObservers()
-        }
-        typingRefs.removeAll()
+        queue.sync {
+            typingRefs.forEach { _, ref in
+                ref.removeAllObservers()
+            }
+            typingRefs.removeAll()
 
-        // Cancel all timers
-        typingTimers.forEach { _, timer in
-            timer.invalidate()
+            // Cancel all timers
+            typingTimers.forEach { _, timer in
+                timer.invalidate()
+            }
+            typingTimers.removeAll()
         }
-        typingTimers.removeAll()
     }
     
     // MARK: - Private Methods
@@ -164,18 +186,23 @@ class TypingIndicatorService: ObservableObject {
     /// Set up automatic timeout to clear typing status after 3 seconds
     private func setupTypingTimeout(chatID: String, userID: String) {
         let key = "\(chatID)_\(userID)"
-        
-        // Cancel existing timer for this chat/user
-        typingTimers[key]?.invalidate()
-        
+
+        // Cancel existing timer for this chat/user (thread-safe)
+        queue.sync {
+            typingTimers[key]?.invalidate()
+        }
+
         // Create new timer
         let timer = Timer.scheduledTimer(withTimeInterval: typingTimeout, repeats: false) { [weak self] _ in
             Task {
                 try? await self?.stopTyping(chatID: chatID, userID: userID)
             }
         }
-        
-        typingTimers[key] = timer
+
+        // Store new timer (thread-safe)
+        queue.sync {
+            typingTimers[key] = timer
+        }
     }
 }
 
