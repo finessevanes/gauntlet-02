@@ -11,6 +11,13 @@ import Foundation
 import FirebaseAuth
 import FirebaseFirestore
 
+/// User role enum - distinguishes between trainers and clients
+/// Roles are immutable after account creation
+enum UserRole: String, Codable {
+    case trainer = "trainer"
+    case client = "client"
+}
+
 /// User model representing authenticated users
 /// Matches Firebase Auth user structure for consistency
 struct User: Identifiable, Codable, Equatable {
@@ -22,6 +29,10 @@ struct User: Identifiable, Codable, Equatable {
 
     /// User's display name
     var displayName: String
+
+    /// User's role (trainer or client)
+    /// Immutable after account creation - used for role-based AI features
+    var role: UserRole
 
     /// Profile photo URL (optional)
     var photoURL: String?
@@ -42,34 +53,43 @@ struct User: Identifiable, Codable, Equatable {
         case id = "uid"
         case email
         case displayName
+        case role
         case photoURL
         case createdAt
         case updatedAt
         case fcmToken
     }
     
-    /// Custom decoder to handle missing timestamp fields gracefully
+    /// Custom decoder to handle missing timestamp fields and role gracefully
+    /// Backward compatibility: defaults to .trainer role for existing users
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         email = try container.decode(String.self, forKey: .email)
         displayName = try container.decode(String.self, forKey: .displayName)
+
+        // Backward compatibility: default to trainer for existing users without role field
+        role = try container.decodeIfPresent(UserRole.self, forKey: .role) ?? .trainer
+
         photoURL = try container.decodeIfPresent(String.self, forKey: .photoURL)
         fcmToken = try container.decodeIfPresent(String.self, forKey: .fcmToken)
-        
+
         // Decode timestamps with fallback to current date if missing
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
     }
 
     /// Initialize User from Firebase Auth User object
-    /// - Parameter firebaseUser: Firebase Auth User object
-    init(from firebaseUser: FirebaseAuth.User) {
+    /// - Parameters:
+    ///   - firebaseUser: Firebase Auth User object
+    ///   - role: User's role (defaults to .trainer for backward compatibility)
+    init(from firebaseUser: FirebaseAuth.User, role: UserRole = .trainer) {
         let now = Date()
         self.id = firebaseUser.uid
         self.email = firebaseUser.email ?? ""
         self.displayName = firebaseUser.displayName ?? firebaseUser.email?.components(separatedBy: "@").first ?? "User"
+        self.role = role
         self.photoURL = firebaseUser.photoURL?.absoluteString
         self.createdAt = firebaseUser.metadata.creationDate ?? now
         self.updatedAt = now
@@ -81,14 +101,16 @@ struct User: Identifiable, Codable, Equatable {
     ///   - id: Unique user identifier
     ///   - email: User's email address
     ///   - displayName: User's display name
+    ///   - role: User's role (trainer or client)
     ///   - photoURL: Profile photo URL string
     ///   - createdAt: Account creation date
     ///   - updatedAt: Last update timestamp
     ///   - fcmToken: Firebase Cloud Messaging token (optional)
-    init(id: String, email: String, displayName: String, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), fcmToken: String? = nil) {
+    init(id: String, email: String, displayName: String, role: UserRole = .trainer, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), fcmToken: String? = nil) {
         self.id = id
         self.email = email
         self.displayName = displayName
+        self.role = role
         self.photoURL = photoURL
         self.createdAt = createdAt
         self.updatedAt = updatedAt
@@ -103,6 +125,7 @@ struct User: Identifiable, Codable, Equatable {
             "uid": id,
             "email": email,
             "displayName": displayName,
+            "role": role.rawValue,
             "updatedAt": FieldValue.serverTimestamp()
         ]
 

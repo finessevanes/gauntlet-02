@@ -16,19 +16,38 @@ struct SignUpView: View {
     @StateObject private var viewModel = AuthViewModel()
     @Environment(\.dismiss) private var dismiss
     
+    @State private var selectedRole: UserRole? = nil
+    @State private var showRoleSelection: Bool = true
+    @State private var showAuthMethodSelection: Bool = false
+    @State private var selectedAuthMethod: AuthMethod? = nil
     @State private var displayName: String = ""
     @State private var email: String = ""
     @State private var password: String = ""
     @State private var confirmPassword: String = ""
-    
+
+    enum AuthMethod {
+        case email
+        case google
+    }
+
     // MARK: - Computed Properties
-    
+
     private var passwordsMatch: Bool {
         password == confirmPassword && !password.isEmpty
     }
-    
+
     private var isFormValid: Bool {
-        !displayName.isEmpty && !email.isEmpty && !password.isEmpty && passwordsMatch && password.count >= 6
+        let hasRole = selectedRole != nil
+        let hasValidName = !displayName.trimmingCharacters(in: .whitespaces).isEmpty
+        let hasValidEmail = !email.isEmpty
+
+        // For Google auth, we don't need password validation
+        if selectedAuthMethod == .google {
+            return hasRole && hasValidName && hasValidEmail
+        }
+
+        // For email auth, we need password validation
+        return hasRole && hasValidName && hasValidEmail && !password.isEmpty && passwordsMatch && password.count >= 6
     }
     
     // MARK: - Body
@@ -39,17 +58,256 @@ struct SignUpView: View {
                 // Clean system background
                 Color(.systemBackground)
                     .ignoresSafeArea()
-                
-                ScrollView {
-                    VStack(spacing: 24) {
-                        // Header Section
-                        VStack(spacing: 8) {
-                            Text("Create Account")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+
+                if showRoleSelection {
+                    // Role selection screen
+                    roleSelectionView
+                } else if showAuthMethodSelection {
+                    // Auth method selection screen
+                    authMethodSelectionView
+                } else {
+                    // Signup form
+                    signupFormView
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: {
+                        if showRoleSelection {
+                            dismiss()
+                        } else if showAuthMethodSelection {
+                            // Go back to role selection
+                            withAnimation {
+                                showAuthMethodSelection = false
+                                showRoleSelection = true
+                            }
+                        } else {
+                            // Go back to auth method selection
+                            withAnimation {
+                                showAuthMethodSelection = true
+                                selectedAuthMethod = nil
+                                // Clear form
+                                displayName = ""
+                                email = ""
+                                password = ""
+                                confirmPassword = ""
+                            }
                         }
-                        .padding(.top, 16)
+                    }) {
+                        Image(systemName: showRoleSelection ? "xmark" : "chevron.left")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
+                    }
+                    .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("backButton")
+                }
+            }
+            .onChange(of: viewModel.currentUser) { oldValue, newValue in
+                if newValue != nil {
+                    dismiss()
+                }
+            }
+        }
+    }
+
+    // MARK: - Role Selection View
+
+    private var roleSelectionView: some View {
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("I am a...")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    Text("This helps us personalize your experience")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 60)
+
+                // Role buttons
+                VStack(spacing: 16) {
+                    // Personal Trainer button
+                    Button(action: {
+                        selectedRole = .trainer
+                        withAnimation {
+                            showRoleSelection = false
+                            showAuthMethodSelection = true
+                        }
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.system(size: 32))
+                                .foregroundColor(.blue)
+                                .frame(width: 50)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Personal Trainer")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+
+                                Text("I train clients and manage their progress")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(20)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    .accessibilityIdentifier("trainerButton")
+
+                    // Client button
+                    Button(action: {
+                        selectedRole = .client
+                        withAnimation {
+                            showRoleSelection = false
+                            showAuthMethodSelection = true
+                        }
+                    }) {
+                        HStack(spacing: 16) {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 32))
+                                .foregroundColor(.green)
+                                .frame(width: 50)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Client")
+                                    .font(.headline)
+                                    .foregroundColor(.primary)
+
+                                Text("I work with a trainer to achieve my goals")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(20)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    .accessibilityIdentifier("clientButton")
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
+            }
+        }
+    }
+
+    // MARK: - Auth Method Selection View
+
+    private var authMethodSelectionView: some View {
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Sign Up")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+
+                    if let role = selectedRole {
+                        Text("As a \(role == .trainer ? "Personal Trainer" : "Client")")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 60)
+
+                // Auth method buttons
+                VStack(spacing: 16) {
+                    // Google Sign-In button
+                    Button(action: {
+                        Task {
+                            await handleGoogleSignUp()
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "g.circle.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.red)
+
+                            Text("Continue with Google")
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("googleSignUpButton")
+
+                    // Email Sign-Up button
+                    Button(action: {
+                        selectedAuthMethod = .email
+                        withAnimation {
+                            showAuthMethodSelection = false
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "envelope.fill")
+                                .font(.system(size: 24))
+                                .foregroundColor(.blue)
+
+                            Text("Continue with Email")
+                                .font(.body)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    .disabled(viewModel.isLoading)
+                    .accessibilityIdentifier("emailSignUpButton")
+                }
+                .padding(.horizontal, 24)
+
+                Spacer()
+            }
+        }
+    }
+
+    // MARK: - Signup Form View
+
+    private var signupFormView: some View {
+        ScrollView {
+            VStack(spacing: 24) {
+                // Header Section
+                VStack(spacing: 8) {
+                    Text("Create Account")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.primary)
+
+                    if let role = selectedRole {
+                        Text("As a \(role == .trainer ? "Personal Trainer" : "Client")")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 16)
                         
                         // Form fields
                         VStack(spacing: 16) {
@@ -80,10 +338,12 @@ struct SignUpView: View {
                                     .textContentType(.emailAddress)
                                     .autocapitalization(.none)
                                     .keyboardType(.emailAddress)
-                                    .disabled(viewModel.isLoading)
+                                    .disabled(selectedAuthMethod == .google || viewModel.isLoading)
                                     .accessibilityIdentifier("signUpEmailField")
                             }
-                            
+
+                            // Password fields (only for email auth)
+                            if selectedAuthMethod == .email {
                             // Password field
                             VStack(alignment: .leading, spacing: 8) {
                                 Text("Password")
@@ -123,19 +383,27 @@ struct SignUpView: View {
                                         .foregroundColor(.red)
                                 }
                             }
+                            }
                         }
                         .padding(.horizontal, 24)
                         
-                        // Sign up button
-                        Button(action: {
-                            Task {
-                                await viewModel.signUp(email: email, password: password, displayName: displayName)
-                            }
-                        }) {
-                            Text(viewModel.isLoading ? "Creating Account..." : "Sign Up")
-                                .font(.body)
-                                .fontWeight(.semibold)
+                // Sign up button
+                Button(action: {
+                    guard let role = selectedRole else { return }
+                    Task {
+                        if selectedAuthMethod == .google {
+                            // Complete Google signup with edited name
+                            await viewModel.signUpWithGoogle(role: role)
+                        } else {
+                            // Email signup
+                            await viewModel.signUp(email: email, password: password, displayName: displayName, role: role)
                         }
+                    }
+                }) {
+                    Text(viewModel.isLoading ? "Creating Account..." : "Create Account")
+                        .font(.body)
+                        .fontWeight(.semibold)
+                }
                         .buttonStyle(PrimaryButtonStyle(isLoading: viewModel.isLoading))
                         .disabled(!isFormValid || viewModel.isLoading)
                         .opacity(isFormValid ? 1.0 : 0.6)
@@ -183,24 +451,28 @@ struct SignUpView: View {
                             .animation(.spring(response: 0.3), value: viewModel.errorMessage)
                         }
                     }
-                }
-            }
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: { dismiss() }) {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.primary)
-                    }
-                    .disabled(viewModel.isLoading)
-                    .accessibilityIdentifier("closeButton")
-                }
-            }
-            .onChange(of: viewModel.currentUser) { oldValue, newValue in
-                if newValue != nil {
-                    dismiss()
-                }
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    /// Handle Google Sign-In flow: authenticate, get user info, pre-fill form
+    private func handleGoogleSignUp() async {
+        guard let role = selectedRole else { return }
+
+        // Trigger Google Sign-In (errors handled by viewModel)
+        await viewModel.signUpWithGoogle(role: role)
+
+        // If successful, user will be in viewModel.currentUser
+        // Pre-fill form with Google data if user was created
+        if let user = viewModel.currentUser {
+            displayName = user.displayName
+            email = user.email
+
+            // Set auth method and navigate to form
+            selectedAuthMethod = .google
+            withAnimation {
+                showAuthMethodSelection = false
             }
         }
     }
