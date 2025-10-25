@@ -17,16 +17,26 @@ import {
   SemanticSearchResponse,
   SearchResult
 } from './types/rag';
+import { openaiApiKey, pineconeApiKey } from './config/secrets';
 
 /**
  * Callable Cloud Function: Semantic Search
- * 
+ *
  * @param data - Request containing query, userId, and optional limit
  * @param context - Firebase Functions context with auth information
  * @returns SemanticSearchResponse with relevant past messages
  */
-export const semanticSearchFunction = functions.https.onCall(
+export const semanticSearchFunction = functions
+  .runWith({
+    secrets: [openaiApiKey, pineconeApiKey],
+    timeoutSeconds: 60,
+    memory: '256MB'
+  })
+  .https.onCall(
   async (data: SemanticSearchRequest, context): Promise<SemanticSearchResponse> => {
+    // Get secret values
+    const openaiKey = openaiApiKey.value();
+    const pineconeKey = pineconeApiKey.value();
     const startTime = Date.now();
 
     try {
@@ -108,7 +118,7 @@ export const semanticSearchFunction = functions.https.onCall(
       try {
         const embeddingStartTime = Date.now();
 
-        const embedding = await generateEmbedding(trimmedQuery);
+        const embedding = await generateEmbedding(trimmedQuery, openaiKey);
 
         if (!embedding) {
           throw new Error('Failed to generate embedding');
@@ -137,7 +147,7 @@ export const semanticSearchFunction = functions.https.onCall(
       try {
         const searchStartTime = Date.now();
 
-        results = await searchVectors(queryEmbedding, authenticatedUserId, {
+        results = await searchVectors(queryEmbedding, authenticatedUserId, pineconeKey, {
           topK: limit,
           relevanceThreshold: 0.7 // Only return high-quality matches
         });

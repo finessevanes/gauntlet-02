@@ -8,27 +8,37 @@ import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { generateEmbedding } from './services/openaiService';
 import { upsertEmbedding, PineconeMetadata } from './services/pineconeService';
+import { openaiApiKey, pineconeApiKey } from './config/secrets';
 
 /**
  * Cloud Function: Generate and store embedding for new messages
- * 
+ *
  * Trigger: Firestore onCreate for /chats/{chatId}/messages/{messageId}
- * 
+ *
  * Flow:
  * 1. Extract message data from Firestore snapshot
  * 2. Validate message has non-empty text
  * 3. Generate embedding using OpenAI API
  * 4. Store embedding in Pinecone with metadata
  * 5. Log success/failure
- * 
+ *
  * Error Handling:
  * - Empty messages: Skip gracefully
  * - OpenAI failures: Retry with backoff, then throw to trigger Cloud Functions retry
  * - Pinecone failures: Log error but don't block (message already delivered)
  */
-export const generateEmbeddingFunction = functions.firestore
+export const generateEmbeddingFunction = functions
+  .runWith({
+    secrets: [openaiApiKey, pineconeApiKey],
+    timeoutSeconds: 120,
+    memory: '256MB'
+  })
+  .firestore
   .document('chats/{chatId}/messages/{messageId}')
   .onCreate(async (snap, context) => {
+    // Get secret values
+    const openaiKey = openaiApiKey.value();
+    const pineconeKey = pineconeApiKey.value();
     const startTime = Date.now();
     
     try {
@@ -64,9 +74,9 @@ export const generateEmbeddingFunction = functions.firestore
 
       // Generate embedding
       let embedding: number[] | null;
-      
+
       try {
-        embedding = await generateEmbedding(text);
+        embedding = await generateEmbedding(text, openaiKey);
       } catch (error: any) {
         console.error(`[GenerateEmbedding] OpenAI error for message ${messageId}:`, error.message);
         // Re-throw to trigger Cloud Functions automatic retry
@@ -104,7 +114,7 @@ export const generateEmbeddingFunction = functions.firestore
       };
 
       // Upsert to Pinecone
-      const success = await upsertEmbedding(messageId, embedding, metadata);
+      const success = await upsertEmbedding(messageId, embedding, metadata, pineconeKey);
 
       if (success) {
         const duration = Date.now() - startTime;
