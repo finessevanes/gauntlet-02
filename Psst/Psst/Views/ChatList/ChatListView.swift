@@ -13,26 +13,27 @@ import FirebaseAuth
 /// Shows chat previews sorted by most recent activity with real-time updates
 struct ChatListView: View {
     // MARK: - State Management
-    
+
     @StateObject private var viewModel = ChatListViewModel()
     @State private var showingNewChatView = false
-    @State private var selectedChat: Chat?
-    @State private var navigateToChat = false
     @State private var showingAIAssistant = false
-    
+
+    /// Navigation path for programmatic navigation control
+    @State private var navigationPath = NavigationPath()
+
     /// Notification service for deep linking
     @EnvironmentObject private var notificationService: NotificationService
-    
+
     /// Auth view model for current user
     @EnvironmentObject private var authViewModel: AuthViewModel
-    
+
     /// Selected tab binding for navigation
     @Binding var selectedTab: Int
     
     // MARK: - Body
     
     var body: some View {
-        NavigationView {
+        NavigationStack(path: $navigationPath) {
             ZStack {
                 // Main content
                 ZStack {
@@ -48,7 +49,7 @@ struct ChatListView: View {
                         chatListView
                     }
                 }
-                
+
                 // Floating Buttons - positioned bottom-right
                 VStack {
                     Spacer()
@@ -59,7 +60,7 @@ struct ChatListView: View {
                             FloatingAIButton {
                                 showingAIAssistant = true
                             }
-                            
+
                             // New Chat Button
                             FloatingActionButton {
                                 showingNewChatView = true
@@ -71,6 +72,9 @@ struct ChatListView: View {
                 }
             }
             .navigationTitle("Messages")
+            .navigationDestination(for: Chat.self) { chat in
+                ChatView(chat: chat)
+            }
             .toolbar {
                 // User avatar on left - taps to navigate to Profile tab
                 ToolbarItem(placement: .navigationBarLeading) {
@@ -91,24 +95,14 @@ struct ChatListView: View {
             }
             .sheet(isPresented: $showingNewChatView) {
                 UserSelectionView(onChatCreated: { chat in
-                    // Store the chat and trigger immediate navigation
-                    selectedChat = chat
-                    navigateToChat = true
+                    // Navigate to the newly created chat
+                    navigationPath.append(chat)
                     showingNewChatView = false
                 })
             }
             .sheet(isPresented: $showingAIAssistant) {
                 AIAssistantView()
             }
-            .background(
-                NavigationLink(
-                    destination: selectedChat.map { ChatView(chat: $0) },
-                    isActive: $navigateToChat
-                ) {
-                    EmptyView()
-                }
-                .hidden()
-            )
             .onAppear {
                 viewModel.observeChats()
             }
@@ -123,14 +117,20 @@ struct ChatListView: View {
             .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
                 if let chatId = newChatId {
                     print("[ChatListView] 🧭 Deep link received for chat: \(chatId)")
-                    
+
                     // Find the chat in the current list
                     if let chat = viewModel.chats.first(where: { $0.id == chatId }) {
-                        selectedChat = chat
-                        navigateToChat = true
+                        // Navigate to the chat via path
+                        navigationPath.append(chat)
                     } else {
                         print("[ChatListView] ❌ Chat not found in current list: \(chatId)")
                     }
+                }
+            }
+            .onChange(of: selectedTab) { oldTab, newTab in
+                // When user navigates away from Messages tab (0), pop to root
+                if oldTab == 0 && newTab != 0 {
+                    navigationPath.removeLast(navigationPath.count)
                 }
             }
         }
@@ -161,7 +161,7 @@ struct ChatListView: View {
     private var chatListView: some View {
         List {
             ForEach(viewModel.chats) { chat in
-                NavigationLink(destination: ChatView(chat: chat)) {
+                NavigationLink(value: chat) {
                     ChatRowView(chat: chat)
                 }
             }

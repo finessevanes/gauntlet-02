@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 /// Chat model representing conversations between users
 /// Supports both 1-on-1 and group chats with automatic detection
-struct Chat: Identifiable, Codable, Equatable {
+struct Chat: Identifiable, Codable, Equatable, Hashable {
     /// Unique chat identifier
     let id: String
     
