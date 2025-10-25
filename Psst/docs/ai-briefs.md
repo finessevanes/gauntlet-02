@@ -114,15 +114,17 @@ This document contains high-level briefs for all AI-related Pull Requests in the
 
 ### PR #008: AI Function Calling (Tool Integration)
 
-**Brief:** Enable AI to execute actions instead of just providing information by implementing OpenAI function calling. Define AI tools (functions): `scheduleCall(clientName, dateTime, duration)` to book calendar events, `setReminder(clientName, reminderText, dateTime)` to create follow-up reminders, `sendMessage(chatId, messageText)` to send messages on trainer's behalf, and `searchMessages(query, chatId, limit)` to find specific past messages. Implement function execution handlers in Cloud Functions that validate parameters and execute actions safely. Add confirmation UI for actions before execution (except in YOLO mode). Handle function failures gracefully with fallback options. Store function execution history for audit trail. This transforms the AI from passive assistant to active agent that can take actions to help trainers manage their business.
+**Brief:** Enable AI to execute actions instead of just providing information by implementing OpenAI function calling. Define AI tools (functions): `scheduleCall(clientName, dateTime, duration)` to book calendar events in Firestore, `setReminder(clientName, reminderText, dateTime)` to create follow-up reminders, `sendMessage(chatId, messageText)` to send messages on trainer's behalf, and `searchMessages(query, chatId, limit)` to find specific past messages. Implement function execution handlers in Cloud Functions that validate parameters and execute actions safely. Add confirmation UI for actions before execution (except in YOLO mode). Handle function failures gracefully with fallback options. Store function execution history for audit trail in `/aiActions` collection. This transforms the AI from passive assistant to active agent that can take actions to help trainers manage their business.
 
-**User Capability:** AI can execute actions like scheduling calls, setting reminders, and sending messages (with trainer approval)
+**User Capability:** AI can execute actions like scheduling calls (Firestore only), setting reminders, and sending messages (with trainer approval)
 
 **Dependencies:** PR #003 (AI Chat Backend)
 
 **Complexity:** Complex
 
 **Phase:** 4
+
+**⚠️ Important:** PR #008 stores calendar events in Firestore only. **PR #016 (Calendar Integrations) is required** to sync these events to trainer's real Google/Apple Calendar for the feature to be production-ready and demo-worthy.
 
 ---
 
@@ -226,20 +228,34 @@ This document contains high-level briefs for all AI-related Pull Requests in the
 
 ---
 
+### PR #016: Calendar Integrations (Google Calendar & Apple Calendar)
+
+**Brief:** Enable AI-scheduled calls to sync with trainer's actual calendar by integrating with Google Calendar and Apple Calendar. Implement OAuth 2.0 flow for Google Calendar API connection with proper scope requests (calendar.events) and token refresh handling. Integrate iOS EventKit framework for native Apple Calendar access with permission prompts and calendar selection UI. Create CalendarSyncService that manages two-way sync between Firestore `/calendar` collection and external calendars. When AI schedules a call via PR #008 function calling, automatically create corresponding event in trainer's connected calendar. Implement conflict detection that checks for existing events at requested time and suggests alternatives. Add calendar preference settings allowing trainers to choose: Google Calendar (primary account), Apple Calendar (specific calendar within account), or Firestore only (no external sync). Handle calendar event updates and deletions bidirectionally so changes in external calendar reflect in app and vice versa. Store calendar sync metadata (externalEventId, lastSyncedAt, syncStatus) in Firestore for tracking. Implement background sync job that reconciles events every 15 minutes. Add visual indicators in app showing which events are synced vs local-only. Include error handling for: OAuth token expiration, calendar API rate limits, network failures during sync, duplicate event detection. This ensures AI-scheduled calls actually appear in trainers' real calendars where they manage their entire schedule.
+
+**User Capability:** AI-scheduled calls automatically appear in trainer's Google Calendar or Apple Calendar
+
+**Dependencies:** PR #008 (AI Function Calling - scheduleCall function)
+
+**Complexity:** Complex
+
+**Phase:** 4 (Critical for demo - should be built immediately after PR #008)
+
+---
+
 ## 📊 Summary
 
 ### Project Progress
 - **Phase 1 (Foundation):** 0/2 Complete (0%)
 - **Phase 2 (Basic AI Chat):** 0/2 Complete (0%)
 - **Phase 3 (RAG + Context):** 0/3 Complete (0%)
-- **Phase 4 (Actions + Voice):** 0/3 Complete (0%)
+- **Phase 4 (Actions + Voice):** 0/4 Complete (0%) - **PR #016 added for demo**
 - **Phase 5 (Advanced):** 0/5 Complete (0%)
 
 ### Overall Status
-- **Total PRs:** 15
+- **Total PRs:** 16
 - **Completed:** 0 (0%)
-- **In Progress:** 0
-- **Pending:** 15 (100%)
+- **In Progress:** 1 (PR #008)
+- **Pending:** 15 (94%)
 
 ### Next Steps
 Start with Phase 1 parallel development:
@@ -266,7 +282,8 @@ Both can be developed in parallel by different agents since they have no depende
 
 **Demo 1 (Marcus - Lead Qualification):**
 - Uses PR #11 (User Preferences)
-- Uses PR #8 (Function Calling)
+- Uses PR #8 (Function Calling - scheduleCall)
+- **Uses PR #16 (Calendar Integrations - sync to real calendar)** ⭐ Critical for demo
 - Uses PR #13 (Multi-Step Agent)
 - Uses PR #12 (YOLO Mode)
 
@@ -276,7 +293,7 @@ Both can be developed in parallel by different agents since they have no depende
 - Uses PR #6 (Contextual Actions)
 - Uses PR #3 (AI Chat Backend)
 
-Both demos will be functional after Phase 5 completion.
+**Note:** PR #016 is critical for Demo 1 to show AI-scheduled calls appearing in real calendar app. Without this, calls only exist in Firestore which isn't visible to users in their daily workflow.
 
 ---
 
