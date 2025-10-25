@@ -25,3 +25,6 @@ export { chatWithAIFunction as chatWithAI } from './chatWithAI';
 // Export semantic search function
 export { semanticSearchFunction as semanticSearch } from './semanticSearch';
 
+// Export function execution
+export { executeFunctionCallFunction as executeFunctionCall } from './executeFunctionCall';
+
