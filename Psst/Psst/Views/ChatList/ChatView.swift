@@ -26,9 +26,12 @@ struct ChatView: View {
     
     /// Network monitor for connection state
     @ObservedObject var networkMonitor = NetworkMonitor.shared
-    
+
     /// Presence service for online/offline status
     @EnvironmentObject private var presenceService: PresenceService
+
+    /// Authentication service for user role checking (PR #007)
+    private let authService = AuthenticationService.shared
     
     // MARK: - View Models
     
@@ -43,11 +46,35 @@ struct ChatView: View {
     
     /// Contextual AI view model (PR #006)
     @StateObject private var contextualAIViewModel = ContextualAIViewModel()
-    
+
+    /// Client profile view model (PR #007)
+    @StateObject private var profileViewModel = ClientProfileViewModel()
+
     // MARK: - Contextual AI State (PR #006)
-    
+
     /// ID of message showing contextual menu
     @State private var showingMenuForMessageID: String?
+
+    // MARK: - Profile State (PR #007)
+
+    /// Show full profile detail sheet
+    @State private var showProfileDetail = false
+
+    /// Check if current user is a trainer (only trainers see client profiles)
+    private var isCurrentUserTrainer: Bool {
+        authService.currentUser?.role == .trainer
+    }
+
+    /// Get the client ID for profile viewing (only if current user is trainer and other user is client)
+    private var clientIdForProfile: String? {
+        guard isCurrentUserTrainer,
+              let otherUserID = presenceViewModel.otherUserID else {
+            return nil
+        }
+        // TODO: We should check if the other user is actually a client
+        // For now, assume they are (trainer-to-trainer chats are rare)
+        return otherUserID
+    }
     
     // MARK: - Initialization
     
@@ -71,7 +98,17 @@ struct ChatView: View {
         VStack(spacing: 0) {
             // Network status banner (offline/reconnecting/connected)
             NetworkStatusBanner(networkMonitor: networkMonitor, queueCount: $messageViewModel.queueCount)
-            
+
+            // Client profile banner (PR #007) - Only show for trainers viewing clients
+            if !chat.isGroupChat, isCurrentUserTrainer, clientIdForProfile != nil {
+                ClientProfileBannerView(
+                    profile: profileViewModel.profile,
+                    onTapViewFull: {
+                        showProfileDetail = true
+                    }
+                )
+            }
+
             // Message list
             if messageViewModel.messages.isEmpty {
                 // Empty state
@@ -171,15 +208,29 @@ struct ChatView: View {
             GroupMemberStatusView(chat: chat)
                 .environmentObject(presenceService)
         }
+        .sheet(isPresented: $showProfileDetail) {
+            // Client profile detail sheet (PR #007) - Only for trainers
+            if !chat.isGroupChat, isCurrentUserTrainer, let clientId = clientIdForProfile {
+                ClientProfileDetailView(
+                    viewModel: profileViewModel,
+                    clientId: clientId
+                )
+            }
+        }
         .onAppear {
             // Get current user ID from Firebase Auth
             if let uid = Auth.auth().currentUser?.uid {
                 currentUserID = uid
-                
+
                 // Initialize all view models
                 messageViewModel.initialize(currentUserID: uid)
                 presenceViewModel.initialize(currentUserID: uid, presenceService: presenceService)
                 interactionViewModel.setupKeyboardNotifications()
+
+                // Initialize profile view model for trainers viewing clients (PR #007)
+                if !chat.isGroupChat, isCurrentUserTrainer, let clientId = clientIdForProfile {
+                    profileViewModel.observeProfile(clientId: clientId)
+                }
             }
         }
         .onDisappear {
@@ -187,6 +238,7 @@ struct ChatView: View {
             messageViewModel.cleanup()
             presenceViewModel.cleanup()
             interactionViewModel.cleanup()
+            profileViewModel.stopObserving() // PR #007
         }
         .onChange(of: networkMonitor.isConnected) { oldValue, newValue in
             // Process queue when reconnected

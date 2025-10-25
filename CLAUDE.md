@@ -3,6 +3,7 @@
 ## Agent System
 
 This project uses specialized agents to build features systematically:
+
 - **Brenda** (Brief Creator): Creates new PR briefs from feature requirements
 - **Pam** (Planning Agent): Creates PRDs and TODOs from PR briefs
 - **Arnold** (The Architect): Documents existing codebase for brownfield enhancements
@@ -11,16 +12,27 @@ This project uses specialized agents to build features systematically:
 
 All agents follow standards in `Psst/agents/shared-standards.md`
 
+## Build Configuration
+
+**Default iOS Simulator:** `Vanes`
+When running xcodebuild commands, always use:
+
+```
+-destination 'platform=iOS Simulator,name=Vanes'
+```
+
 ---
 
 ## Commands
 
 ### /caleb [pr-number]
+
 Activates Caleb (Coder Agent) to implement a feature.
 
 **Usage:** `/caleb pr-3` or `/caleb 3`
 
 **What Caleb does:**
+
 - Reads `Psst/agents/caleb-agent.md` for instructions
 - Reads PRD at `Psst/docs/prds/pr-{number}-prd.md`
 - Reads TODO at `Psst/docs/todos/pr-{number}-todo.md`
@@ -31,6 +43,7 @@ Activates Caleb (Coder Agent) to implement a feature.
 - Creates PR to `develop` branch when approved
 
 **Caleb's Prompt:**
+
 ```
 You are Caleb, a senior software engineer specializing in building features from requirements.
 
@@ -56,14 +69,17 @@ Start by reading your instruction file, then begin.
 ---
 
 ### /pam [pr-number] [brownfield] [yolo]
+
 Activates Pam (Planning Agent) to create PRD and TODO.
 
-**Usage:** 
+**Usage:**
+
 - `/pam pr-5` - Standard PRD for new feature
 - `/pam pr-5 brownfield` - PRD for enhancing existing code
 - `/pam pr-5 brownfield yolo` - Brownfield PRD + TODO without stopping
 
 **What Pam does:**
+
 - Reads `Psst/agents/pam-agent.md` for instructions
 - Reads PR brief from `Psst/docs/ai-briefs.md`
 - Creates PRD at `Psst/docs/prds/pr-{number}-prd.md`
@@ -71,16 +87,19 @@ Activates Pam (Planning Agent) to create PRD and TODO.
 - Follows templates: `Psst/agents/prd-template.md` and `Psst/agents/todo-template.md`
 
 **Brownfield Mode:**
+
 - When enhancing EXISTING code (not building from scratch)
 - Pam reads `Psst/docs/architecture.md` first to understand current system
 - PRD includes "Affected Existing Code" section
 - Highlights integration points and compatibility requirements
 
 **YOLO Mode:**
+
 - `false` (default): Creates PRD → Waits for review → Creates TODO after approval
 - `true`: Creates both PRD and TODO without stopping
 
 **Pam's Prompt:**
+
 ```
 You are Pam, a senior product manager specializing in breaking down features into detailed PRDs and TODO lists.
 
@@ -105,14 +124,17 @@ Start by reading your instruction file, then begin.
 ---
 
 ### /brenda [feature-name-or-document-paths]
+
 Activates Brenda (Brief Creator) to create PR brief entries.
 
-**Usage:** 
+**Usage:**
+
 - `/brenda authentication-system` (single feature by name)
 - `/brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md` (document-based breakdown)
 - `/brenda Psst/docs/AI-PRODUCT-VISION.md` (full or relative paths work)
 
 **What Brenda does:**
+
 - Reads `Psst/agents/brenda-agent.md` for instructions
 - **If `.md` files provided:** Reads those docs and extracts all features to create briefs
 - **If feature name provided:** Creates a single brief for that feature
@@ -122,6 +144,7 @@ Activates Brenda (Brief Creator) to create PR brief entries.
 - Has three modes: single feature, document-based breakdown, or quick feature brief
 
 **Brenda's Prompt:**
+
 ```
 You are Brenda, a senior product strategist specializing in breaking down features into clear, actionable PR briefs.
 
@@ -153,11 +176,13 @@ Start by reading your instruction file, then begin.
 ---
 
 ### /claudia [pr-number]
+
 Activates Claudia (UX Expert Agent) to create UI/UX specifications and AI frontend prompts.
 
 **Usage:** `/claudia pr-3` or `/claudia 3`
 
 **What Claudia does:**
+
 - Reads `Psst/agents/creative-claudia-agent.md` for instructions
 - Reads PRD at `Psst/docs/prds/pr-{number}-prd.md`
 - Creates wireframes and UI/UX specifications
@@ -165,13 +190,15 @@ Activates Claudia (UX Expert Agent) to create UI/UX specifications and AI fronte
 - Focuses on user experience, accessibility, and design systems
 - Creates front-end specifications for developers
 
-**Available Commands (prefix with *):**
+**Available Commands (prefix with \*):**
+
 - `*help` - Show available commands
 - `*create-front-end-spec` - Create detailed UI/UX specification document
 - `*generate-ui-prompt` - Generate AI frontend generation prompt
 - `*exit` - Exit UX Expert mode
 
 **Claudia's Prompt:**
+
 ```
 You are Claudia, a senior UX designer and UI specialist focused on creating beautiful, intuitive user experiences.
 
@@ -216,13 +243,16 @@ Start by reading your instruction file and the PRD, then begin.
 ---
 
 ### /arnold [document]
+
 Activates Arnold (The Architect) to document codebase for brownfield work.
 
-**Usage:** 
+**Usage:**
+
 - `/arnold` - General architecture updates
 - `/arnold document` - Document existing code before enhancements (brownfield mode)
 
 **What Arnold does:**
+
 - Documents existing system architecture for enhancement planning
 - Identifies integration points where new features connect
 - Maps affected files for modifications
@@ -230,12 +260,14 @@ Activates Arnold (The Architect) to document codebase for brownfield work.
 - Creates/updates `Psst/docs/architecture.md`
 
 **When to use:**
+
 - Before building AI features (brownfield work on existing codebase)
 - Before major enhancements to existing systems
 - When Pam needs context about current architecture
 - Before refactoring or system changes
 
 **Arnold's Prompt:**
+
 ```
 You are Arnold, the Architect - a senior software architect specializing in system documentation and integration planning.
 
@@ -249,12 +281,12 @@ What to do:
    - iOS app structure (Psst/Psst/: Views, ViewModels, Services, Models)
    - Firebase backend (Firestore, Realtime DB, Storage, Cloud Functions)
    - Data flows and integration points
-   
+
 2. If brownfield mode: Focus on areas affected by planned enhancement
    - Identify which existing files will be modified
    - Document patterns currently in use
    - Map integration points for new features
-   
+
 3. Create/update Psst/docs/architecture.md with:
    - Current System Overview (what exists today)
    - Service Responsibilities (what each service does)
@@ -276,11 +308,13 @@ Start by reading your instruction file, then analyze the codebase.
 ---
 
 ### /quinn [pr-number]
+
 Activates Quinn (Test Architect & Risk Analyst) to assess risks for a PR.
 
 **Usage:** `/quinn pr-10` or `/quinn 10`
 
 **What Quinn does:**
+
 - Reads `Psst/agents/quinn-agent.md` for instructions
 - Analyzes complexity and unknowns
 - Identifies integration risks with existing systems
@@ -291,6 +325,7 @@ Activates Quinn (Test Architect & Risk Analyst) to assess risks for a PR.
 - Outputs risk assessment section to PR TODO
 
 **When to use:**
+
 - PRs using new tools/services you haven't worked with
 - PRs with complex integrations across multiple systems
 - PRs touching critical paths (auth, messaging core)
@@ -298,6 +333,7 @@ Activates Quinn (Test Architect & Risk Analyst) to assess risks for a PR.
 - PRs involving third-party APIs with rate limits/costs
 
 **Quinn's Prompt:**
+
 ```
 You are Quinn, a senior test architect and risk analyst specializing in identifying technical risks, cost implications, and integration challenges.
 
@@ -328,9 +364,11 @@ Start by reading your instruction file, then begin risk assessment.
 ---
 
 ### /status
+
 Shows current PR status across all phases.
 
 **What it shows:**
+
 - PRs with PRD only (needs TODO)
 - PRs with PRD + TODO (ready for Caleb)
 - PRs in progress (branch exists)
@@ -341,6 +379,7 @@ Shows current PR status across all phases.
 ## Example Workflows
 
 ### Create briefs from product docs (AI features):
+
 ```
 /brenda AI-PRODUCT-VISION.md AI-BUILD-PLAN.md
 → Reads both documents
@@ -353,6 +392,7 @@ Then continue with Pam and Caleb for each PR...
 ```
 
 ### Create new feature from scratch:
+
 ```
 /brenda user-authentication  → Creates PR brief
 → Assigns PR number (e.g., PR #3)
@@ -369,6 +409,7 @@ Then continue with Pam and Caleb for each PR...
 ```
 
 ### Full workflow (PR-3):
+
 ```
 /pam pr-3              → Creates PRD, waits for review
 [review and approve]
@@ -382,6 +423,7 @@ Then continue with Pam and Caleb for each PR...
 ```
 
 ### Fast workflow with YOLO:
+
 ```
 /pam pr-5 yolo         → Creates both PRD and TODO
 → Presents for approval
@@ -390,6 +432,7 @@ Then continue with Pam and Caleb for each PR...
 ```
 
 ### UX-focused workflow with Claudia:
+
 ```
 /pam pr-8              → Creates PRD, waits for review
 [review and approve]
@@ -408,6 +451,7 @@ Then continue with Pam and Caleb for each PR...
 ```
 
 ### Brownfield workflow (enhancing existing code):
+
 ```
 /arnold document       → Documents existing codebase
 → Maps current architecture
@@ -476,6 +520,7 @@ gauntlet-02/
 ## Development Guidelines
 
 ### Key Concepts for Psst Development
+
 - Firebase-first architecture - Firestore, Realtime DB, Cloud Functions
 - MVVM pattern - Clean separation (Models, Views, ViewModels, Services)
 - SwiftUI + Combine - Reactive UI updates
@@ -503,6 +548,7 @@ gauntlet-02/
 # Backend Development Rules (Firebase Cloud Functions)
 
 ## TypeScript Requirement
+
 - **CRITICAL**: ALL backend/Cloud Functions code MUST be TypeScript
 - Use `.ts` file extensions (NEVER `.js`)
 - Proper TypeScript types for all function parameters and return values
@@ -513,6 +559,7 @@ gauntlet-02/
 - Proper error handling with try/catch
 
 ## Examples:
+
 ```typescript
 // ✅ CORRECT - TypeScript file with proper typing
 // functions/services/openaiService.ts
@@ -539,12 +586,14 @@ async function generateEmbedding(text) {
 # Swift Development Rules
 
 ## Project Context
+
 - Swift 5.0
 - Focus on main thread safety and responsive UI
 
 ## Threading & Concurrency Rules
 
 ### Always Use Background Threads For:
+
 - Network requests (URLSession, API calls)
 - File I/O operations (reading/writing files)
 - Database operations (Core Data, Realm, SQLite)
@@ -553,6 +602,7 @@ async function generateEmbedding(text) {
 - JSON parsing of large data
 
 ### Always Use Main Thread For:
+
 - Updating UI elements (labels, buttons, views)
 - Presenting/dismissing view controllers
 - Reloading table views or collection views
@@ -561,11 +611,12 @@ async function generateEmbedding(text) {
 ### Code Patterns to Follow:
 
 **For async work returning to main thread:**
+
 ```swift
 DispatchQueue.global(qos: .userInitiated).async {
     // Heavy work here
     let result = performExpensiveOperation()
-    
+
     DispatchQueue.main.async {
         // Update UI here
         self.label.text = result
@@ -574,14 +625,15 @@ DispatchQueue.global(qos: .userInitiated).async {
 ```
 
 **For network calls:**
+
 ```swift
 URLSession.shared.dataTask(with: url) { data, response, error in
     // This is already on background thread
     guard let data = data else { return }
-    
+
     // Parse data on background
     let parsed = parseData(data)
-    
+
     // Switch to main for UI updates
     DispatchQueue.main.async {
         self.updateUI(with: parsed)
@@ -590,6 +642,7 @@ URLSession.shared.dataTask(with: url) { data, response, error in
 ```
 
 ## Code Review Checklist
+
 - [ ] No network calls on main thread
 - [ ] UI updates wrapped in `DispatchQueue.main.async`
 - [ ] Heavy operations use background queues
@@ -597,12 +650,14 @@ URLSession.shared.dataTask(with: url) { data, response, error in
 - [ ] Table/collection view reloads on main thread
 
 ## Common Mistakes to Avoid
+
 - Don't use `.sync` on main queue (causes deadlock)
 - Don't forget to weakly capture `self` in closures: `[weak self]`
 - Don't access UI elements from background threads
 - Don't block main thread with `sleep()` or long loops
 
 ## Quality of Service (QoS) Guide
+
 - `.userInteractive`: UI updates, animations (main thread)
 - `.userInitiated`: User-requested tasks (e.g., loading data after tap)
 - `.utility`: Long-running tasks with progress (downloads)

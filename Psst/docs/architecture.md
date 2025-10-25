@@ -1,7 +1,7 @@
 # Psst Architecture Documentation
 
-**Last Updated:** October 23, 2025  
-**Version:** Post-MVP + AI Features Integration Plan
+**Last Updated:** October 24, 2025
+**Version:** Post-MVP + AI Features Integration Plan + User Roles (PR #006.5)
 
 ---
 
@@ -693,5 +693,311 @@ firebase functions:config:set pinecone.index="chat-messages"
 
 ---
 
-**Document Owner:** Finesse Vanes  
+## Brownfield Analysis: User Roles & Required Name (PR #006.5)
+
+### Current Authentication System
+
+#### User Model Structure
+**File:** `Psst/Psst/Models/User.swift`
+
+**Current Fields:**
+```swift
+struct User: Identifiable, Codable {
+    let id: String              // Firebase Auth UID
+    let email: String           // User email
+    var displayName: String     // Currently optional (auto-generated from email)
+    var photoURL: String?       // Profile photo
+    let createdAt: Date        // Account creation
+    var updatedAt: Date        // Last update
+    var fcmToken: String?      // Push notifications
+}
+```
+
+**Missing Fields:**
+- `role: String` - Trainer vs Client distinction
+
+**Current Behavior:**
+- `displayName` auto-generates from email prefix if not provided
+- No validation to enforce displayName during signup
+
+---
+
+### Signup Flow
+
+#### Files Involved:
+1. **SignUpView.swift** - Main signup UI
+   - Path: `Psst/Psst/Views/Authentication/SignUpView.swift`
+   - Fields: displayName (optional), email, password, confirmPassword
+   - Validation: Email format, password length (6+), password match
+   - **Issue:** displayName field can be left empty, falls back to email prefix
+
+2. **AuthenticationService.swift** - Auth operations
+   - Path: `Psst/Psst/Services/AuthenticationService.swift`
+   - Method: `signUp(email:password:displayName:) async throws -> User`
+   - **Issue:** displayName parameter is optional, defaults to email prefix
+
+3. **UserService.swift** - Firestore user operations
+   - Path: `Psst/Psst/Services/UserService.swift`
+   - Method: `createUser(id:email:displayName:photoURL:) async throws -> User`
+   - Creates `/users/{uid}` document in Firestore
+
+#### Current Signup Sequence:
+```
+User fills form → SignUpView validates →
+AuthenticationService.signUp() → Firebase Auth creates account →
+UserService.createUser() → Firestore profile created →
+Auth state listener updates currentUser
+```
+
+---
+
+### Integration Points for User Roles
+
+#### 1. **User Model** (MODIFY)
+**File:** `Psst/Psst/Models/User.swift`
+- Add `role: UserRole` enum field
+- Update `CodingKeys` to include role
+- Update `init(from decoder:)` to decode role
+- Update `init(from firebaseUser:)` - **Problem:** Firebase Auth doesn't store role
+- Update `toDictionary()` to include role in Firestore writes
+- Create `UserRole` enum: `.trainer`, `.client`
+
+#### 2. **SignUpView** (MAJOR CHANGES)
+**File:** `Psst/Psst/Views/Authentication/SignUpView.swift`
+
+**Add Role Selection:**
+- New state: `@State private var selectedRole: UserRole?`
+- New UI screen: Role selection (before or after form)
+- Options: "I'm a Trainer" / "I'm a Client"
+- Visual distinction (icons, descriptions)
+
+**Enforce Required Name:**
+- Update `isFormValid` computed property
+- Remove fallback logic
+- Validate displayName is not empty
+
+**Flow Options:**
+- **Option A:** Role selection first → then signup form
+- **Option B:** Signup form → then role selection
+- **Recommended:** Option A (cleaner UX)
+
+#### 3. **AuthenticationService** (MODIFY)
+**File:** `Psst/Psst/Services/AuthenticationService.swift`
+
+**Update signUp method:**
+```swift
+// Current
+func signUp(email: String, password: String, displayName: String? = nil) async throws -> User
+
+// New
+func signUp(email: String, password: String, displayName: String, role: UserRole) async throws -> User
+```
+
+**Changes:**
+- Make displayName required (remove optional, remove fallback)
+- Add role parameter
+- Pass role to UserService.createUser()
+
+#### 4. **UserService** (MODIFY)
+**File:** `Psst/Psst/Services/UserService.swift`
+
+**Update createUser method:**
+```swift
+// Current
+func createUser(id: String, email: String, displayName: String, photoURL: String?) async throws -> User
+
+// New
+func createUser(id: String, email: String, displayName: String, role: UserRole, photoURL: String?) async throws -> User
+```
+
+**Changes:**
+- Add role parameter
+- Include role in Firestore document creation
+
+#### 5. **Firestore Schema** (NEW FIELD)
+**Collection:** `/users/{uid}`
+
+**Add field:**
+```
+role: "trainer" | "client"
+```
+
+**Migration Strategy:**
+- Existing users: Add Cloud Function or manual script to set default role
+- New users: Role required at signup
+
+#### 6. **UI Display** (OPTIONAL ENHANCEMENTS)
+**Files to potentially update:**
+- `ProfileView.swift` - Show role badge
+- `ChatListView.swift` / `ChatRowView.swift` - Show user role
+- `ChatView.swift` header - Display role in toolbar
+
+---
+
+### Affected Existing Code
+
+#### Files That MUST Be Modified:
+1. ✅ **User.swift** - Add role field
+2. ✅ **SignUpView.swift** - Add role selection, enforce required name
+3. ✅ **AuthenticationService.swift** - Update signUp signature
+4. ✅ **UserService.swift** - Update createUser signature
+
+#### Files That MAY Need Updates:
+5. ⚠️ **AuthViewModel.swift** - Update signUp call
+6. ⚠️ **ProfileView.swift** - Display user role
+7. ⚠️ **EditProfileView.swift** - Allow role change? (probably not)
+8. ⚠️ **Firestore Security Rules** - Add role-based rules (for future features)
+
+#### Files That Reference User Model:
+- Most ViewModels read `currentUser` from AuthenticationService
+- No breaking changes as long as role field has default/fallback
+
+---
+
+### Testing Requirements
+
+#### Unit Tests to Create:
+- `UserModelTests.swift` - Test role encoding/decoding
+- `AuthenticationServiceTests.swift` - Update signup tests with role
+- `UserServiceTests.swift` - Update createUser tests with role
+
+#### UI Tests to Create:
+- `SignUpUITests.swift` - Test role selection flow
+- `SignUpUITests.swift` - Test required displayName validation
+
+#### Manual Testing:
+- Create trainer account → verify role in Firestore
+- Create client account → verify role in Firestore
+- Attempt signup without name → should fail
+- Attempt signup without role → should fail
+
+---
+
+### Security Rules Updates
+
+**File:** `Psst/firestore.rules`
+
+**Current `/users` rule:**
+```javascript
+match /users/{userId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow update: if request.auth != null && request.auth.uid == userId;
+  allow delete: if false;
+}
+```
+
+**Potential enhancement (for future role-based features):**
+```javascript
+match /users/{userId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null &&
+                  request.auth.uid == userId &&
+                  request.resource.data.role in ['trainer', 'client'];
+  allow update: if request.auth != null &&
+                  request.auth.uid == userId &&
+                  // Prevent role changes after creation
+                  request.resource.data.role == resource.data.role;
+  allow delete: if false;
+}
+```
+
+---
+
+### Migration Strategy for Existing Users
+
+**Problem:** Existing users in production don't have a role field.
+
+**Options:**
+
+1. **Default to trainer** (safest for MVP):
+   - Modify User model to default role to `.trainer` if missing
+   - Add migration code in AuthenticationService
+
+2. **Prompt on next login**:
+   - Show role selection modal for users without role
+   - Update profile once selected
+
+3. **One-time migration script**:
+   - Cloud Function to set all existing users to `.trainer`
+
+**Recommended:** Option 1 (default to trainer) for MVP simplicity.
+
+---
+
+### Dependencies for PR #007 (Auto Client Profiles)
+
+**Why PR #007 is blocked:**
+
+Cloud Function `extractProfileInfoOnMessage` needs to:
+1. Identify which user is the trainer
+2. Identify which user is the client
+3. Create profile for client (owned by trainer)
+
+**Current broken logic:**
+```typescript
+const clientId = otherMemberId;  // Wrong! Both could be trainers
+const trainerId = senderId;      // Wrong! Both could be clients
+```
+
+**Fixed logic (after PR #006.5):**
+```typescript
+// Fetch both users from Firestore
+const user1 = await getUser(senderId);
+const user2 = await getUser(otherMemberId);
+
+// Identify trainer and client
+const trainer = user1.role === 'trainer' ? user1 : user2;
+const client = user1.role === 'client' ? user1 : user2;
+
+// Only create profile if chat is between trainer and client
+if (!trainer || !client) {
+  console.log('Skipping: Not a trainer-client conversation');
+  return;
+}
+
+// Create profile for client
+const clientId = client.uid;
+const trainerId = trainer.uid;
+```
+
+---
+
+### Implementation Checklist
+
+**Phase 1: Models & Services**
+- [ ] Create `UserRole` enum
+- [ ] Add `role` field to User model
+- [ ] Update User codable conformance
+- [ ] Update User Firestore dictionary conversion
+- [ ] Update AuthenticationService.signUp() signature
+- [ ] Update UserService.createUser() signature
+
+**Phase 2: UI Changes**
+- [ ] Create role selection UI component
+- [ ] Update SignUpView with role selection
+- [ ] Enforce required displayName validation
+- [ ] Update AuthViewModel to pass role
+
+**Phase 3: Testing**
+- [ ] Unit tests for User model with role
+- [ ] Unit tests for signup with role
+- [ ] UI tests for role selection flow
+- [ ] Manual testing on simulator
+
+**Phase 4: Security & Migration**
+- [ ] Update Firestore security rules
+- [ ] Add migration logic for existing users
+- [ ] Deploy security rules
+
+**Phase 5: Optional Enhancements**
+- [ ] Display role badge in ProfileView
+- [ ] Show role in chat headers
+- [ ] Add role filtering (future feature)
+
+---
+
+**Document Owner:** Finesse Vanes (Arnold - The Architect)
 **Last Updated:** October 24, 2025
+
+**Arnold says:** "I'll be back... with working user roles."
