@@ -300,3 +300,27 @@ Both demos will be functional after Phase 5 completion.
 
 Each PR is designed to deliver a complete, testable AI capability that builds incrementally toward the full AI assistant vision described in AI-PRODUCT-VISION.md.
 
+---
+
+## Infrastructure & DevOps
+
+### PR #016: Fastlane Deployment Setup
+
+**Brief:** Implement automated iOS deployment pipeline using Fastlane with App Store Connect API authentication for streamlined TestFlight and App Store releases. Install Fastlane CLI and configure project-specific Fastfile with lanes for beta deployment (TestFlight), production release (App Store), and certificate management. Set up App Store Connect API key authentication (JSON key file) to avoid manual 2FA prompts during CI/CD. Create Fastlane lanes: `beta` (build → sign → upload to TestFlight), `release` (build → sign → upload to App Store), `screenshots` (generate App Store screenshots), and `test` (run XCTest suite). Configure Match for code signing certificate management across team members and CI servers. Store API keys securely using environment variables or .env files (git-ignored). Document authentication setup, lane usage, and troubleshooting in README. This replaces manual Xcode Archive → Upload workflow with single-command deployments.
+
+**User Capability:** Developers can deploy iOS app to TestFlight and App Store with a single command using automated certificate management
+
+**Dependencies:** None (infrastructure improvement)
+
+**Complexity:** Medium
+
+**Phase:** Infrastructure
+
+**Technical Notes:**
+- Use App Store Connect API (not Apple ID login) to avoid 2FA friction
+- Configure Match for team-wide code signing automation
+- Store API key JSON file outside of git (use .gitignore)
+- Set up lanes: `fastlane beta`, `fastlane release`, `fastlane test`
+- Compatible with GitHub Actions, CircleCI, or local dev machines
+- Requires Apple Developer Program membership
+
