@@ -34,16 +34,6 @@ struct ActionSuccessView: View {
             }
 
             Spacer()
-
-            // Dismiss button
-            Button(action: onDismiss) {
-                Image(systemName: "xmark")
-                    .foregroundColor(.secondary)
-                    .font(.caption)
-                    .padding(8)
-                    .background(Color(.systemGray5))
-                    .clipShape(Circle())
-            }
         }
         .padding(16)
         .background(Color.green.opacity(0.1))
@@ -82,16 +72,6 @@ struct ActionErrorView: View {
                 }
 
                 Spacer()
-
-                // Dismiss button
-                Button(action: onDismiss) {
-                    Image(systemName: "xmark")
-                        .foregroundColor(.secondary)
-                        .font(.caption)
-                        .padding(8)
-                        .background(Color(.systemGray5))
-                        .clipShape(Circle())
-                }
             }
 
             // Retry button if available

@@ -271,9 +271,25 @@ class AIAssistantViewModel: ObservableObject {
                         status: .delivered
                     )
                     conversation.messages.append(aiMessage)
+
+                    // Auto-dismiss success message after 5 seconds
+                    Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        if lastActionResult?.actionId == result.actionId {
+                            lastActionResult = nil
+                        }
+                    }
                 } else {
                     // Error occurred (not SELECTION_REQUIRED, which was handled above)
                     lastActionResult = result
+
+                    // Auto-dismiss error message after 5 seconds
+                    Task {
+                        try? await Task.sleep(nanoseconds: 5_000_000_000)
+                        if lastActionResult?.success == false {
+                            lastActionResult = nil
+                        }
+                    }
                 }
 
             } catch {
@@ -287,6 +303,14 @@ class AIAssistantViewModel: ObservableObject {
                     data: nil
                 )
                 lastActionResult = errorResult
+
+                // Auto-dismiss error message after 5 seconds
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    if lastActionResult?.success == false {
+                        lastActionResult = nil
+                    }
+                }
             }
         }
     }
@@ -391,13 +415,11 @@ class AIAssistantViewModel: ObservableObject {
                 pendingAction = nil
                 print("✅ [ViewModel.confirmAction] State updated with result")
 
-                // Auto-dismiss success message after 3 seconds
-                if result.success {
-                    Task {
-                        try? await Task.sleep(nanoseconds: 3_000_000_000)
-                        if lastActionResult?.actionId == result.actionId {
-                            lastActionResult = nil
-                        }
+                // Auto-dismiss success and error messages after 5 seconds
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    if lastActionResult?.actionId == result.actionId {
+                        lastActionResult = nil
                     }
                 }
 
@@ -422,6 +444,14 @@ class AIAssistantViewModel: ObservableObject {
                 lastActionResult = errorResult
                 pendingAction = nil
                 print("❌ [ViewModel.confirmAction] Error result set")
+
+                // Auto-dismiss error message after 5 seconds
+                Task {
+                    try? await Task.sleep(nanoseconds: 5_000_000_000)
+                    if lastActionResult?.success == false {
+                        lastActionResult = nil
+                    }
+                }
             }
         }
     }
