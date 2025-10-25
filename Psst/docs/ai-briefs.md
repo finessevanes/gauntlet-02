@@ -6,6 +6,24 @@ This document contains high-level briefs for all AI-related Pull Requests in the
 
 ---
 
+## Phase 0: Prerequisites
+
+### PR #006.5: User Roles & Required Name
+
+**Brief:** Implement user role distinction (trainer vs client) and require displayName during signup to enable role-based AI features. Add `role` field to User model with values "trainer" or "client". Update SignupView and EmailSignInView to include role selection screen ("Are you a trainer or client?") before account creation. Make displayName field required (no skipping) during signup flow. Update Firestore User schema to include role field. Modify Firestore security rules to support role-based access controls for future features. Display user role badges in profile views and chat headers. Store role in UserDefaults for quick access. This foundational feature is required for PR #007 (Auto Client Profiles) where trainers build profiles for their clients, and other AI features that need to distinguish between trainer and client contexts.
+
+**User Capability:** Users select their role (trainer or client) during signup and provide required display name
+
+**Dependencies:** None (prerequisite for AI features)
+
+**Complexity:** Simple
+
+**Phase:** 0 (Prerequisite)
+
+**Blocks:** PR #007 (Auto Client Profiles), PR #011 (User Preferences), PR #012 (YOLO Mode)
+
+---
+
 ## Phase 1: Foundation
 
 ### PR #001: AI Backend Infrastructure
@@ -281,4 +299,28 @@ Both demos will be functional after Phase 5 completion.
 ---
 
 Each PR is designed to deliver a complete, testable AI capability that builds incrementally toward the full AI assistant vision described in AI-PRODUCT-VISION.md.
+
+---
+
+## Infrastructure & DevOps
+
+### PR #016: Fastlane Deployment Setup
+
+**Brief:** Implement automated iOS deployment pipeline using Fastlane with App Store Connect API authentication for streamlined TestFlight and App Store releases. Install Fastlane CLI and configure project-specific Fastfile with lanes for beta deployment (TestFlight), production release (App Store), and certificate management. Set up App Store Connect API key authentication (JSON key file) to avoid manual 2FA prompts during CI/CD. Create Fastlane lanes: `beta` (build → sign → upload to TestFlight), `release` (build → sign → upload to App Store), `screenshots` (generate App Store screenshots), and `test` (run XCTest suite). Configure Match for code signing certificate management across team members and CI servers. Store API keys securely using environment variables or .env files (git-ignored). Document authentication setup, lane usage, and troubleshooting in README. This replaces manual Xcode Archive → Upload workflow with single-command deployments.
+
+**User Capability:** Developers can deploy iOS app to TestFlight and App Store with a single command using automated certificate management
+
+**Dependencies:** None (infrastructure improvement)
+
+**Complexity:** Medium
+
+**Phase:** Infrastructure
+
+**Technical Notes:**
+- Use App Store Connect API (not Apple ID login) to avoid 2FA friction
+- Configure Match for team-wide code signing automation
+- Store API key JSON file outside of git (use .gitignore)
+- Set up lanes: `fastlane beta`, `fastlane release`, `fastlane test`
+- Compatible with GitHub Actions, CircleCI, or local dev machines
+- Requires Apple Developer Program membership
 

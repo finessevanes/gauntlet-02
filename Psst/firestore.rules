@@ -91,22 +91,21 @@ service cloud.firestore {
 
     // Client Profiles collection (PR #007)
     match /clientProfiles/{clientId} {
-      // Allow read if:
-      // 1. User is authenticated AND
-      // 2. Either the document doesn't exist yet (resource == null) OR
-      //    the user is the trainer or client in the profile
+      // Trainers and clients can read profiles
+      // Trainer: can read profiles for their assigned clients
+      // Client: can read their own profile
       allow read: if request.auth != null &&
                      (resource == null ||
                       request.auth.uid == resource.data.trainerId ||
                       request.auth.uid == resource.data.clientId);
 
-      // Allow create if authenticated (Cloud Functions will create profiles)
+      // Allow create if authenticated (Cloud Functions run as admin, bypass rules)
       allow create: if request.auth != null;
 
-      // Allow update if authenticated (Cloud Functions will update profiles)
+      // Allow update if authenticated (for both Cloud Functions and manual edits)
       allow update: if request.auth != null;
 
-      // Trainers can delete their clients' profiles
+      // Only trainers can delete their clients' profiles
       allow delete: if request.auth != null &&
                        resource != null &&
                        request.auth.uid == resource.data.trainerId;

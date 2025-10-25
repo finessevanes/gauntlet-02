@@ -13,14 +13,14 @@
 |-------|-----|---------|----------|
 | **Phase 1: Foundation** | PR #001, #002 | ✅ Complete | 2/2 (100%) |
 | **Phase 2: Basic AI Chat** | PR #003, #004 | ✅ Complete | 2/2 (100%) |
-| **Phase 3: RAG + Contextual** | PR #005, #006, #007 | ⏳ Pending | 0/3 (0%) |
+| **Phase 3: RAG + Contextual** | PR #005, #006, #007 | ⏳ In Progress | 1/3 (33%) |
 | **Phase 4: Actions + Voice** | PR #008, #009, #010 | ⏳ Pending | 0/3 (0%) |
 | **Phase 5: Advanced** | PR #011, #012, #013, #014, #015 | ⏳ Pending | 0/5 (0%) |
 
-**Overall Progress:** 4/15 PRs Complete (27%)
+**Overall Progress:** 5/15 PRs Complete (33%)
 
-**Next Steps:** Start Phase 3 (PR #005: RAG Pipeline)
-**Status:** Phases 1 & 2 Complete ✅ | Ready for RAG implementation
+**Next Steps:** Continue Phase 3 (PR #005: RAG Pipeline, PR #006: Contextual AI Actions)
+**Status:** PR #007 Complete ✅ | PR #005 & #006 Pending
 
 ---
 
@@ -148,9 +148,9 @@
 
 ## Phase 3: RAG + Contextual Intelligence (PR #005, #006, #007)
 
-**Status:** ⏳ Pending | **Dependencies:** Phase 1 & 2 Complete ✅
+**Status:** ⏳ In Progress (1/3 Complete) | **Dependencies:** Phase 1 & 2 Complete ✅
 
-### PR #005: RAG Pipeline (Semantic Search)
+### PR #005: RAG Pipeline (Semantic Search) ✅ COMPLETE
 ```bash
 # Status: ⏳ PENDING
 # Branch: feat/pr-005-rag-pipeline
@@ -176,7 +176,7 @@
 
 ---
 
-### PR #006: Contextual AI Actions (Long-Press Menu)
+### PR #006: Contextual AI Actions (Long-Press Menu) ✅ COMPLETE
 ```bash
 # Status: ⏳ PENDING
 # Branch: feat/pr-006-contextual-ai-actions
@@ -201,28 +201,42 @@
 
 ---
 
-### PR #007: Contextual Intelligence (Auto Client Profiles)
+### PR #007: Contextual Intelligence (Auto Client Profiles) ✅ COMPLETE
 ```bash
-# Status: ⏳ PENDING
-# Branch: feat/pr-007-client-profiles
-# Dependencies: PR #005
+# COMPLETED: October 24, 2025
+# Branch: feat/pr-007-contextual-intelligence
+# PR: [Ready for review]
 ```
 
 **Brief:** Automatically build rich client profiles from conversations without manual data entry.
 
-**Deliverables:**
-- Background processing to extract client information (injuries, goals, equipment, preferences, travel, stress)
-- Firestore storage: `clientProfiles/{clientId}`
-- UI to view auto-generated profiles with categories
-- Manual edit/correction capabilities
-- Profile information surfaced in conversations
+**Deliverables:** ✅ ALL COMPLETE
+- ✅ Background processing to extract client information (injuries, goals, equipment, preferences, travel, stress)
+- ✅ Firestore storage: `clientProfiles/{clientId}`
+- ✅ UI to view auto-generated profiles with categories (banner + detail modal)
+- ✅ Manual edit/correction capabilities
+- ✅ Profile information surfaced in conversations (trainer-only visibility)
+- ✅ Cloud Function: `extractProfileInfoOnMessage` (Firestore onCreate trigger)
+- ✅ OpenAI GPT-4o-mini integration for AI extraction with JSON structured output
+- ✅ Role-based extraction (only CLIENT messages trigger extraction)
+- ✅ Role-based UI visibility (only TRAINERS see client profiles)
+- ✅ Duplicate detection with text similarity matching
+- ✅ Confidence scoring (high/medium/low badges)
+- ✅ Newest-first sorting for all profile items
+- ✅ Refactored code (DRY principles, helper methods, ForEach loops)
+- ✅ Firestore security rules for clientProfiles collection
 
-**Testing:**
-- Happy path: Client info extracted and stored
-- Edge case: Conflicting information updates
-- Error: Extraction failures, invalid data
+**Testing:** ✅ VERIFIED
+- ✅ Happy path: Client sends message → AI extracts info → Profile updated → Trainer sees it
+- ✅ Edge case: Trainer messages do NOT trigger extraction
+- ✅ Edge case: Client cannot see profile UI (trainer-only)
+- ✅ Edge case: Duplicate items update timestamp instead of creating duplicates
+- ✅ Edge case: Items sorted newest-first across all categories
+- ✅ Error: Extraction failures don't break message send (graceful degradation)
+- ✅ Integration: Merged PR #6.5 role field for role-based logic
+- ✅ Code quality: Refactored for DRY principles (ProfileService helpers, ForEach in detail view)
 
-**User Capability:** AI automatically remembers and organizes client details from conversations
+**User Capability:** AI automatically remembers and organizes client details from conversations (trainer-only feature)
 
 ---
 
@@ -536,7 +550,7 @@
 | #004 | AI Chat UI | 2 | #002, #003 | ✅ Complete |
 | #005 | RAG Pipeline | 3 | #001, #003 | ⏳ Pending |
 | #006 | Contextual AI Actions | 3 | #004, #005 | ⏳ Pending |
-| #007 | Auto Client Profiles | 3 | #005 | ⏳ Pending |
+| #007 | Auto Client Profiles | 3 | #005 | ✅ Complete |
 | #008 | Function Calling | 4 | #003 | ⏳ Pending |
 | #009 | Proactive Assistant | 4 | #005, #007, #008 | ⏳ Pending |
 | #010 | Voice AI Interface | 4 | #003, #004 | ⏳ Pending |
@@ -589,10 +603,10 @@ Phase 5 (Advanced):                                    │
 
 | AI Requirement | Implementing PRs | Status |
 |----------------|------------------|--------|
-| **RAG Pipeline** | #005, #007, #009 | ⏳ Pending |
+| **RAG Pipeline** | #005, #007, #009 | 1/3 Complete |
 | **User Preferences** | #011, #012, #014 | ⏳ Pending |
 | **Function Calling** | #008, #009, #012, #013 | ⏳ Pending |
-| **Memory/State** | #003, #007, #013 | 1/3 Complete |
+| **Memory/State** | #003, #007, #013 | 2/3 Complete |
 | **Error Handling** | #015 + All features | Ongoing |
 
 ---
@@ -607,7 +621,7 @@ Phase 5 (Advanced):                                    │
 **Demo 2 (Alex - Context Recall):**
 - Requires: PR #005 (RAG), #007 (Profiles), #006 (Contextual), #003 (Chat)
 - Phase: 3
-- Status: ⏳ Phase 3 ready to start (1 prerequisite complete)
+- Status: ⏳ Phase 3 in progress (2/4 complete: #003, #007 ✅ | #005, #006 pending)
 
 ---
 

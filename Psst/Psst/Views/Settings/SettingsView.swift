@@ -107,15 +107,32 @@ struct SettingsView: View {
                 size: 60
             )
             
-            // User Info (name and email)
+            // User Info (name, email, and role badge)
             VStack(alignment: .leading, spacing: 4) {
                 Text(authViewModel.currentUser?.displayName ?? "User")
                     .font(.headline)
                     .fontWeight(.bold)
-                
+
                 Text(authViewModel.currentUser?.email ?? "")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
+
+                // Role badge (PR #6.5 & PR #007)
+                if let role = authViewModel.currentUser?.role {
+                    HStack(spacing: 4) {
+                        Image(systemName: role == .trainer ? "person.fill.checkmark" : "figure.walk")
+                            .font(.caption2)
+
+                        Text(role == .trainer ? "Trainer" : "Client")
+                            .font(.caption2)
+                            .fontWeight(.medium)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(role == .trainer ? Color.blue.opacity(0.15) : Color.green.opacity(0.15))
+                    .foregroundColor(role == .trainer ? .blue : .green)
+                    .cornerRadius(12)
+                }
             }
             
             Spacer()
