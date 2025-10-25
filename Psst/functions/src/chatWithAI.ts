@@ -73,8 +73,8 @@ export const chatWithAIFunction = functions
       // ========================================
       // 2. INPUT VALIDATION
       // ========================================
-      
-      const { message, conversationId } = data;
+
+      const { message, conversationId, timezone } = data;
 
       // Validate message
       if (!message || typeof message !== 'string') {
@@ -227,10 +227,11 @@ export const chatWithAIFunction = functions
         console.log('[chatWithAI] 🤖 CALLING GPT-4');
         console.log('[chatWithAI] RAG context available:', ragContext ? 'YES' : 'NO');
         console.log('[chatWithAI] Conversation context messages:', conversationContext.length);
+        console.log('[chatWithAI] User timezone:', timezone || 'UTC (not provided)');
         console.log('[chatWithAI] ========================================');
 
         const chatMessages = convertToOpenAIFormat(conversationContext);
-        const result = await generateChatResponse(trimmedMessage, chatMessages, ragContext, openaiKey);
+        const result = await generateChatResponse(trimmedMessage, chatMessages, ragContext, openaiKey, timezone);
 
         const gptDuration = Date.now() - gptStartTime;
 

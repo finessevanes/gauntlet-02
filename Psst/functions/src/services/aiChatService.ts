@@ -12,20 +12,42 @@ import { AIFunctionSchemas } from '../schemas/aiFunctionSchemas';
 /**
  * Generate system prompt for trainer AI assistant
  * This prompt sets the context and behavior for the AI
- * 
+ *
  * @param ragContext - Optional RAG context from semantic search
+ * @param timezone - User's IANA timezone identifier (e.g., "America/Los_Angeles")
  */
-function getSystemPrompt(ragContext?: string): string {
+function getSystemPrompt(ragContext?: string, timezone?: string): string {
   const now = new Date();
-  const userFriendlyTime = now.toUTCString(); // More readable format
 
-  console.log(`[getSystemPrompt] Current time for AI context: ${userFriendlyTime}`);
+  // Format time in user's timezone if provided, otherwise use UTC
+  let userFriendlyTime: string;
+  if (timezone) {
+    try {
+      userFriendlyTime = now.toLocaleString('en-US', {
+        timeZone: timezone,
+        weekday: 'short',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+      });
+      console.log(`[getSystemPrompt] Current time in user's timezone (${timezone}): ${userFriendlyTime}`);
+    } catch (error) {
+      console.warn(`[getSystemPrompt] Invalid timezone '${timezone}', falling back to UTC`);
+      userFriendlyTime = now.toUTCString();
+    }
+  } else {
+    userFriendlyTime = now.toUTCString();
+    console.log(`[getSystemPrompt] Current time (UTC - no timezone provided): ${userFriendlyTime}`);
+  }
 
   // RAG-enabled system prompt with function calling (Phase 4)
   if (ragContext) {
     return `You are an AI assistant for a personal trainer using the Psst messaging app.
 
-**Current date and time: ${userFriendlyTime} (UTC).**
+**Current date and time: ${userFriendlyTime}${timezone ? ` (Timezone: ${timezone})` : ' (UTC)'}.**
 
 **CRITICAL TIMEZONE HANDLING:**
 - When users say "3pm tomorrow", extract EXACTLY what they said
@@ -77,7 +99,7 @@ IMPORTANT: When trainer requests an action, use the appropriate function. The tr
   // Basic system prompt with function calling (Phase 4 - no RAG)
   return `You are an AI assistant for a personal trainer using the Psst messaging app.
 
-**Current date and time: ${userFriendlyTime} (UTC).**
+**Current date and time: ${userFriendlyTime}${timezone ? ` (Timezone: ${timezone})` : ' (UTC)'}.**
 
 **CRITICAL TIMEZONE HANDLING:**
 - When users say "3pm tomorrow", extract EXACTLY what they said
@@ -124,13 +146,15 @@ IMPORTANT: When trainer requests an action, use the appropriate function. Do NOT
  * @param conversationHistory - Previous messages for context (optional)
  * @param ragContext - Optional RAG context from semantic search
  * @param apiKey - OpenAI API key (passed from function handler)
+ * @param timezone - User's IANA timezone identifier (e.g., "America/Los_Angeles")
  * @returns AI response object with text and metadata
  */
 export async function generateChatResponse(
   userMessage: string,
   conversationHistory: ChatMessage[] = [],
   ragContext?: string,
-  apiKey?: string
+  apiKey?: string,
+  timezone?: string
 ): Promise<{ response: string; tokensUsed: number; model: string; functionCall?: any }> {
   // Validate input
   if (!userMessage || typeof userMessage !== 'string') {
@@ -160,7 +184,7 @@ export async function generateChatResponse(
     });
 
     // Build conversation messages array
-    const systemPrompt = getSystemPrompt(ragContext);
+    const systemPrompt = getSystemPrompt(ragContext, timezone);
     console.log(`[AIChatService] System prompt length: ${systemPrompt.length} characters`);
     console.log(`[AIChatService] System prompt preview: ${systemPrompt.substring(0, 200)}...`);
 

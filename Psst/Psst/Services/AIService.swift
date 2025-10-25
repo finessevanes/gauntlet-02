@@ -57,9 +57,10 @@ class AIService: ObservableObject {
         // Build parameters (only include conversationId if it exists)
         var parameters: [String: Any] = [
             "userId": userId,
-            "message": message
+            "message": message,
+            "timezone": TimeZone.current.identifier // Send user's timezone to backend
         ]
-        
+
         if let conversationId = conversationId, !conversationId.isEmpty {
             parameters["conversationId"] = conversationId
         }
