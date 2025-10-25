@@ -4,10 +4,10 @@
  */
 
 import OpenAI from 'openai';
-import * as functions from 'firebase-functions';
 import { aiConfig } from '../config/ai.config';
 import { retryWithBackoff, isRetryableError } from '../utils/retryHelper';
 import { ChatMessage } from '../types/aiConversation';
+import { AIFunctionSchemas } from '../schemas/aiFunctionSchemas';
 
 /**
  * Generate system prompt for trainer AI assistant
@@ -16,11 +16,30 @@ import { ChatMessage } from '../types/aiConversation';
  * @param ragContext - Optional RAG context from semantic search
  */
 function getSystemPrompt(ragContext?: string): string {
-  // RAG-enabled system prompt (Phase 3)
+  const now = new Date();
+  const userFriendlyTime = now.toUTCString(); // More readable format
+
+  console.log(`[getSystemPrompt] Current time for AI context: ${userFriendlyTime}`);
+
+  // RAG-enabled system prompt with function calling (Phase 4)
   if (ragContext) {
     return `You are an AI assistant for a personal trainer using the Psst messaging app.
 
+**Current date and time: ${userFriendlyTime} (UTC).**
+
+**CRITICAL TIMEZONE HANDLING:**
+- When users say "3pm tomorrow", extract EXACTLY what they said
+- Return dateTime in ISO 8601 format WITHOUT timezone (YYYY-MM-DDTHH:MM:SS)
+- DO NOT add "Z" at the end - the client will handle timezone conversion
+- DO NOT convert to UTC - just use the time the user mentioned
+- Example: "3pm tomorrow" → "2025-10-25T15:00:00"
+- Example: "2pm on Friday" → "2025-10-31T14:00:00"
+
+All dateTime parameters should be in ISO 8601 format (YYYY-MM-DDTHH:MM:SS) in the USER'S LOCAL TIME.
+When scheduling or setting reminders, use dates/times in the future from now.
+
 ✅ YOU HAVE ACCESS TO THE TRAINER'S CONVERSATION HISTORY via semantic search.
+✅ YOU CAN EXECUTE ACTIONS using function calling.
 
 Here are relevant past messages related to this query:
 ${ragContext}
@@ -32,40 +51,71 @@ What you CAN do:
 - Answer "what did [client] say" questions with actual conversation data
 - Provide context-aware coaching advice based on client history
 - Reference specific injuries, goals, equipment, and preferences from past messages
+- **EXECUTE ACTIONS** via function calling:
+  * Schedule calls/meetings with clients (scheduleCall)
+  * Set reminders for follow-ups (setReminder)
+  * Send messages to clients (sendMessage)
+  * Search specific past conversations (searchMessages)
+
+When to use functions:
+- If trainer asks "schedule a call with Mike tomorrow at 2pm" → Call scheduleCall function
+- If trainer asks "remind me to follow up with Sarah in 3 days" → Call setReminder function
+- If trainer asks "send John a check-in message" → Call sendMessage function
+- If trainer asks "find messages where Mike mentioned his shoulder" → Call searchMessages function
 
 Communication style:
 - Use the retrieved conversation history to give personalized, specific answers
 - Include timestamps when referencing past messages (e.g., "2 weeks ago")
 - If no relevant past conversations found, state that clearly
 - Professional yet friendly and supportive
+- When calling functions, extract parameters from natural language clearly
 
-IMPORTANT: Only reference information from the past messages provided above. Do NOT make up details.`;
+IMPORTANT: Only reference information from the past messages provided above. Do NOT make up details.
+IMPORTANT: When trainer requests an action, use the appropriate function. The trainer will confirm before execution.`;
   }
 
-  // Basic system prompt (Phase 2 - no RAG)
+  // Basic system prompt with function calling (Phase 4 - no RAG)
   return `You are an AI assistant for a personal trainer using the Psst messaging app.
 
-⚠️ IMPORTANT LIMITATION (Basic AI Chat):
-You currently DO NOT have access to the trainer's actual conversation history or client data. You are a basic chatbot without memory or access to real messages.
+**Current date and time: ${userFriendlyTime} (UTC).**
+
+**CRITICAL TIMEZONE HANDLING:**
+- When users say "3pm tomorrow", extract EXACTLY what they said
+- Return dateTime in ISO 8601 format WITHOUT timezone (YYYY-MM-DDTHH:MM:SS)
+- DO NOT add "Z" at the end - the client will handle timezone conversion
+- DO NOT convert to UTC - just use the time the user mentioned
+- Example: "3pm tomorrow" → "2025-10-25T15:00:00"
+- Example: "2pm on Friday" → "2025-10-31T14:00:00"
+
+All dateTime parameters should be in ISO 8601 format (YYYY-MM-DDTHH:MM:SS) in the USER'S LOCAL TIME.
+When scheduling or setting reminders, use dates/times in the future from now.
+
+✅ YOU CAN EXECUTE ACTIONS using function calling.
 
 What you CAN do:
 - Have general conversations about personal training topics
 - Answer questions about fitness, nutrition, programming
 - Provide general business advice for trainers
 - Chat naturally about training-related topics
+- **EXECUTE ACTIONS** via function calling:
+  * Schedule calls/meetings with clients (scheduleCall)
+  * Set reminders for follow-ups (setReminder)
+  * Send messages to clients (sendMessage)
+  * Search specific past conversations (searchMessages)
 
-What you CANNOT do:
-- Search past conversations (ask trainer to enable RAG search)
-- Recall specific client details (no access to real data)
-- Answer "what did [client] say" questions (no conversation access)
+When to use functions:
+- If trainer asks "schedule a call with Mike tomorrow at 2pm" → Call scheduleCall function
+- If trainer asks "remind me to follow up with Sarah in 3 days" → Call setReminder function
+- If trainer asks "send John a check-in message" → Call sendMessage function
+- If trainer asks "find messages where Mike mentioned his shoulder" → Call searchMessages function
 
 Communication style:
 - Be honest about your limitations
-- If asked about specific clients or past conversations, clearly state you don't have access to that data
-- Suggest general advice instead of fabricating specific details
 - Professional yet friendly and supportive
+- When calling functions, extract parameters from natural language clearly
+- The trainer will confirm actions before they execute
 
-NEVER make up client information, conversation details, or specific facts. Always be transparent about what you can and cannot do.`;
+IMPORTANT: When trainer requests an action, use the appropriate function. Do NOT just tell them how to do it - actually call the function!`;
 }
 
 /**
@@ -73,20 +123,22 @@ NEVER make up client information, conversation details, or specific facts. Alway
  * @param userMessage - User's message to the AI
  * @param conversationHistory - Previous messages for context (optional)
  * @param ragContext - Optional RAG context from semantic search
+ * @param apiKey - OpenAI API key (passed from function handler)
  * @returns AI response object with text and metadata
  */
 export async function generateChatResponse(
   userMessage: string,
   conversationHistory: ChatMessage[] = [],
-  ragContext?: string
-): Promise<{ response: string; tokensUsed: number; model: string }> {
+  ragContext?: string,
+  apiKey?: string
+): Promise<{ response: string; tokensUsed: number; model: string; functionCall?: any }> {
   // Validate input
   if (!userMessage || typeof userMessage !== 'string') {
     throw new Error('Invalid message: must be a non-empty string');
   }
 
   const trimmedMessage = userMessage.trim();
-  
+
   if (trimmedMessage.length === 0) {
     throw new Error('Message cannot be empty');
   }
@@ -96,11 +148,9 @@ export async function generateChatResponse(
   }
 
   try {
-    // Get API key from Firebase config
-    const apiKey = functions.config().openai?.api_key;
-    
+    // Validate API key
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured. Set with: firebase functions:config:set openai.api_key="sk-..."');
+      throw new Error('OpenAI API key not provided. Check secret configuration.');
     }
 
     // Initialize OpenAI client
@@ -110,10 +160,14 @@ export async function generateChatResponse(
     });
 
     // Build conversation messages array
+    const systemPrompt = getSystemPrompt(ragContext);
+    console.log(`[AIChatService] System prompt length: ${systemPrompt.length} characters`);
+    console.log(`[AIChatService] System prompt preview: ${systemPrompt.substring(0, 200)}...`);
+
     const messages: ChatMessage[] = [
       {
         role: 'system',
-        content: getSystemPrompt(ragContext)
+        content: systemPrompt
       },
       ...conversationHistory,
       {
@@ -131,17 +185,49 @@ export async function generateChatResponse(
           model: aiConfig.openai.chatModel,
           messages: messages,
           max_tokens: aiConfig.openai.maxTokens,
-          temperature: aiConfig.openai.temperature
+          temperature: aiConfig.openai.temperature,
+          tools: AIFunctionSchemas.map(schema => ({
+            type: 'function' as const,
+            function: schema
+          })),
+          tool_choice: 'auto' // Let AI decide when to use functions
         });
 
         if (!completion.choices || completion.choices.length === 0) {
           throw new Error('No response generated from OpenAI');
         }
 
-        const responseText = completion.choices[0].message?.content || '';
+        const message = completion.choices[0].message;
+        const responseText = message?.content || '';
         const tokensUsed = completion.usage?.total_tokens || 0;
         const modelUsed = completion.model;
+        const toolCalls = message?.tool_calls;
 
+        // Check if AI wants to call a function
+        if (toolCalls && toolCalls.length > 0) {
+          const toolCall = toolCalls[0]; // Take first tool call
+
+          // Type guard for function tool call
+          if (toolCall.type === 'function') {
+            const functionName = toolCall.function.name;
+            const functionArgs = JSON.parse(toolCall.function.arguments);
+
+            console.log(`[AIChatService] ✅ Function call requested: ${functionName}`);
+            console.log(`[AIChatService] Function arguments:`, functionArgs);
+
+            return {
+              response: responseText || `I'd like to ${functionName} with the following details...`,
+              tokensUsed,
+              model: modelUsed,
+              functionCall: {
+                name: functionName,
+                parameters: functionArgs
+              }
+            };
+          }
+        }
+
+        // Normal text response
         console.log(`[AIChatService] ✅ Chat response generated (${tokensUsed} tokens, model: ${modelUsed})`);
 
         return {

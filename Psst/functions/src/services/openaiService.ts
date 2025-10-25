@@ -4,16 +4,16 @@
  */
 
 import OpenAI from 'openai';
-import * as functions from 'firebase-functions';
 import { aiConfig } from '../config/ai.config';
 import { retryWithBackoff, isRetryableError } from '../utils/retryHelper';
 
 /**
  * Generate embedding for text using OpenAI API
  * @param text - Text to embed
+ * @param apiKey - OpenAI API key (passed from function handler)
  * @returns Array of 1536 floats representing the embedding
  */
-export async function generateEmbedding(text: string): Promise<number[] | null> {
+export async function generateEmbedding(text: string, apiKey: string): Promise<number[] | null> {
   // Validate input
   if (!text || typeof text !== 'string') {
     console.warn('[OpenAIService] Invalid text provided for embedding');
@@ -21,7 +21,7 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   }
 
   const trimmedText = text.trim();
-  
+
   // Skip empty messages
   if (trimmedText.length === 0) {
     console.info('[OpenAIService] Skipping empty text');
@@ -34,11 +34,9 @@ export async function generateEmbedding(text: string): Promise<number[] | null> 
   }
 
   try {
-    // Get API key from Firebase config
-    const apiKey = functions.config().openai?.api_key;
-    
+    // Validate API key
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured. Set with: firebase functions:config:set openai.api_key="sk-..."');
+      throw new Error('OpenAI API key not provided. Check secret configuration.');
     }
 
     // Initialize OpenAI client
