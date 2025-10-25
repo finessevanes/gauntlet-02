@@ -56,24 +56,24 @@ struct Message: Identifiable, Codable, Equatable {
     /// Custom decoder to handle Firestore serverTimestamp (which is null initially)
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        
+
         id = try container.decode(String.self, forKey: .id)
         text = try container.decode(String.self, forKey: .text)
         senderID = try container.decode(String.self, forKey: .senderID)
-        
+
         // Handle null timestamp from Firestore serverTimestamp
         // Use current date as fallback if timestamp is null
         timestamp = (try? container.decode(Date.self, forKey: .timestamp)) ?? Date()
-        
+
         readBy = try container.decode([String].self, forKey: .readBy)
-        
+
         // Media fields (optional)
         mediaType = try? container.decode(String.self, forKey: .mediaType)
         mediaURL = try? container.decode(String.self, forKey: .mediaURL)
         mediaThumbnailURL = try? container.decode(String.self, forKey: .mediaThumbnailURL)
         mediaSize = try? container.decode(Int.self, forKey: .mediaSize)
         mediaDimensions = try? container.decode([String: Int].self, forKey: .mediaDimensions)
-        
+
         // sendStatus is client-only, not decoded from Firestore
         sendStatus = nil
     }
