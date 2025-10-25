@@ -38,6 +38,15 @@ class UserService {
     /// Private initializer to enforce singleton pattern
     private init() {}
 
+    // MARK: - Cache Access
+
+    /// Synchronously get a cached user if available (does not trigger network fetch)
+    /// - Parameter id: User's unique identifier
+    /// - Returns: Cached User object if available, nil otherwise
+    func getCachedUser(id: String) -> User? {
+        return userCache[id]
+    }
+
     // MARK: - Public Methods
 
     /// Creates a new user document in Firestore
@@ -228,31 +237,78 @@ class UserService {
     /// Observes real-time changes to a user document
     /// - Parameters:
     ///   - id: User's unique identifier
-    ///   - completion: Callback with Result containing User or Error
+    ///   - completion: Callback with Result containing User or Error (always called on main thread)
     /// - Returns: ListenerRegistration for removing the listener
+    /// - Note: Uses cache-then-network pattern - immediately returns cached data if available, then sets up listener for real-time updates
     func observeUser(id: String, completion: @escaping (Result<User, Error>) -> Void) -> ListenerRegistration {
+        // 🔍 DIAGNOSTIC: Check if data is already cached
+        let cacheHit = userCache[id] != nil
+        Log.i("UserService", "📊 observeUser CALLED id=\(id) cacheHit=\(cacheHit)")
+
+        // ✅ FIX: Cache-then-network pattern
+        // If cached data exists, immediately return it on main thread (no async delay)
+        if let cachedUser = userCache[id] {
+            Log.i("UserService", "✅ Cache hit - returning immediate data (0ms)")
+            // Call completion synchronously on main thread to avoid queuing delay
+            if Thread.isMainThread {
+                completion(.success(cachedUser))
+            } else {
+                DispatchQueue.main.sync {
+                    completion(.success(cachedUser))
+                }
+            }
+        } else {
+            Log.i("UserService", "ℹ️ Cache miss - waiting for network")
+        }
+
+        // Set up Firestore listener for real-time updates
+        // This will call completion again if data changes on server
         return db.collection(usersCollection).document(id).addSnapshotListener { [weak self] snapshot, error in
+            // 🔍 DIAGNOSTIC: Log when network responds
+            Log.i("UserService", "📊 observeUser NETWORK RESPONSE id=\(id)")
+
             if let error = error {
                 Log.e("UserService", "Listener error userID=\(id): \(error.localizedDescription)")
-                completion(.failure(UserServiceError.fetchFailed(error)))
+                // Only call completion with error if we didn't already send cached data
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.fetchFailed(error)))
+                    }
+                }
                 return
             }
 
             guard let snapshot = snapshot, snapshot.exists else {
-                completion(.failure(UserServiceError.userNotFound))
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.userNotFound))
+                    }
+                }
                 return
             }
 
             do {
                 let user = try snapshot.data(as: User.self)
 
-                // Cache the user
+                // 🔍 DIAGNOSTIC: Log when data is cached
+                Log.i("UserService", "📊 observeUser COMPLETED id=\(id) cached=true")
+
+                // Update cache
                 self?.userCache[id] = user
 
-                completion(.success(user))
+                // Call completion with fresh data from server on main thread
+                // If cache was hit, this updates the UI with any server changes
+                // If cache was missed, this provides the initial data
+                DispatchQueue.main.async {
+                    completion(.success(user))
+                }
             } catch {
                 Log.e("UserService", "Failed to decode user id=\(id): \(error.localizedDescription)")
-                completion(.failure(UserServiceError.fetchFailed(error)))
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.fetchFailed(error)))
+                    }
+                }
             }
         }
     }
