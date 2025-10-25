@@ -200,32 +200,18 @@ struct ChatView: View {
             }
         }
         .task {
-            // ✅ FIX: Use .task instead of .onAppear
+            // Use .task instead of .onAppear
             // .task runs EARLIER in the view lifecycle (during navigation transition)
             // This ensures header data is loaded BEFORE the view fully appears
-
-            // 🔍 DIAGNOSTIC: Log when task starts
-            Log.i("ChatView", "📊 ChatView TASK STARTED chatID=\(chat.id)")
 
             // Get current user ID from Firebase Auth
             guard let uid = Auth.auth().currentUser?.uid else { return }
 
             currentUserID = uid
 
-            // 🔍 DIAGNOSTIC: Log before initialization
-            Log.i("ChatView", "📊 INITIALIZING ViewModels currentUserID=\(uid)")
-
-            // Initialize all view models with timing
-            Log.i("ChatView", "📊 → messageViewModel.initialize START")
+            // Initialize all view models
             messageViewModel.initialize(currentUserID: uid)
-            Log.i("ChatView", "📊 → messageViewModel.initialize DONE")
-
-            Log.i("ChatView", "📊 → presenceViewModel.initialize START")
             presenceViewModel.initialize(currentUserID: uid, presenceService: presenceService)
-            Log.i("ChatView", "📊 → presenceViewModel.initialize DONE")
-
-            // 🔍 DIAGNOSTIC: Log after initialization
-            Log.i("ChatView", "📊 ViewModels INITIALIZED")
 
             // Initialize profile view model for trainers viewing clients (PR #007)
             if !chat.isGroupChat, isCurrentUserTrainer, let clientId = clientIdForProfile {
@@ -234,14 +220,7 @@ struct ChatView: View {
         }
         .onAppear {
             // Setup keyboard notifications on appear (needs the view to be fully rendered)
-            Log.i("ChatView", "📊 ChatView APPEARED - setting up keyboard")
             interactionViewModel.setupKeyboardNotifications()
-        }
-        .onChange(of: presenceViewModel.otherUser) { oldValue, newValue in
-            // 🔍 DIAGNOSTIC: Track when SwiftUI re-renders header with user data
-            if let user = newValue {
-                Log.i("ChatView", "📊 HEADER RENDERED with user displayName=\(user.displayName)")
-            }
         }
         .onDisappear {
             // Clean up all view models

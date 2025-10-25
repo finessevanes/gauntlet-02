@@ -68,12 +68,11 @@ class PresenceTrackingViewModel: ObservableObject {
     init(chat: Chat) {
         self.chat = chat
 
-        // ✅ FIX: For 1-on-1 chats, eagerly load cached user data in init() BEFORE view renders
+        // For 1-on-1 chats, eagerly load cached user data in init() BEFORE view renders
         // This prevents the header from popping in after the view appears
         if !chat.isGroupChat, let currentUserID = Auth.auth().currentUser?.uid {
             if let otherUserID = chat.otherUserID(currentUserID: currentUserID) {
                 if let cachedUser = userService.getCachedUser(id: otherUserID) {
-                    Log.i("PresenceViewModel", "✅ INIT cache hit - setting otherUser in init() userID=\(otherUserID)")
                     self.otherUser = cachedUser
                     self.otherUserID = otherUserID
                 }
@@ -91,14 +90,11 @@ class PresenceTrackingViewModel: ObservableObject {
         // Determine other user ID for presence tracking
         determineOtherUserID()
 
-        // ✅ FIX: For 1-on-1 chats, immediately check cache and set otherUser BEFORE async listener
+        // For 1-on-1 chats, immediately check cache and set otherUser BEFORE async listener
         // This prevents header pop-in by showing cached data on first render
         if !chat.isGroupChat, let otherUserID = otherUserID {
             if let cachedUser = userService.getCachedUser(id: otherUserID) {
-                Log.i("PresenceViewModel", "✅ INSTANT cache hit - setting otherUser synchronously userID=\(otherUserID)")
                 self.otherUser = cachedUser
-            } else {
-                Log.i("PresenceViewModel", "ℹ️ Cache miss - will wait for async listener userID=\(otherUserID)")
             }
         }
 
@@ -156,16 +152,11 @@ class PresenceTrackingViewModel: ObservableObject {
     
     /// Attach user profile listener for real-time profile updates
     private func attachUserProfileListener(userID: String) {
-        // 🔍 DIAGNOSTIC: Log start time
-        Log.i("PresenceViewModel", "📊 attachUserProfileListener START userID=\(userID)")
-
         userListener = userService.observeUser(id: userID) { result in
             // UserService now guarantees completion is called on main thread
             // No need for DispatchQueue.main.async - execute immediately
             switch result {
             case .success(let user):
-                // 🔍 DIAGNOSTIC: Log when header finally gets data
-                Log.i("PresenceViewModel", "📊 otherUser SET userID=\(userID) displayName=\(user.displayName)")
                 self.otherUser = user
             case .failure(let error):
                 print("❌ Error observing user profile: \(error.localizedDescription)")
