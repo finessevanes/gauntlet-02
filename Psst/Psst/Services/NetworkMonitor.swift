@@ -45,13 +45,6 @@ class NetworkMonitor: ObservableObject {
             DispatchQueue.main.async {
                 self?.isConnected = path.status == .satisfied
                 self?.connectionType = path.availableInterfaces.first?.type
-                
-                // Log network state changes for debugging
-                if path.status == .satisfied {
-                    print("🌐 Network state: Online (\(path.availableInterfaces.first?.type.description ?? "unknown"))")
-                } else {
-                    print("🌐 Network state: Offline")
-                }
             }
         }
         
@@ -63,7 +56,6 @@ class NetworkMonitor: ObservableObject {
     /// Call when network monitoring is no longer needed
     func stopMonitoring() {
         monitor.cancel()
-        print("⏹ NetworkMonitor stopped")
     }
 }
 

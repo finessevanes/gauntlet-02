@@ -68,8 +68,6 @@ export const chatWithAIFunction = functions
         );
       }
 
-      console.log(`[chatWithAI] Request from user: ${authenticatedUserId}`);
-
       // ========================================
       // 2. INPUT VALIDATION
       // ========================================
@@ -115,8 +113,6 @@ export const chatWithAIFunction = functions
         }
       }
 
-      console.log(`[chatWithAI] Processing message (${trimmedMessage.length} chars, conversation: ${conversationId || 'new'})`);
-
       // ========================================
       // 3. GET CONVERSATION HISTORY (if existing conversation)
       // ========================================
@@ -130,7 +126,6 @@ export const chatWithAIFunction = functions
             role: msg.role,
             content: msg.content
           }));
-          console.log(`[chatWithAI] Loaded ${conversationContext.length} messages for context`);
         } catch (error: any) {
           console.error('[chatWithAI] Failed to load conversation history:', error);
           // Continue without context rather than failing
@@ -146,56 +141,24 @@ export const chatWithAIFunction = functions
       const ragStartTime = Date.now();
 
       try {
-        console.log('[chatWithAI] ========================================');
-        console.log('[chatWithAI] 🔍 STARTING RAG PIPELINE');
-        console.log('[chatWithAI] Query:', trimmedMessage);
-        console.log('[chatWithAI] User ID:', authenticatedUserId);
-        console.log('[chatWithAI] ========================================');
-        
         // Generate embedding for user's query
-        const embeddingStartTime = Date.now();
         const queryEmbedding = await generateEmbedding(trimmedMessage, openaiKey);
-        const embeddingDuration = Date.now() - embeddingStartTime;
-        
-        console.log(`[chatWithAI] ⏱️  Embedding generation: ${embeddingDuration}ms`);
 
         if (queryEmbedding) {
-          console.log(`[chatWithAI] ✅ Generated embedding vector (${queryEmbedding.length} dimensions)`);
-          
           // Search for relevant past messages
-          const searchStartTime = Date.now();
           // Lowered threshold to 0.2 to catch semantic variations in queries
           const searchResults = await searchVectors(queryEmbedding, authenticatedUserId, pineconeKey, {
             topK: 10,
             relevanceThreshold: 0.2
           });
-          const searchDuration = Date.now() - searchStartTime;
-          
-          console.log(`[chatWithAI] ⏱️  Vector search: ${searchDuration}ms`);
-          console.log(`[chatWithAI] 📊 Search returned ${searchResults?.length || 0} results`);
 
           if (searchResults && searchResults.length > 0) {
-            // Log each result for debugging
-            searchResults.forEach((result, index) => {
-              console.log(`[chatWithAI] Result ${index + 1}: "${result.text.substring(0, 50)}..." (score: ${result.score.toFixed(4)})`);
-            });
-            
             // Format results for GPT-4 prompt
             ragContext = formatContextForPrompt(searchResults);
-            
-            console.log('[chatWithAI] ========================================');
-            console.log('[chatWithAI] 🎯 RAG CONTEXT FOR GPT-4:');
-            console.log(ragContext);
-            console.log('[chatWithAI] ========================================');
-            
-            const ragDuration = Date.now() - ragStartTime;
-            console.log(`[chatWithAI] ✅ RAG pipeline complete: ${searchResults.length} relevant messages found (${ragDuration}ms total)`);
           } else {
-            console.log('[chatWithAI] ⚠️  No relevant past messages found (all results below 0.7 threshold)');
             ragContext = undefined;
           }
         } else {
-          console.log('[chatWithAI] ❌ Failed to generate embedding (returned null)');
           ragContext = undefined;
         }
       } catch (error: any) {
@@ -221,34 +184,13 @@ export const chatWithAIFunction = functions
       let functionCall: any = undefined;
 
       try {
-        const gptStartTime = Date.now();
-
-        console.log('[chatWithAI] ========================================');
-        console.log('[chatWithAI] 🤖 CALLING GPT-4');
-        console.log('[chatWithAI] RAG context available:', ragContext ? 'YES' : 'NO');
-        console.log('[chatWithAI] Conversation context messages:', conversationContext.length);
-        console.log('[chatWithAI] User timezone:', timezone || 'UTC (not provided)');
-        console.log('[chatWithAI] ========================================');
-
         const chatMessages = convertToOpenAIFormat(conversationContext);
         const result = await generateChatResponse(trimmedMessage, chatMessages, ragContext, openaiKey, timezone);
-
-        const gptDuration = Date.now() - gptStartTime;
 
         aiResponse = result.response;
         tokensUsed = result.tokensUsed;
         modelUsed = result.model;
         functionCall = result.functionCall;
-        
-        console.log('[chatWithAI] ========================================');
-        console.log(`[chatWithAI] ✅ AI RESPONSE GENERATED`);
-        console.log(`[chatWithAI] ⏱️  GPT-4 duration: ${gptDuration}ms`);
-        console.log(`[chatWithAI] 📊 Tokens used: ${tokensUsed}`);
-        console.log(`[chatWithAI] 🤖 Model: ${modelUsed}`);
-        console.log(`[chatWithAI] 🎯 RAG was: ${ragContext ? 'ENABLED ✅' : 'DISABLED ❌'}`);
-        console.log(`[chatWithAI] 🔧 Function call: ${functionCall ? `${functionCall.name}` : 'NONE'}`);
-        console.log(`[chatWithAI] Response preview: "${aiResponse.substring(0, 100)}..."`);
-        console.log('[chatWithAI] ========================================');
         
       } catch (error: any) {
         console.error('[chatWithAI] AI generation failed:', error);
@@ -315,8 +257,6 @@ export const chatWithAIFunction = functions
           tokensUsed
         );
 
-        console.log(`[chatWithAI] ✅ Conversation saved: ${finalConversationId}`);
-        
       } catch (error: any) {
         console.error('[chatWithAI] Failed to save conversation:', error);
         // Continue and return response even if save fails
@@ -327,19 +267,6 @@ export const chatWithAIFunction = functions
       // ========================================
       // 7. RETURN RESPONSE
       // ========================================
-      
-      const duration = Date.now() - startTime;
-      
-      console.log('[chatWithAI] ========================================');
-      console.log('[chatWithAI] 🎉 REQUEST COMPLETE');
-      console.log(`[chatWithAI] ⏱️  Total duration: ${duration}ms`);
-      console.log('[chatWithAI] Performance breakdown:');
-      console.log('[chatWithAI]   - RAG pipeline:', ragContext ? 'enabled' : 'disabled');
-      console.log('[chatWithAI]   - Total time:', duration, 'ms');
-      if (duration > 3000) {
-        console.warn('[chatWithAI] ⚠️  WARNING: Response time exceeded 3 second target!');
-      }
-      console.log('[chatWithAI] ========================================');
 
       const response: ChatWithAIResponse = {
         success: true,

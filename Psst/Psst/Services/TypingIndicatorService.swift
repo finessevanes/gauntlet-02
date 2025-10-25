@@ -43,7 +43,6 @@ class TypingIndicatorService: ObservableObject {
     func startTyping(chatID: String, userID: String) async throws {
         // Validate parameters
         guard !chatID.isEmpty, !userID.isEmpty else {
-            print("[TypingIndicatorService] ✗ Invalid parameters: chatID=\(chatID), userID=\(userID)")
             return
         }
         
@@ -70,13 +69,10 @@ class TypingIndicatorService: ObservableObject {
         do {
             try await typingRef.setValue(typingData)
             lastBroadcastTime[key] = Date()
-            
-            print("[TypingIndicatorService] ✓ Started typing status for user \(userID) in chat \(chatID)")
-            
+
             // Set up auto-clear after 3 seconds (client-side timeout)
             setupTypingTimeout(chatID: chatID, userID: userID)
         } catch {
-            print("[TypingIndicatorService] ✗ Error starting typing: \(error.localizedDescription)")
             throw error
         }
     }
@@ -89,24 +85,20 @@ class TypingIndicatorService: ObservableObject {
     func stopTyping(chatID: String, userID: String) async throws {
         // Validate parameters
         guard !chatID.isEmpty, !userID.isEmpty else {
-            print("[TypingIndicatorService] ✗ Invalid parameters: chatID=\(chatID), userID=\(userID)")
             return
         }
-        
+
         let typingRef = database.child("typing").child(chatID).child(userID)
-        
+
         do {
             // Remove typing data from Firebase
             try await typingRef.removeValue()
-            
+
             // Cancel timer
             let key = "\(chatID)_\(userID)"
             typingTimers[key]?.invalidate()
             typingTimers.removeValue(forKey: key)
-            
-            print("[TypingIndicatorService] ✓ Stopped typing status for user \(userID) in chat \(chatID)")
         } catch {
-            print("[TypingIndicatorService] ✗ Error stopping typing: \(error.localizedDescription)")
             throw error
         }
     }
@@ -135,8 +127,7 @@ class TypingIndicatorService: ObservableObject {
                 }
                 return true  // Include if no expiration data (backward compatible)
             }
-            
-            print("[TypingIndicatorService] 👀 Observed \(typingUserIDs.count) typing users in chat \(chatID)")
+
             completion(Array(typingUserIDs))
         }
         
@@ -160,14 +151,12 @@ class TypingIndicatorService: ObservableObject {
             ref.removeAllObservers()
         }
         typingRefs.removeAll()
-        
+
         // Cancel all timers
         typingTimers.forEach { _, timer in
             timer.invalidate()
         }
         typingTimers.removeAll()
-        
-        print("[TypingIndicatorService] ✓ Stopped all typing observers and timers")
     }
     
     // MARK: - Private Methods
@@ -182,12 +171,7 @@ class TypingIndicatorService: ObservableObject {
         // Create new timer
         let timer = Timer.scheduledTimer(withTimeInterval: typingTimeout, repeats: false) { [weak self] _ in
             Task {
-                do {
-                    try await self?.stopTyping(chatID: chatID, userID: userID)
-                    print("[TypingIndicatorService] ⏱️ Auto-cleared typing after timeout")
-                } catch {
-                    print("[TypingIndicatorService] ✗ Error in auto-clear: \(error.localizedDescription)")
-                }
+                try? await self?.stopTyping(chatID: chatID, userID: userID)
             }
         }
         

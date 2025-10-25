@@ -101,17 +101,14 @@ export async function executeScheduleCall(
 
     // If clientId was provided (after selection), use it directly
     if (providedClientId) {
-      console.log(`[executeScheduleCall] Using provided clientId: ${providedClientId}`);
       clientId = providedClientId;
       clientDisplayName = clientName; // Use the exact name from selection
     } else {
       // Find matching contacts by name
-      console.log(`[executeScheduleCall] Searching for contacts matching: ${clientName}`);
       const matchResults = await findContactMatches(trainerId, clientName);
 
       // Multiple matches -> return SELECTION_REQUIRED
       if (matchResults.length > 1) {
-        console.log(`[executeScheduleCall] Found ${matchResults.length} matches, returning SELECTION_REQUIRED`);
         return {
           success: false,
           error: 'SELECTION_REQUIRED',
@@ -145,7 +142,6 @@ export async function executeScheduleCall(
       // Single match -> proceed
       clientId = matchResults[0].userId;
       clientDisplayName = matchResults[0].displayName;
-      console.log(`[executeScheduleCall] Single match found, using clientId: ${clientId}`);
     }
 
     const db = admin.firestore();
@@ -230,16 +226,13 @@ export async function executeSetReminder(
 
     // If clientId was provided (after selection), use it directly
     if (providedClientId) {
-      console.log(`[executeSetReminder] Using provided clientId: ${providedClientId}`);
       clientId = providedClientId;
     } else if (clientName) {
       // Find client by name
-      console.log(`[executeSetReminder] Searching for contacts matching: ${clientName}`);
       const matchResults = await findContactMatches(trainerId, clientName);
 
       // Multiple matches -> return SELECTION_REQUIRED
       if (matchResults.length > 1) {
-        console.log(`[executeSetReminder] Found ${matchResults.length} matches, returning SELECTION_REQUIRED`);
         return {
           success: false,
           error: 'SELECTION_REQUIRED',
@@ -272,7 +265,6 @@ export async function executeSetReminder(
 
       // Single match -> proceed
       clientId = matchResults[0].userId;
-      console.log(`[executeSetReminder] Single match found, using clientId: ${clientId}`);
     }
 
     // Create reminder
@@ -326,28 +318,19 @@ async function findContactMatches(
   trainerId: string,
   searchName: string
 ): Promise<Array<{ userId: string; displayName: string; email: string; chatId: string }>> {
-  console.log(`[findContactMatches] Starting search for: "${searchName}"`);
-  console.log(`[findContactMatches] Trainer ID: ${trainerId}`);
-
   const db = admin.firestore();
   const usersRef = db.collection('users');
   const allUsersSnapshot = await usersRef.get();
 
-  console.log(`[findContactMatches] Total users in database: ${allUsersSnapshot.docs.length}`);
-
   const matches: Array<{ userId: string; displayName: string; email: string; chatId: string }> = [];
-  const allNames: string[] = [];
 
   for (const userDoc of allUsersSnapshot.docs) {
     const userData = userDoc.data();
     const displayName = userData.displayName;
 
     if (!displayName) {
-      console.log(`[findContactMatches] User ${userDoc.id} has no displayName, skipping`);
       continue;
     }
-
-    allNames.push(displayName);
 
     const nameLower = displayName.toLowerCase();
     const searchLower = searchName.toLowerCase();
@@ -360,49 +343,29 @@ async function findContactMatches(
 
     const isMatch = exactMatch || containsMatch || distanceMatch;
 
-    console.log(`[findContactMatches] Checking "${displayName}" (${userDoc.id}):`);
-    console.log(`  - Exact match: ${exactMatch}`);
-    console.log(`  - Contains match: ${containsMatch}`);
-    console.log(`  - Edit distance: ${editDistance} (match: ${distanceMatch})`);
-    console.log(`  - Overall match: ${isMatch}`);
-
     if (isMatch) {
-      console.log(`[findContactMatches] ✅ "${displayName}" matches! Looking for chat...`);
-
       // Find chat between trainer and this user
       const chatsRef = db.collection('chats');
       const chatQuery = await chatsRef
         .where('members', 'array-contains', trainerId)
         .get();
 
-      console.log(`[findContactMatches] Found ${chatQuery.docs.length} chats for trainer`);
-
       const matchingChat = chatQuery.docs.find(doc => {
         const members = doc.data().members || [];
         const hasUser = members.includes(userDoc.id);
-        console.log(`  - Chat ${doc.id}: members=${members.join(',')}, includes ${userDoc.id}? ${hasUser}`);
         return hasUser;
       });
 
       if (matchingChat) {
-        console.log(`[findContactMatches] ✅ Found chat ${matchingChat.id} with ${displayName}`);
         matches.push({
           userId: userDoc.id,
           displayName,
           email: userData.email || 'No email',
           chatId: matchingChat.id
         });
-      } else {
-        console.log(`[findContactMatches] ⚠️ No chat found with ${displayName}, skipping`);
       }
     }
   }
-
-  console.log(`[findContactMatches] All user names in database: ${allNames.join(', ')}`);
-  console.log(`[findContactMatches] FINAL RESULTS: Found ${matches.length} matching contacts`);
-  matches.forEach((m, i) => {
-    console.log(`  ${i + 1}. ${m.displayName} (${m.userId}) - ${m.email} - chat: ${m.chatId}`);
-  });
 
   return matches;
 }
@@ -424,12 +387,10 @@ export async function executeSendMessage(
 
     // If only clientName provided, search for matching contacts
     if (!chatId && clientName) {
-      console.log(`[executeSendMessage] Searching for contacts matching: ${clientName}`);
       const matchResults = await findContactMatches(trainerId, clientName);
 
       // Multiple matches -> return SELECTION_REQUIRED
       if (matchResults.length > 1) {
-        console.log(`[executeSendMessage] Found ${matchResults.length} matches, returning SELECTION_REQUIRED`);
         return {
           success: false,
           error: 'SELECTION_REQUIRED',
@@ -455,7 +416,6 @@ export async function executeSendMessage(
       // Single match -> proceed with this chat
       if (matchResults.length === 1) {
         resolvedChatId = matchResults[0].chatId;
-        console.log(`[executeSendMessage] Single match found, using chatId: ${resolvedChatId}`);
       } else {
         // No matches
         return {

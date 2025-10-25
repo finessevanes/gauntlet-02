@@ -64,7 +64,6 @@ class MessageService {
         // Call optimistic completion IMMEDIATELY (before Firestore)
         // This allows UI to show message instantly
         optimisticCompletion?(optimisticMessage)
-        print("⚡️ Optimistic message added: \(finalMessageID)")
         
         // Check network state
         if !NetworkMonitor.shared.isConnected {
@@ -79,14 +78,10 @@ class MessageService {
             
             // Enqueue for offline sync
             try MessageQueue.shared.enqueue(queuedMessage)
-            print("📥 Message queued for offline send: \(finalMessageID)")
-            
+
             // Throw offline error (allows caller to update UI to "queued" status)
             throw MessageError.offline
         }
-        
-        // Log message send
-        print("📤 Sending message to chat: \(chatID)")
         
         do {
             // Write message to Firestore (online path)
@@ -97,12 +92,10 @@ class MessageService {
                 .document(finalMessageID)
             
             try await messageRef.setData(optimisticMessage.toDictionary())
-            
+
             // Update chat document with last message metadata
             try await updateChatLastMessage(chatID: chatID, text: trimmedText)
-            
-            print("✅ Message sent successfully: \(finalMessageID)")
-            
+
             return finalMessageID
         } catch {
             print("❌ Send failed: \(error.localizedDescription)")
@@ -144,16 +137,6 @@ class MessageService {
             let messages = documents.compactMap { document -> Message? in
                 do {
                     let message = try document.data(as: Message.self)
-                    
-                    // Log image message details
-                    if message.mediaType == "image" {
-                        print("🖼️ [MESSAGE LOAD] Image message found: \(message.id)")
-                        print("🔗 [MESSAGE LOAD] Media URL: \(message.mediaURL ?? "nil")")
-                        print("🔗 [MESSAGE LOAD] Thumbnail URL: \(message.mediaThumbnailURL ?? "nil")")
-                        print("📏 [MESSAGE LOAD] Dimensions: \(message.mediaDimensions ?? [:])")
-                        print("📊 [MESSAGE LOAD] Size: \(message.mediaSize ?? 0) bytes")
-                    }
-                    
                     return message
                 } catch {
                     print("⚠️ [MESSAGE LOAD] Failed to decode message \(document.documentID): \(error)")
@@ -184,22 +167,16 @@ class MessageService {
         messageID: String? = nil,
         optimisticCompletion: ((Message) -> Void)? = nil
     ) async throws -> String {
-        print("🖼️ [IMAGE SEND] Starting image send process for chat: \(chatID)")
-        print("🖼️ [IMAGE SEND] Original image size: \(image.size)")
-        
         // Validate chat ID
         guard !chatID.isEmpty else {
-            print("❌ [IMAGE SEND] Invalid chat ID")
             throw MessageError.invalidChatID
         }
-        
+
         // Get current user ID
         let senderID = try getCurrentUserID()
-        print("🖼️ [IMAGE SEND] Sender ID: \(senderID)")
-        
+
         // Use provided message ID or generate new one
         let finalMessageID = messageID ?? UUID().uuidString
-        print("🖼️ [IMAGE SEND] Message ID: \(finalMessageID)")
         
         // Create optimistic placeholder message
         let optimisticMessage = Message(
@@ -214,40 +191,29 @@ class MessageService {
         
         // Return optimistic message immediately
         optimisticCompletion?(optimisticMessage)
-        print("⚡️ [IMAGE SEND] Optimistic image message added: \(finalMessageID)")
-        
+
         // Check network state (image uploads require network)
         if !NetworkMonitor.shared.isConnected {
-            print("📥 [IMAGE SEND] Image message queued (offline): \(finalMessageID)")
             throw MessageError.offline
         }
-        
+
         // Compress image (<=2MB, <=1920x1080) - single compression, no double-encoding!
-        print("🖼️ [IMAGE SEND] Compressing image (single pass, optimal quality)...")
         let uploadService = ImageUploadService.shared
         let compressedData = try await uploadService.compressImage(image)
-        print("✅ [IMAGE SEND] Compression complete: \(compressedData.count) bytes")
-        
+
         // Generate thumbnail from compressed data
-        print("📐 [IMAGE SEND] Generating thumbnail for message: \(finalMessageID)")
         let thumbnailData = try await uploadService.generateThumbnail(from: compressedData)
-        print("✅ [IMAGE SEND] Thumbnail generated: \(thumbnailData.count) bytes")
-        
+
         // Upload image and thumbnail to Storage in parallel (faster than sequential!)
-        print("☁️ [IMAGE SEND] Uploading image and thumbnail in parallel...")
         async let mediaURLTask = uploadService.uploadImage(imageData: compressedData, chatID: chatID, messageID: finalMessageID)
         async let mediaThumbnailURLTask = uploadService.uploadThumbnail(thumbnailData: thumbnailData, chatID: chatID, messageID: finalMessageID)
         
         let (mediaURL, mediaThumbnailURL) = try await (mediaURLTask, mediaThumbnailURLTask)
-        print("✅ [IMAGE SEND] Upload complete: image + thumbnail")
-        print("🔗 [IMAGE SEND] Media URL: \(mediaURL)")
-        print("🔗 [IMAGE SEND] Thumbnail URL: \(mediaThumbnailURL)")
-        
+
         // Determine compressed image dimensions
         let compressedImageSize: CGSize = (UIImage(data: compressedData)?.size) ?? image.size
         let width = Int(compressedImageSize.width.rounded())
         let height = Int(compressedImageSize.height.rounded())
-        print("📏 [IMAGE SEND] Final dimensions: \(width)x\(height)")
         
         // Build final message with media metadata
         let finalMessage = Message(
@@ -266,21 +232,17 @@ class MessageService {
         
         do {
             // Persist to Firestore
-            print("💾 [IMAGE SEND] Writing to Firestore...")
             let messageRef = db
                 .collection("chats")
                 .document(chatID)
                 .collection("messages")
                 .document(finalMessageID)
-            
+
             try await messageRef.setData(finalMessage.toDictionary())
-            
+
             // Update chat document last message to a placeholder label
             try await updateChatLastMessage(chatID: chatID, text: "Image")
-            
-            print("✅ [IMAGE SEND] Image message sent successfully: \(finalMessageID)")
-            print("🔗 [IMAGE SEND] Final URLs - Media: \(mediaURL), Thumbnail: \(mediaThumbnailURL)")
-            
+
             return finalMessageID
         } catch {
             print("❌ [IMAGE SEND] Image message send failed: \(error.localizedDescription)")
@@ -298,18 +260,12 @@ class MessageService {
     /// - Returns: Array of ReadReceiptDetail with user names and read status, sorted alphabetically (read members first, then unread)
     /// - Throws: MessageError if user data fetch fails
     func fetchReadReceiptDetails(for message: Message, in chat: Chat) async throws -> [ReadReceiptDetail] {
-        print("📖 Fetching read receipt details for message \(message.id)")
-        let start = Date()
-        
         // Get recipient member IDs (all members except sender)
         let recipientIDs = chat.members.filter { $0 != message.senderID }
-        
+
         guard !recipientIDs.isEmpty else {
-            print("📖 No recipients to fetch")
             return []
         }
-        
-        print("📖 Fetching details for \(recipientIDs.count) recipients")
         
         // Batch fetch user data using UserService
         let users = try await UserService.shared.getUsers(ids: recipientIDs)
@@ -333,8 +289,6 @@ class MessageService {
                 details.append(detail)
             } else {
                 // User not found - create fallback entry
-                print("⚠️ User \(userID) not found, using fallback")
-                
                 let hasRead = message.readBy.contains(userID)
                 
                 let detail = ReadReceiptDetail(
@@ -353,13 +307,9 @@ class MessageService {
         // Read members first, then not read yet members
         let readDetails = details.filter { $0.hasRead }.sorted { $0.userName < $1.userName }
         let unreadDetails = details.filter { !$0.hasRead }.sorted { $0.userName < $1.userName }
-        
+
         let sortedDetails = readDetails + unreadDetails
-        
-        // Log performance
-        let duration = Date().timeIntervalSince(start) * 1000
-        print("📖 Fetched \(details.count) read receipt details in \(Int(duration))ms")
-        
+
         return sortedDetails
     }
     
@@ -380,12 +330,9 @@ class MessageService {
         
         // Validate messageIDs array is not empty
         guard !messageIDs.isEmpty else {
-            print("📖 No messages to mark as read")
             return
         }
-        
-        print("📖 Marking \(messageIDs.count) messages as read")
-        
+
         do {
             // Create batch write for efficient updates (max 500 operations per batch)
             let batch = db.batch()
@@ -402,8 +349,6 @@ class MessageService {
             
             // Commit batch write
             try await batch.commit()
-            
-            print("✅ Marked \(messageIDs.count) messages as read")
         } catch {
             print("❌ Failed to mark messages as read: \(error.localizedDescription)")
             throw MessageError.firestoreError(error)
@@ -453,17 +398,11 @@ class MessageService {
             let chunks = stride(from: 0, to: messagesToMark.count, by: chunkSize).map {
                 Array(messagesToMark[$0..<min($0 + chunkSize, messagesToMark.count)])
             }
-            
-            if chunks.count > 1 {
-                print("📖 Processing \(chunks.count) batches")
-            }
-            
+
             // Mark messages in chunks
             for chunk in chunks {
                 try await markMessagesAsRead(chatID: chatID, messageIDs: chunk)
             }
-            
-            print("✅ All unread messages marked as read")
         } catch {
             print("❌ Failed to mark chat messages as read: \(error.localizedDescription)")
             throw MessageError.firestoreError(error)

@@ -61,17 +61,12 @@ struct PendingAction: Identifiable, Equatable {
 
     // Parse dateTime string (handles both with and without timezone)
     private func parseDateTime(_ dateTimeString: String) -> Date? {
-        print("🕐 [parseDateTime] Input: '\(dateTimeString)'")
-        print("🕐 [parseDateTime] Current timezone: \(TimeZone.current.identifier)")
-
         // Try ISO8601 with timezone first (e.g., "2025-10-25T14:00:00Z")
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime]
         if let date = isoFormatter.date(from: dateTimeString) {
-            print("✅ [parseDateTime] Parsed WITH timezone: \(date)")
             return date
         }
-        print("⚠️ [parseDateTime] Failed ISO8601 with timezone")
 
         // Try without timezone using DateFormatter (e.g., "2025-10-25T14:00:00")
         // Interpret as LOCAL timezone
@@ -81,12 +76,9 @@ struct PendingAction: Identifiable, Equatable {
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
 
         if let date = dateFormatter.date(from: dateTimeString) {
-            print("✅ [parseDateTime] Parsed WITHOUT timezone (as local): \(date)")
             return date
         }
-        print("⚠️ [parseDateTime] Failed DateFormatter without timezone")
 
-        print("❌ [parseDateTime] All parsing attempts failed")
         return nil
     }
 
@@ -144,34 +136,23 @@ struct PendingAction: Identifiable, Equatable {
 
     // Get formatted parameters for display in confirmation card
     func getFormattedParameters() -> [(String, String)] {
-        print("📋 [getFormattedParameters] Called for function: \(functionName)")
-        print("📋 [getFormattedParameters] Parameters: \(parameters)")
         var result: [(String, String)] = []
 
         switch functionName {
         case "scheduleCall":
-            print("📋 [getFormattedParameters] Processing scheduleCall")
             if let clientName = paramValue("clientName") {
-                print("📋 [getFormattedParameters] Client name: \(clientName)")
                 result.append(("Client", clientName))
             }
             if let dateTimeString = paramValue("dateTime") {
-                print("📋 [getFormattedParameters] DateTime string: \(dateTimeString)")
                 if let date = parseDateTime(dateTimeString) {
                     let formatter = DateFormatter()
                     formatter.dateStyle = .long
                     formatter.timeStyle = .short
                     let formattedString = formatter.string(from: date)
-                    print("📋 [getFormattedParameters] Formatted date: \(formattedString)")
                     result.append(("Date & Time", formattedString))
-                } else {
-                    print("❌ [getFormattedParameters] Failed to parse dateTime")
                 }
-            } else {
-                print("⚠️ [getFormattedParameters] No dateTime parameter found")
             }
             if let duration = paramValue("duration") {
-                print("📋 [getFormattedParameters] Duration: \(duration) minutes")
                 result.append(("Duration", "\(duration) minutes"))
             }
 
@@ -207,10 +188,6 @@ struct PendingAction: Identifiable, Equatable {
             break
         }
 
-        print("📋 [getFormattedParameters] Returning \(result.count) parameters:")
-        for (key, value) in result {
-            print("📋   - \(key): \(value)")
-        }
         return result
     }
 }

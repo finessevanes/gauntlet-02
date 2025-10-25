@@ -116,7 +116,6 @@ struct MessageInputView: View {
                     .accessibilityHint("Type your message here, then press send")
                     .padding(.leading, Constants.leadingPadding)
                     .onChange(of: text) { oldValue, newValue in
-                        print("[MessageInputView] Text changed from '\(oldValue)' to '\(newValue)'")
                         handleTextChange(newValue)
                     }
                     .textInputAutocapitalization(.sentences)

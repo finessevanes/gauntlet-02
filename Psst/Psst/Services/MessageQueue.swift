@@ -34,16 +34,14 @@ class MessageQueue {
         var queue = getQueue()
         queue.append(message)
         saveQueue(queue)
-        print("📥 Message queued: \(message.id) for chat: \(message.chatID)")
     }
-    
+
     /// Remove message from queue by ID
     /// - Parameter id: The message ID to remove
     func dequeue(id: String) {
         var queue = getQueue()
         queue.removeAll { $0.id == id }
         saveQueue(queue)
-        print("✅ Message dequeued: \(id)")
     }
     
     /// Get all queued messages for a specific chat
@@ -73,13 +71,10 @@ class MessageQueue {
     /// Uses exponential backoff for retries (immediate, 1s, 3s)
     func processQueue() async {
         let queue = getQueue()
-        
+
         guard !queue.isEmpty else {
-            print("📤 Queue empty - nothing to process")
             return
         }
-        
-        print("📤 Processing message queue: \(queue.count) messages")
         
         for queuedMessage in queue {
             // Add delay for retry attempts (exponential backoff)
@@ -110,15 +105,14 @@ class MessageQueue {
                 
                 // Success - remove from queue
                 dequeue(id: queuedMessage.id)
-                print("✅ Queued message sent successfully: \(queuedMessage.id)")
-                
+
             } catch {
                 print("❌ Failed to send queued message \(queuedMessage.id): \(error.localizedDescription)")
-                
+
                 // Update retry count
                 var updated = queuedMessage
                 updated.retryCount += 1
-                
+
                 if updated.retryCount >= 3 {
                     // Max retries reached - mark as failed and remove
                     dequeue(id: queuedMessage.id)
@@ -129,13 +123,10 @@ class MessageQueue {
                     if let index = queue.firstIndex(where: { $0.id == queuedMessage.id }) {
                         queue[index] = updated
                         saveQueue(queue)
-                        print("🔄 Retry count updated: \(queuedMessage.id) (attempt \(updated.retryCount))")
                     }
                 }
             }
         }
-        
-        print("✅ Queue processing complete")
     }
     
     // MARK: - Private Helpers

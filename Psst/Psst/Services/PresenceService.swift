@@ -183,7 +183,6 @@ class PresenceService: ObservableObject {
         }
         
         presenceRefs.removeAll()
-        print("[PresenceService] Stopped all presence observers (\(totalListenerCount) listeners)")
     }
     
     // MARK: - Group Presence Methods (PR #004)
@@ -218,7 +217,6 @@ class PresenceService: ObservableObject {
     ) -> [String: UUID] {
         // Validate input
         guard !userIDs.isEmpty else {
-            print("[PresenceService] ⚠️ observeGroupPresence called with empty userIDs array")
             return [:]
         }
         
@@ -256,16 +254,12 @@ class PresenceService: ObservableObject {
     /// - Ensures no partial cleanup (all-or-nothing)
     func stopObservingGroup(listeners: [String: UUID]) {
         guard !listeners.isEmpty else {
-            print("[PresenceService] ⚠️ stopObservingGroup called with empty listeners map")
             return
         }
-        
-        var cleanedCount = 0
-        
+
         // Remove each listener individually
         for (userID, listenerID) in listeners {
             stopObserving(userID: userID, listenerID: listenerID)
-            cleanedCount += 1
         }
     }
 }

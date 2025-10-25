@@ -158,25 +158,15 @@ class AIService: ObservableObject {
         parameters: [String: Any],
         conversationId: String? = nil
     ) async throws -> FunctionExecutionResult {
-        print("📞 [AIService.executeFunctionCall] CALLED")
-        print("📞 Function: \(functionName)")
-        print("📞 Parameters: \(parameters)")
-        print("📞 ConversationId: \(conversationId ?? "nil")")
-
         // Validate authentication
         let currentUser = Auth.auth().currentUser
-        print("📞 Current user: \(currentUser?.uid ?? "NONE")")
 
         guard currentUser != nil else {
-            print("❌ [AIService.executeFunctionCall] NOT AUTHENTICATED")
             throw AIError.notAuthenticated
         }
 
-        print("✅ [AIService.executeFunctionCall] User authenticated")
-
         // Call executeFunctionCall Cloud Function
         let executeFunction = functions.httpsCallable("executeFunctionCall")
-        print("📞 Created callable reference for 'executeFunctionCall'")
 
         var requestParams: [String: Any] = [
             "functionName": functionName,
@@ -187,72 +177,38 @@ class AIService: ObservableObject {
             requestParams["conversationId"] = conversationId
         }
 
-        print("📞 Request params: \(requestParams)")
-
-        // Debug: Check parameter types
-        if let params = requestParams["parameters"] as? [String: Any] {
-            print("📞 Parameters breakdown:")
-            for (key, value) in params {
-                print("📞   - \(key): \(value) (type: \(type(of: value)))")
-            }
-        }
-
-        print("📞 Calling Cloud Function...")
-
         do {
             let result = try await executeFunction.call(requestParams)
-            print("✅ [AIService.executeFunctionCall] Cloud Function returned")
-            print("📞 Raw result: \(result)")
-            print("📞 Result data type: \(type(of: result.data))")
 
             // Parse response
             guard let data = result.data as? [String: Any] else {
-                print("❌ [AIService.executeFunctionCall] Invalid response format")
-                print("❌ Result.data: \(result.data)")
                 throw AIError.invalidResponse
             }
 
-            print("✅ [AIService.executeFunctionCall] Response parsed successfully")
-            print("📞 Response data: \(data)")
-
             let executionResult = FunctionExecutionResult.fromResponse(data)
-            print("✅ [AIService.executeFunctionCall] Execution result: success=\(executionResult.success)")
 
             return executionResult
 
         } catch let error as NSError {
-            print("❌ [AIService.executeFunctionCall] ERROR CAUGHT")
-            print("❌ Error domain: \(error.domain)")
-            print("❌ Error code: \(error.code)")
-            print("❌ Error description: \(error.localizedDescription)")
-            print("❌ Error userInfo: \(error.userInfo)")
-
             // Map Firebase errors to AIError
             if error.domain == "com.firebase.functions" {
-                print("❌ Firebase Functions error detected")
                 switch error.code {
                 case FunctionsErrorCode.unauthenticated.rawValue:
-                    print("❌ Unauthenticated error (code: \(error.code))")
                     throw AIError.notAuthenticated
                 case FunctionsErrorCode.permissionDenied.rawValue:
-                    print("❌ Permission denied error (code: \(error.code))")
                     throw AIError.invalidRequest
                 case FunctionsErrorCode.unavailable.rawValue:
-                    print("❌ Service unavailable error (code: \(error.code))")
                     throw AIError.serviceUnavailable
                 default:
                     let errorMessage = error.localizedDescription
-                    print("❌ Unknown Firebase Functions error: \(errorMessage)")
                     throw AIError.serverError(errorMessage)
                 }
             }
 
             if error.domain == NSURLErrorDomain {
-                print("❌ Network error detected")
                 throw AIError.networkError
             }
 
-            print("❌ Unknown error type")
             throw AIError.unknownError(error.localizedDescription)
         }
     }
