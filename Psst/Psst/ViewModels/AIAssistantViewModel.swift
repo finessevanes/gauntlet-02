@@ -210,17 +210,12 @@ class AIAssistantViewModel: ObservableObject {
     ///   - name: Function name
     ///   - parameters: Function parameters
     private func handleFunctionCall(name: String, parameters: [String: Any]) {
-        print("🎯 [handleFunctionCall] Function: \(name)")
-        print("🎯 [handleFunctionCall] Parameters received: \(parameters)")
-
         // Check if this function needs parameter validation (has clientName but no specific ID)
         let needsValidation = shouldValidateParameters(functionName: name, parameters: parameters)
 
         if needsValidation {
-            print("🎯 [handleFunctionCall] Function needs validation, calling backend first...")
             validateAndResolveParameters(functionName: name, parameters: parameters)
         } else {
-            print("🎯 [handleFunctionCall] Parameters complete, showing confirmation")
             showConfirmation(functionName: name, parameters: parameters)
         }
     }
@@ -251,8 +246,6 @@ class AIAssistantViewModel: ObservableObject {
 
     /// Validate parameters by calling backend (which will return SELECTION_REQUIRED if needed)
     private func validateAndResolveParameters(functionName: String, parameters: [String: Any]) {
-        print("🔍 [validateAndResolveParameters] Validating \(functionName)...")
-
         isExecutingAction = true
 
         Task {
@@ -263,19 +256,6 @@ class AIAssistantViewModel: ObservableObject {
                 // Add user's timezone to the request
                 let timezone = TimeZone.current.identifier
                 parametersWithTimezone["timezone"] = timezone
-                print("🔍 [validateAndResolveParameters] Adding timezone: \(timezone)")
-
-                if let dateTimeString = parameters["dateTime"] as? String {
-                    print("🔍 [validateAndResolveParameters] DateTime (local): \(dateTimeString)")
-                } else {
-                    print("🔍 [validateAndResolveParameters] DateTime missing in original parameters")
-                }
-                if let dateTimeString = parametersWithTimezone["dateTime"] as? String {
-                    print("🔍 [validateAndResolveParameters] DateTime being sent to backend: \(dateTimeString)")
-                }
-                if let timezoneString = parametersWithTimezone["timezone"] as? String {
-                    print("🔍 [validateAndResolveParameters] Timezone being sent to backend: \(timezoneString)")
-                }
 
                 let result = try await aiService.executeFunctionCall(
                     functionName: functionName,
@@ -285,25 +265,16 @@ class AIAssistantViewModel: ObservableObject {
 
                 isExecutingAction = false
 
-                print("🔍 [validateAndResolveParameters] Result.success: \(result.success)")
-                print("🔍 [validateAndResolveParameters] Result.result: \(result.result ?? "nil")")
-
                 // Check if selection is required
-                print("🔍 [validateAndResolveParameters] Checking for selection request...")
                 if checkForSelectionRequest(result) {
-                    print("🔍 [validateAndResolveParameters] Selection required, showing selection card")
                     // Selection card will be shown by checkForSelectionRequest
                     return
                 }
-                print("🔍 [validateAndResolveParameters] No selection request")
 
                 // Check if conflict detected
-                print("🔍 [validateAndResolveParameters] Checking for conflict detection...")
                 if checkForConflictDetected(result, originalParameters: parametersWithTimezone) {
-                    print("🔍 [validateAndResolveParameters] Conflict detected, showing alternatives")
                     return
                 }
-                print("🔍 [validateAndResolveParameters] No conflict detected")
 
                 // If we got here, either there was an error or it succeeded without selection
                 if result.success {
@@ -343,7 +314,6 @@ class AIAssistantViewModel: ObservableObject {
                 }
 
             } catch {
-                print("❌ [validateAndResolveParameters] Error: \(error)")
                 isExecutingAction = false
 
                 let errorResult = FunctionExecutionResult(
@@ -367,58 +337,29 @@ class AIAssistantViewModel: ObservableObject {
 
     /// Show confirmation card for the action
     private func showConfirmation(functionName: String, parameters: [String: Any]) {
-        print("🎯 [showConfirmation] ===== CALLED =====")
-        print("🎯 [showConfirmation] Function: \(functionName)")
-        print("🎯 [showConfirmation] Parameters: \(parameters)")
-
         let action = PendingAction(
             functionName: functionName,
             parameters: parameters,
             timestamp: Date()
         )
 
-        print("🎯 [showConfirmation] PendingAction created")
-        print("🎯 [showConfirmation] Action.functionName: \(action.functionName)")
-        print("🎯 [showConfirmation] Action.parameters: \(action.parameters)")
-        print("🎯 [showConfirmation] Action.timestamp: \(action.timestamp)")
-
-        // BEFORE: Check current state
-        print("🎯 [showConfirmation] BEFORE - pendingAction: \(pendingAction?.functionName ?? "nil")")
-        print("🎯 [showConfirmation] BEFORE - pendingSelection: \(pendingSelection?.prompt ?? "nil")")
-
         // Set pending action - this will trigger the confirmation UI
-        print("🎯 [showConfirmation] Setting pendingAction...")
         pendingAction = action
-        print("🎯 [showConfirmation] ✅ pendingAction SET")
-
-        // AFTER: Verify state
-        print("🎯 [showConfirmation] AFTER - pendingAction: \(pendingAction?.functionName ?? "nil")")
-        print("🎯 [showConfirmation] AFTER - pendingSelection: \(pendingSelection?.prompt ?? "nil")")
-        print("🎯 [showConfirmation] ===== DONE =====")
     }
 
     /// Confirm and execute the pending action
     func confirmAction() {
-        print("🔵 [ViewModel.confirmAction] CALLED")
-
         guard let action = pendingAction else {
-            print("⚠️ [ViewModel.confirmAction] No pending action found")
             return
         }
-
-        print("🔵 [ViewModel.confirmAction] Action: \(action.functionName)")
-        print("🔵 [ViewModel.confirmAction] Parameters: \(action.parameters)")
-        print("🔵 [ViewModel.confirmAction] ConversationId: \(backendConversationId ?? "nil")")
 
         // Set executing state
         isExecutingAction = true
         errorMessage = nil
         lastActionResult = nil
-        print("🔵 [ViewModel.confirmAction] State set to executing")
 
         // Execute function
         Task {
-            print("🔵 [ViewModel.confirmAction] Task started")
             do {
                 // Send parameters with timezone info - backend will handle conversion
                 var parametersWithTimezone = action.parameters
@@ -426,56 +367,30 @@ class AIAssistantViewModel: ObservableObject {
                 // Add user's timezone to the request
                 let timezone = TimeZone.current.identifier
                 parametersWithTimezone["timezone"] = timezone
-                print("🔵 [ViewModel.confirmAction] Adding timezone: \(timezone)")
 
-                if let dateTimeString = action.parameters["dateTime"] as? String {
-                    print("🔵 [ViewModel.confirmAction] DateTime (local): \(dateTimeString)")
-                } else {
-                    print("🔵 [ViewModel.confirmAction] DateTime missing on pending action")
-                }
-                if let dateTimeString = parametersWithTimezone["dateTime"] as? String {
-                    print("🔵 [ViewModel.confirmAction] DateTime being sent to backend: \(dateTimeString)")
-                }
-                if let timezoneString = parametersWithTimezone["timezone"] as? String {
-                    print("🔵 [ViewModel.confirmAction] Timezone being sent to backend: \(timezoneString)")
-                }
-
-                print("🔵 [ViewModel.confirmAction] Calling aiService.executeFunctionCall...")
                 let result = try await aiService.executeFunctionCall(
                     functionName: action.functionName,
                     parameters: parametersWithTimezone,
                     conversationId: backendConversationId
                 )
 
-                print("✅ [ViewModel.confirmAction] executeFunctionCall returned")
-                print("✅ [ViewModel.confirmAction] Result.success: \(result.success)")
-                print("✅ [ViewModel.confirmAction] Result.result: \(result.result ?? "nil")")
-                print("✅ [ViewModel.confirmAction] Result.data: \(result.data ?? [:])")
-
                 // Update state on main thread
                 isExecutingAction = false
 
                 // Check if this is a selection request
-                print("🔍 [ViewModel.confirmAction] Checking for selection request...")
                 if checkForSelectionRequest(result) {
-                    print("✅ [ViewModel.confirmAction] Selection request handled, clearing pending action")
                     pendingAction = nil
                     return
                 }
-                print("🔍 [ViewModel.confirmAction] No selection request detected")
 
                 // Check if this is a conflict detection
-                print("🔍 [ViewModel.confirmAction] Checking for conflict detection...")
                 if checkForConflictDetected(result, originalParameters: parametersWithTimezone) {
-                    print("✅ [ViewModel.confirmAction] Conflict detected, showing alternatives")
                     pendingAction = nil
                     return
                 }
-                print("🔍 [ViewModel.confirmAction] No conflict detected")
 
                 lastActionResult = result
                 pendingAction = nil
-                print("✅ [ViewModel.confirmAction] State updated with result")
 
                 // Auto-dismiss success and error messages after 5 seconds
                 Task {
@@ -486,13 +401,6 @@ class AIAssistantViewModel: ObservableObject {
                 }
 
             } catch {
-                print("❌ [ViewModel.confirmAction] ERROR CAUGHT")
-                print("❌ Error type: \(type(of: error))")
-                print("❌ Error description: \(error.localizedDescription)")
-                if let aiError = error as? AIError {
-                    print("❌ AIError: \(aiError)")
-                }
-
                 // Handle error
                 isExecutingAction = false
 
@@ -505,7 +413,6 @@ class AIAssistantViewModel: ObservableObject {
 
                 lastActionResult = errorResult
                 pendingAction = nil
-                print("❌ [ViewModel.confirmAction] Error result set")
 
                 // Auto-dismiss error message after 5 seconds
                 Task {
@@ -556,94 +463,57 @@ class AIAssistantViewModel: ObservableObject {
     /// Handle user selection from multiple options
     /// - Parameter option: The selected option
     func handleSelection(_ option: AISelectionRequest.SelectionOption) {
-        print("🔷 [handleSelection] ===== CALLED =====")
-        print("🔷 [handleSelection] User selected: \(option.title)")
-        print("🔷 [handleSelection] Option ID: \(option.id)")
-        print("🔷 [handleSelection] Option metadata: \(option.metadata ?? [:])")
-
         guard let selection = pendingSelection else {
-            print("⚠️ [handleSelection] ERROR: No pending selection!")
             return
         }
-
-        print("🔷 [handleSelection] pendingSelection exists")
-        print("🔷 [handleSelection] Selection type: \(selection.selectionType)")
 
         guard let context = selection.context else {
-            print("⚠️ [handleSelection] ERROR: No context in selection!")
             return
         }
-
-        print("🔷 [handleSelection] Context found")
-        print("🔷 [handleSelection] Original function: \(context.originalFunction)")
-        print("🔷 [handleSelection] Original parameters: \(context.originalParameters)")
 
         // Merge selection into original parameters
         var updatedParameters = context.originalParameters.mapValues { $0.value }
-        print("🔷 [handleSelection] Base parameters: \(updatedParameters)")
 
         switch selection.selectionType {
         case .contact:
-            print("🔷 [handleSelection] Processing CONTACT selection")
-
             // For scheduleCall and setReminder, add userId
             if context.originalFunction == "scheduleCall" || context.originalFunction == "setReminder" {
-                print("🔷 [handleSelection] Function is scheduleCall/setReminder")
                 if let userId = option.metadata?["userId"]?.value as? String {
                     updatedParameters["clientId"] = userId
-                    print("🔷 [handleSelection] ✅ Added clientId: \(userId)")
-                } else {
-                    print("⚠️ [handleSelection] WARNING: No userId in metadata!")
-                    print("⚠️ [handleSelection] Metadata keys: \(option.metadata?.keys.joined(separator: ", ") ?? "none")")
                 }
             }
 
             // For sendMessage, add chatId
             if context.originalFunction == "sendMessage" {
-                print("🔷 [handleSelection] Function is sendMessage")
                 if let chatId = option.metadata?["chatId"]?.value as? String {
                     updatedParameters["chatId"] = chatId
-                    print("🔷 [handleSelection] ✅ Added chatId: \(chatId)")
-                } else {
-                    print("⚠️ [handleSelection] WARNING: No chatId in metadata!")
                 }
             }
 
             // Update clientName to exact selected name
             updatedParameters["clientName"] = option.title
-            print("🔷 [handleSelection] ✅ Updated clientName to: \(option.title)")
 
         case .time:
-            print("🔷 [handleSelection] Processing TIME selection")
             updatedParameters["dateTime"] = option.id
 
         case .action:
-            print("🔷 [handleSelection] Processing ACTION selection")
             // Re-route to different function
             break
 
         case .parameter, .generic:
-            print("🔷 [handleSelection] Processing PARAMETER/GENERIC selection")
             // Generic parameter update
             break
         }
 
-        print("🔷 [handleSelection] Final updated parameters: \(updatedParameters)")
-
         // Clear selection state
-        print("🔷 [handleSelection] Clearing pendingSelection...")
         pendingSelection = nil
-        print("🔷 [handleSelection] ✅ pendingSelection = nil")
 
         // Now show confirmation card with resolved parameters
-        print("🔷 [handleSelection] Calling showConfirmation...")
         showConfirmation(functionName: context.originalFunction, parameters: updatedParameters)
-        print("🔷 [handleSelection] ===== DONE =====")
     }
 
     /// Cancel the pending selection
     func cancelSelection() {
-        print("🔷 [cancelSelection] User cancelled selection")
         pendingSelection = nil
 
         // Send acknowledgment message
@@ -667,20 +537,12 @@ class AIAssistantViewModel: ObservableObject {
             return false
         }
 
-        print("🔷 [checkForSelectionRequest] SELECTION_REQUIRED detected")
-        print("🔷 [checkForSelectionRequest] Data: \(data)")
-
         // Parse selection request
         if let selectionRequest = AISelectionRequest.fromResponse(data) {
-            print("🔷 [checkForSelectionRequest] Selection request parsed successfully")
-            print("🔷 [checkForSelectionRequest] Prompt: \(selectionRequest.prompt)")
-            print("🔷 [checkForSelectionRequest] Options count: \(selectionRequest.options.count)")
-
             pendingSelection = selectionRequest
             return true
         }
 
-        print("⚠️ [checkForSelectionRequest] Failed to parse selection request")
         return false
     }
 
@@ -690,73 +552,42 @@ class AIAssistantViewModel: ObservableObject {
     ///   - originalParameters: Original scheduling parameters
     /// - Returns: True if conflict was detected and handled
     private func checkForConflictDetected(_ result: FunctionExecutionResult, originalParameters: [String: Any]) -> Bool {
-        print("🟠 [checkForConflictDetected] ===== CALLED =====")
-        print("🟠 [checkForConflictDetected] result.success: \(result.success)")
-        print("🟠 [checkForConflictDetected] result.result: \(result.result ?? "nil")")
-        print("🟠 [checkForConflictDetected] result.data exists: \(result.data != nil)")
-
         // Check if error is CONFLICT_DETECTED
         guard !result.success,
               result.result == "CONFLICT_DETECTED",
               let data = result.data else {
-            print("🟠 [checkForConflictDetected] Not a conflict (early return)")
             return false
         }
-
-        print("🟠 [checkForConflictDetected] ✅ CONFLICT_DETECTED confirmed!")
-        print("🟠 [checkForConflictDetected] Data keys: \(data.keys.joined(separator: ", "))")
-        print("🟠 [checkForConflictDetected] Full data: \(data)")
 
         // Parse conflict data
-        print("🟠 [checkForConflictDetected] Parsing conflict data...")
         guard let conflictingEventData = data["conflictingEvent"] as? [String: Any] else {
-            print("⚠️ [checkForConflictDetected] Failed to parse conflictingEvent")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ conflictingEvent parsed")
 
         guard let suggestionsData = data["suggestions"] as? [String] else {
-            print("⚠️ [checkForConflictDetected] Failed to parse suggestions")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ suggestions parsed: \(suggestionsData.count) alternatives")
 
         guard let originalRequest = data["originalRequest"] as? [String: Any] else {
-            print("⚠️ [checkForConflictDetected] Failed to parse originalRequest")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ originalRequest parsed")
 
         // Parse conflicting event
-        print("🟠 [checkForConflictDetected] Parsing conflicting event details...")
         guard let eventId = conflictingEventData["id"] as? String,
               let eventTitle = conflictingEventData["title"] as? String,
               let startTimeString = conflictingEventData["startTime"] as? String,
               let endTimeString = conflictingEventData["endTime"] as? String else {
-            print("⚠️ [checkForConflictDetected] Failed to parse conflicting event fields")
-            print("⚠️ [checkForConflictDetected] id: \(conflictingEventData["id"] != nil)")
-            print("⚠️ [checkForConflictDetected] title: \(conflictingEventData["title"] != nil)")
-            print("⚠️ [checkForConflictDetected] startTime: \(conflictingEventData["startTime"] != nil)")
-            print("⚠️ [checkForConflictDetected] endTime: \(conflictingEventData["endTime"] != nil)")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ Event details: \(eventTitle) (\(eventId))")
 
         // Parse dates
-        print("🟠 [checkForConflictDetected] Parsing dates...")
         let isoFormatter = ISO8601DateFormatter()
         isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
 
         guard let startTime = isoFormatter.date(from: startTimeString),
               let endTime = isoFormatter.date(from: endTimeString) else {
-            print("⚠️ [checkForConflictDetected] Failed to parse event dates")
-            print("⚠️ [checkForConflictDetected] startTimeString: \(startTimeString)")
-            print("⚠️ [checkForConflictDetected] endTimeString: \(endTimeString)")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ Dates parsed successfully")
-        print("🟠 [checkForConflictDetected] ✅ startTime: \(startTime)")
-        print("🟠 [checkForConflictDetected] ✅ endTime: \(endTime)")
 
         // Create CalendarEvent for the conflicting event
         let trainerId = Auth.auth().currentUser?.uid ?? ""
@@ -770,34 +601,17 @@ class AIAssistantViewModel: ObservableObject {
         )
 
         // Parse suggested times
-        print("🟠 [checkForConflictDetected] Parsing suggested times...")
         let suggestedTimes = suggestionsData.compactMap { isoFormatter.date(from: $0) }
         guard suggestedTimes.count == suggestionsData.count else {
-            print("⚠️ [checkForConflictDetected] Failed to parse all suggested times")
-            print("⚠️ [checkForConflictDetected] Parsed: \(suggestedTimes.count) / \(suggestionsData.count)")
-            for (idx, timeString) in suggestionsData.enumerated() {
-                let parsed = isoFormatter.date(from: timeString)
-                print("⚠️ [checkForConflictDetected]   [\(idx)]: \(timeString) -> \(parsed != nil ? "✅" : "❌")")
-            }
             return false
-        }
-        print("🟠 [checkForConflictDetected] ✅ Parsed \(suggestedTimes.count) suggested times")
-        for (idx, time) in suggestedTimes.enumerated() {
-            print("🟠 [checkForConflictDetected]   [\(idx)]: \(time)")
         }
 
         // Extract original request details
-        print("🟠 [checkForConflictDetected] Parsing original request details...")
         guard let clientName = originalRequest["clientName"] as? String,
               let duration = originalRequest["duration"] as? Int,
               let eventTypeString = originalRequest["eventType"] as? String else {
-            print("⚠️ [checkForConflictDetected] Failed to parse original request")
-            print("⚠️ [checkForConflictDetected] clientName: \(originalRequest["clientName"] != nil)")
-            print("⚠️ [checkForConflictDetected] duration: \(originalRequest["duration"] != nil)")
-            print("⚠️ [checkForConflictDetected] eventType: \(originalRequest["eventType"] != nil)")
             return false
         }
-        print("🟠 [checkForConflictDetected] ✅ Original request: \(eventTypeString) with \(clientName) for \(duration)min")
 
         let eventType = CalendarEvent.EventType(rawValue: eventTypeString) ?? .adhoc
         let clientId = originalRequest["clientId"] as? String
@@ -822,20 +636,8 @@ class AIAssistantViewModel: ObservableObject {
             notes: notes
         )
 
-        print("🟠 [checkForConflictDetected] ===== CREATING CONFLICT RESOLUTION =====")
-        print("🟠 [checkForConflictDetected] Conflicting: \(conflictingEvent.title)")
-        print("🟠 [checkForConflictDetected] Alternatives: \(suggestedTimes.count)")
-        print("🟠 [checkForConflictDetected] Client: \(clientName)")
-        print("🟠 [checkForConflictDetected] Event type: \(eventType)")
-        print("🟠 [checkForConflictDetected] Duration: \(duration) min")
-
         // Set pending conflict resolution
-        print("🟠 [checkForConflictDetected] Setting pendingConflictResolution...")
-        print("🟠 [checkForConflictDetected] BEFORE - pendingConflictResolution is nil: \(pendingConflictResolution == nil)")
         pendingConflictResolution = conflictResolution
-        print("🟠 [checkForConflictDetected] AFTER - pendingConflictResolution is nil: \(pendingConflictResolution == nil)")
-        print("🟠 [checkForConflictDetected] ✅ SUCCESS - Returning true")
-        print("🟠 [checkForConflictDetected] ===== DONE =====")
         return true
     }
 

@@ -116,15 +116,11 @@ struct AIAssistantView: View {
                 AISelectionCard(
                     request: selection,
                     onSelect: { option in
-                        print("🎨 [AIAssistantView] User tapped option: \(option.title)")
                         withAnimation {
-                            print("🎨 [AIAssistantView] Calling viewModel.handleSelection...")
                             viewModel.handleSelection(option)
-                            print("🎨 [AIAssistantView] handleSelection returned")
                         }
                     },
                     onCancel: {
-                        print("🎨 [AIAssistantView] User tapped Cancel")
                         withAnimation {
                             viewModel.cancelSelection()
                         }
@@ -137,12 +133,6 @@ struct AIAssistantView: View {
             .background(Color.black.opacity(0.3))
             .edgesIgnoringSafeArea(.all)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingSelection != nil)
-            .onAppear {
-                print("🎨 [AIAssistantView] Selection card appeared")
-            }
-            .onDisappear {
-                print("🎨 [AIAssistantView] Selection card disappeared")
-            }
         }
     }
 
@@ -156,15 +146,13 @@ struct AIAssistantView: View {
                     action: action,
                     isExecuting: viewModel.isExecutingAction,
                     onConfirm: {
-                        print("🎨 [AIAssistantView] User tapped Confirm")
                         viewModel.confirmAction()
                     },
                     onCancel: {
-                        print("🎨 [AIAssistantView] User tapped Cancel action")
                         viewModel.cancelAction()
                     },
                     onEdit: {
-                        print("🎨 [AIAssistantView] User tapped Edit")
+                        // Edit functionality
                     }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -173,12 +161,6 @@ struct AIAssistantView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.3))
             .edgesIgnoringSafeArea(.all)
-            .onAppear {
-                print("🎨 [AIAssistantView] Confirmation card appeared for: \(action.functionName)")
-            }
-            .onDisappear {
-                print("🎨 [AIAssistantView] Confirmation card disappeared")
-            }
         }
     }
 
@@ -289,11 +271,6 @@ struct AIAssistantView: View {
             .background(Color.black.opacity(0.3))
             .edgesIgnoringSafeArea(.all)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingConflictResolution != nil)
-            .onAppear {
-                print("🟠🎨 [ConflictWarningOverlay] APPEARING")
-                print("🟠🎨 [ConflictWarningOverlay] Conflicting event: \(pending.conflictingEvent.title)")
-                print("🟠🎨 [ConflictWarningOverlay] Alternatives: \(pending.suggestedTimes.count)")
-            }
         }
     }
 
@@ -409,24 +386,6 @@ struct StateChangeLogger: ViewModifier {
 
     func body(content: Content) -> some View {
         content
-            .onChange(of: viewModel.pendingSelection) { newValue in
-                print("🎨 [AIAssistantView.onChange] pendingSelection changed to: \(newValue?.prompt ?? "nil")")
-            }
-            .onChange(of: viewModel.pendingAction) { newValue in
-                print("🎨 [AIAssistantView.onChange] pendingAction changed to: \(newValue?.functionName ?? "nil")")
-            }
-            .onChange(of: viewModel.lastActionResult) { newValue in
-                print("🎨 [AIAssistantView.onChange] lastActionResult changed to: success=\(newValue?.success ?? false)")
-            }
-            .onChange(of: viewModel.pendingConflictResolution) { newValue in
-                if let conflict = newValue {
-                    print("🟠🎨 [AIAssistantView.onChange] pendingConflictResolution SET")
-                    print("🟠🎨 [AIAssistantView.onChange] Conflicting: \(conflict.conflictingEvent.title)")
-                    print("🟠🎨 [AIAssistantView.onChange] Alternatives: \(conflict.suggestedTimes.count)")
-                } else {
-                    print("🟠🎨 [AIAssistantView.onChange] pendingConflictResolution = nil")
-                }
-            }
     }
 }
 
