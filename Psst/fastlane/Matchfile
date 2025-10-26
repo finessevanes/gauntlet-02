@@ -1,0 +1,29 @@
+# For more information about the Matchfile, see:
+# https://docs.fastlane.tools/actions/match/
+
+# Git repository URL for storing certificates
+# This should be a PRIVATE repository
+git_url(ENV["MATCH_GIT_URL"])
+
+# Storage mode (git or google_cloud)
+storage_mode("git")
+
+# Certificate type (appstore, adhoc, development, enterprise)
+type("appstore")
+
+# App identifier
+app_identifier(["gauntlet.Psst"])
+
+# Your Apple Developer Portal username
+username("finessevanes@gmail.com")
+
+# Keychain name to store certificates
+# Using "login" keychain (default macOS keychain)
+keychain_name("login.keychain")
+
+# Force readonly mode (prevents accidental certificate regeneration)
+# Set to false if you need to generate new certificates
+readonly(true)
+
+# Verbose output
+verbose(false)

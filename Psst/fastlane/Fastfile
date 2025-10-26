@@ -1,0 +1,199 @@
+# This file contains the fastlane.tools configuration
+# You can find the documentation at https://docs.fastlane.tools
+#
+# For a list of all available actions, check out:
+#     https://docs.fastlane.tools/actions
+#
+# For a list of all available plugins, check out:
+#     https://docs.fastlane.tools/plugins/available-plugins
+#
+
+# Uncomment the line if you want fastlane to automatically update itself
+# update_fastlane
+
+default_platform(:ios)
+
+platform :ios do
+
+  # ============================================================================
+  # BETA LANE - Deploy to TestFlight
+  # ============================================================================
+  desc "Deploy a new beta build to TestFlight"
+  desc "Usage: fastlane beta"
+  desc "This will:"
+  desc "  1. Ensure clean git state"
+  desc "  2. Increment build number"
+  desc "  3. Sync certificates/profiles from Match"
+  desc "  4. Build the app"
+  desc "  5. Upload to TestFlight"
+  desc "  6. Commit build number bump"
+  lane :beta do
+    # 1. Ensure clean git state (uncommitted changes will block deployment)
+    ensure_git_status_clean
+
+    # 2. Increment build number automatically
+    increment_build_number(xcodeproj: "Psst.xcodeproj")
+
+    # 3. Sync certificates and provisioning profiles from Match
+    # Note: Set readonly: false if you need to generate new certificates
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "gauntlet.Psst"
+    )
+
+    # 4. Build the app for App Store distribution
+    build_app(
+      scheme: "Psst",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "Psst.ipa",
+      clean: true,
+      include_bitcode: false
+    )
+
+    # 5. Upload to TestFlight
+    upload_to_testflight(
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      skip_waiting_for_build_processing: true,
+      distribute_external: false,
+      changelog: "New beta build deployed via Fastlane"
+    )
+
+    # 6. Commit build number bump to git
+    commit_version_bump(
+      message: "chore: bump build number [skip ci]",
+      xcodeproj: "Psst.xcodeproj",
+      force: true
+    )
+
+    # 7. Success notification
+    UI.success("✅ Successfully uploaded to TestFlight!")
+    UI.success("Build will be available in ~5-10 minutes after Apple processes it.")
+  end
+
+  # ============================================================================
+  # RELEASE LANE - Deploy to App Store
+  # ============================================================================
+  desc "Deploy a new production build to App Store"
+  desc "Usage: fastlane release"
+  desc "Note: This uploads to App Store but does NOT submit for review."
+  desc "Complete submission manually in App Store Connect."
+  lane :release do
+    # 1. Ensure clean git state
+    ensure_git_status_clean
+
+    # 2. Sync certificates (App Store distribution)
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "gauntlet.Psst"
+    )
+
+    # 3. Build the app for App Store
+    build_app(
+      scheme: "Psst",
+      export_method: "app-store",
+      output_directory: "./build",
+      output_name: "Psst.ipa",
+      clean: true,
+      include_bitcode: false
+    )
+
+    # 4. Upload to App Store (manual submission required)
+    upload_to_app_store(
+      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: false,
+      force: true
+    )
+
+    UI.success("✅ Successfully uploaded to App Store!")
+    UI.success("Complete submission in App Store Connect: https://appstoreconnect.apple.com")
+  end
+
+  # ============================================================================
+  # TEST LANE - Run Unit and UI Tests
+  # ============================================================================
+  desc "Run unit and UI tests"
+  desc "Usage: fastlane test"
+  desc "Tests run on the 'Vanes' simulator"
+  lane :test do
+    run_tests(
+      scheme: "Psst",
+      devices: ["Vanes"],
+      clean: true,
+      code_coverage: true,
+      output_directory: "./fastlane/test_output",
+      result_bundle: true
+    )
+
+    UI.success("✅ All tests passed!")
+  end
+
+  # ============================================================================
+  # SCREENSHOTS LANE - Generate App Store Screenshots
+  # ============================================================================
+  desc "Generate App Store screenshots"
+  desc "Usage: fastlane screenshots"
+  desc "Captures screenshots on iPhone 15 Pro and iPad Pro"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: "PsstUITests",
+      devices: [
+        "iPhone 15 Pro",
+        "iPhone 15 Pro Max",
+        "iPad Pro (12.9-inch) (6th generation)"
+      ],
+      languages: ["en-US"],
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true,
+      override_status_bar: true
+    )
+
+    UI.success("✅ Screenshots generated in fastlane/screenshots/")
+  end
+
+  # ============================================================================
+  # MATCH SETUP LANES - Certificate Management
+  # ============================================================================
+  desc "Setup Match for the first time (development certificates)"
+  desc "Usage: fastlane match_dev"
+  lane :match_dev do
+    match(
+      type: "development",
+      readonly: false,
+      app_identifier: "gauntlet.Psst"
+    )
+    UI.success("✅ Development certificates synced!")
+  end
+
+  desc "Setup Match for the first time (App Store certificates)"
+  desc "Usage: fastlane match_appstore"
+  lane :match_appstore do
+    match(
+      type: "appstore",
+      readonly: false,
+      app_identifier: "gauntlet.Psst"
+    )
+    UI.success("✅ App Store certificates synced!")
+  end
+
+  # ============================================================================
+  # ERROR HANDLING
+  # ============================================================================
+  error do |lane, exception|
+    UI.error("❌ Error in lane '#{lane}':")
+    UI.error(exception.message)
+    UI.error("")
+    UI.error("Common fixes:")
+    UI.error("  - Check .env file has correct API keys")
+    UI.error("  - Verify Match password is correct")
+    UI.error("  - Ensure certificates haven't expired")
+    UI.error("  - Check network connection")
+    UI.error("")
+    UI.error("For more help, see: fastlane/README.md")
+  end
+
+end
