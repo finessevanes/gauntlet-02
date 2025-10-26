@@ -22,6 +22,13 @@ platform :ios do
     # Set up App Store Connect API key for all lanes
     ENV["FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"] = nil
     ENV["FASTLANE_SESSION"] = nil
+
+    # Load API key for produce and other actions that need it
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: ENV["APP_STORE_CONNECT_API_KEY_FILEPATH"]
+    )
   end
 
   # Helper method to get API key
@@ -38,36 +45,26 @@ platform :ios do
   # ============================================================================
   desc "Ensure app exists in App Store Connect (creates if needed)"
   lane :ensure_app_exists do
-    begin
-      # Try to get app info - if it fails, app doesn't exist
-      app_exists = get_app_store_version_number(
-        api_key: get_api_key,
-        bundle_id: "gauntlet.Psst"
-      )
-      UI.success("✅ App already exists in App Store Connect")
-    rescue => exception
-      UI.important("App not found in App Store Connect - creating it now...")
+    UI.message("Checking if app exists in App Store Connect...")
 
-      # Ensure API key is set in the Fastlane session
-      # Note: produce doesn't accept api_key directly, but setting it here makes it available
-      Spaceship::ConnectAPI.token = get_api_key
+    # produce will skip if app already exists, so just run it
+    # It uses the API key from before_all automatically
+    produce(
+      username: "vanessa.mercado24@gmail.com",
+      app_identifier: "gauntlet.Psst",
+      app_name: "Psst",
+      language: "English",
+      sku: "gauntlet-psst-001",
+      team_id: "4CLVCQ7N3P",
+      itc_team_id: "127354878",
+      skip_itc: false,
+      enable_services: {
+        push_notification: "on",
+        app_group: "on"
+      }
+    )
 
-      # Create the app using produce
-      produce(
-        app_identifier: "gauntlet.Psst",
-        app_name: "Psst",
-        language: "English",
-        sku: "gauntlet-psst-001",
-        team_id: "4CLVCQ7N3P",
-        itc_team_id: "127354878",
-        enable_services: {
-          push_notification: "on",
-          app_group: "on"
-        }
-      )
-
-      UI.success("✅ App created successfully in App Store Connect!")
-    end
+    UI.success("✅ App is ready in App Store Connect")
   end
 
   # ============================================================================
@@ -225,16 +222,15 @@ platform :ios do
   desc "Usage: fastlane create_app"
   desc "This is automatically called by beta/release lanes, but can be run manually if needed"
   lane :create_app do
-    # Ensure API key is set in the Fastlane session
-    Spaceship::ConnectAPI.token = get_api_key
-
     produce(
+      username: "vanessa.mercado24@gmail.com",
       app_identifier: "gauntlet.Psst",
       app_name: "Psst",
       language: "English",
       sku: "gauntlet-psst-001",
       team_id: "4CLVCQ7N3P",
       itc_team_id: "127354878",
+      skip_itc: false,
       enable_services: {
         push_notification: "on",
         app_group: "on"
