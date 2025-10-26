@@ -48,13 +48,18 @@ platform :ios do
     rescue => exception
       UI.important("App not found in App Store Connect - creating it now...")
 
+      # Ensure API key is set in the Fastlane session
+      # Note: produce doesn't accept api_key directly, but setting it here makes it available
+      Spaceship::ConnectAPI.token = get_api_key
+
       # Create the app using produce
       produce(
-        api_key: get_api_key,
         app_identifier: "gauntlet.Psst",
         app_name: "Psst",
         language: "English",
         sku: "gauntlet-psst-001",
+        team_id: "4CLVCQ7N3P",
+        itc_team_id: "127354878",
         enable_services: {
           push_notification: "on",
           app_group: "on"
@@ -220,12 +225,16 @@ platform :ios do
   desc "Usage: fastlane create_app"
   desc "This is automatically called by beta/release lanes, but can be run manually if needed"
   lane :create_app do
+    # Ensure API key is set in the Fastlane session
+    Spaceship::ConnectAPI.token = get_api_key
+
     produce(
-      api_key: get_api_key,
       app_identifier: "gauntlet.Psst",
       app_name: "Psst",
       language: "English",
       sku: "gauntlet-psst-001",
+      team_id: "4CLVCQ7N3P",
+      itc_team_id: "127354878",
       enable_services: {
         push_notification: "on",
         app_group: "on"
