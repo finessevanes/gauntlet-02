@@ -33,19 +33,26 @@ struct MainTabView: View {
                 }
                 .tag(0)
 
-            // Tab 2: Profile
+            // Tab 2: Contacts (PR #009)
+            ContactsView()
+                .tabItem {
+                    Label("Contacts", systemImage: "person.2.fill")
+                }
+                .tag(1)
+
+            // Tab 3: Profile
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
-                .tag(1)
+                .tag(2)
 
-            // Tab 3: Settings
+            // Tab 4: Settings
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
-                .tag(2)
+                .tag(3)
         }
         .tint(.blue) // Blue accent color for tab bar (PR #006B)
         .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
