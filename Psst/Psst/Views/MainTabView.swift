@@ -26,45 +26,52 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            // Tab 1: Conversations (PR #6)
-            ChatListView(selectedTab: $selectedTab)
+            // Tab 1: Calendar (PR #010A - HOME PAGE)
+            CalendarView()
                 .tabItem {
-                    Label("Conversations", systemImage: "message.fill")
+                    Label("Cal", systemImage: "calendar")
                 }
                 .tag(0)
 
-            // Tab 2: Contacts (PR #009)
+            // Tab 2: Conversations (PR #6)
+            ChatListView(selectedTab: $selectedTab)
+                .tabItem {
+                    Label("Chats", systemImage: "message.fill")
+                }
+                .tag(1)
+
+            // Tab 3: Contacts (PR #009)
             ContactsView()
                 .tabItem {
                     Label("Contacts", systemImage: "person.2.fill")
                 }
-                .tag(1)
+                .tag(2)
 
-            // Tab 3: Profile
+            // Tab 4: Profile
             ProfileView()
                 .tabItem {
                     Label("Profile", systemImage: "person.fill")
                 }
-                .tag(2)
+                .tag(3)
 
-            // Tab 4: Settings
+            // Tab 5: Settings
             SettingsView()
                 .tabItem {
                     Label("Settings", systemImage: "gearshape.fill")
                 }
-                .tag(3)
+                .tag(4)
         }
         .tint(.blue) // Blue accent color for tab bar (PR #006B)
         .onChange(of: notificationService.deepLinkHandler.targetChatId) { oldChatId, newChatId in
             if let chatId = newChatId {
                 print("[MainTabView] 🧭 Deep link received for chat: \(chatId)")
-                
-                // Switch to conversations tab
-                selectedTab = 0
-                
+
+                // Switch to conversations tab (now tab 1 instead of 0)
+                selectedTab = 1
+
                 // Set navigation target
                 navigateToChat = chatId
-                
+
                 // Clear the deep link after processing
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                     notificationService.clearDeepLink()

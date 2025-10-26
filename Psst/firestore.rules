@@ -111,19 +111,36 @@ service cloud.firestore {
                        request.auth.uid == resource.data.trainerId;
     }
 
-    // Calendar collection (PR #008 - AI Function Calling)
+    // Calendar collection (PR #008 + PR #010A - Manual Event Creation)
     match /calendar/{eventId} {
       // Trainers can read their own calendar events
       allow read: if request.auth != null &&
                      request.auth.uid == resource.data.trainerId;
 
-      // Only Cloud Functions can create calendar events (AI-generated)
-      // Trainers cannot directly create - must go through Cloud Function
-      allow create: if false;
+      // PR #010A: Trainers can manually create calendar events
+      // Validation rules:
+      // 1. trainerId must match authenticated user
+      // 2. eventType must be valid: "training", "call", or "adhoc"
+      // 3. startTime must be before endTime
+      // 4. Training/Call events require clientId OR prospectId
+      // 5. Adhoc events must NOT have clientId or prospectId
+      allow create: if request.auth != null &&
+                       request.auth.uid == request.resource.data.trainerId &&
+                       request.resource.data.eventType in ['training', 'call', 'adhoc'] &&
+                       request.resource.data.startTime < request.resource.data.endTime &&
+                       // Training/Call require client or prospect
+                       ((request.resource.data.eventType in ['training', 'call'] &&
+                         ('clientId' in request.resource.data || 'prospectId' in request.resource.data)) ||
+                        // Adhoc must NOT have client or prospect
+                        (request.resource.data.eventType == 'adhoc' &&
+                         !('clientId' in request.resource.data) &&
+                         !('prospectId' in request.resource.data)));
 
-      // Trainers can update their own calendar events (change status, etc.)
+      // Trainers can update their own calendar events (change status, time, etc.)
+      // Validation: trainerId cannot be changed
       allow update: if request.auth != null &&
-                       request.auth.uid == resource.data.trainerId;
+                       request.auth.uid == resource.data.trainerId &&
+                       request.resource.data.trainerId == resource.data.trainerId;
 
       // Trainers can delete their own calendar events
       allow delete: if request.auth != null &&
