@@ -150,9 +150,10 @@ struct ChatView: View {
                                 userID: presenceViewModel.otherUser?.id,
                                 selectedImage: nil,
                                 isLoading: false,
-                                size: 32
+                                size: 32,
+                                displayName: presenceViewModel.otherUser?.displayName
                             )
-                            
+
                             // Green presence halo (only when online)
                             PresenceHalo(isOnline: presenceViewModel.isContactOnline, size: 32)
                                 .animation(.easeInOut(duration: 0.2), value: presenceViewModel.isContactOnline)

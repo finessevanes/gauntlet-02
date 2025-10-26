@@ -83,7 +83,8 @@ struct ChatListView: View {
                                 userID: user.id,
                                 selectedImage: nil,
                                 isLoading: false,
-                                size: 32
+                                size: 32,
+                                displayName: user.displayName
                             )
                         }
                     }
