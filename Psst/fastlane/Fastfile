@@ -34,25 +34,61 @@ platform :ios do
   end
 
   # ============================================================================
+  # HELPER LANE - Ensure App Exists in App Store Connect
+  # ============================================================================
+  desc "Ensure app exists in App Store Connect (creates if needed)"
+  lane :ensure_app_exists do
+    begin
+      # Try to get app info - if it fails, app doesn't exist
+      app_exists = get_app_store_version_number(
+        api_key: get_api_key,
+        bundle_id: "gauntlet.Psst"
+      )
+      UI.success("✅ App already exists in App Store Connect")
+    rescue => exception
+      UI.important("App not found in App Store Connect - creating it now...")
+
+      # Create the app using produce
+      produce(
+        api_key: get_api_key,
+        app_identifier: "gauntlet.Psst",
+        app_name: "Psst",
+        language: "English",
+        sku: "gauntlet-psst-001",
+        enable_services: {
+          push_notification: "on",
+          app_group: "on"
+        }
+      )
+
+      UI.success("✅ App created successfully in App Store Connect!")
+    end
+  end
+
+  # ============================================================================
   # BETA LANE - Deploy to TestFlight
   # ============================================================================
   desc "Deploy a new beta build to TestFlight"
   desc "Usage: fastlane beta"
   desc "This will:"
   desc "  1. Ensure clean git state"
-  desc "  2. Increment build number"
-  desc "  3. Sync certificates/profiles from Match"
-  desc "  4. Build the app"
-  desc "  5. Upload to TestFlight"
-  desc "  6. Commit build number bump"
+  desc "  2. Ensure app exists in App Store Connect"
+  desc "  3. Increment build number"
+  desc "  4. Sync certificates/profiles from Match"
+  desc "  5. Build the app"
+  desc "  6. Upload to TestFlight"
+  desc "  7. Commit build number bump"
   lane :beta do
     # 1. Ensure clean git state (uncommitted changes will block deployment)
     ensure_git_status_clean
 
-    # 2. Increment build number automatically
+    # 2. Ensure app exists in App Store Connect (create if needed)
+    ensure_app_exists
+
+    # 3. Increment build number automatically
     increment_build_number(xcodeproj: "Psst.xcodeproj")
 
-    # 3. Sync certificates and provisioning profiles from Match
+    # 4. Sync certificates and provisioning profiles from Match
     match(
       type: "appstore",
       readonly: true,
@@ -60,7 +96,7 @@ platform :ios do
       api_key: get_api_key
     )
 
-    # 4. Build the app for App Store distribution
+    # 5. Build the app for App Store distribution
     build_app(
       scheme: "Psst",
       export_method: "app-store",
@@ -70,7 +106,7 @@ platform :ios do
       include_bitcode: false
     )
 
-    # 5. Upload to TestFlight
+    # 6. Upload to TestFlight
     upload_to_testflight(
       api_key: get_api_key,
       skip_waiting_for_build_processing: true,
@@ -78,14 +114,14 @@ platform :ios do
       changelog: "New beta build deployed via Fastlane"
     )
 
-    # 6. Commit build number bump to git
+    # 7. Commit build number bump to git
     commit_version_bump(
       message: "chore: bump build number [skip ci]",
       xcodeproj: "Psst.xcodeproj",
       force: true
     )
 
-    # 7. Success notification
+    # 8. Success notification
     UI.success("✅ Successfully uploaded to TestFlight!")
     UI.success("Build will be available in ~5-10 minutes after Apple processes it.")
   end
@@ -101,7 +137,10 @@ platform :ios do
     # 1. Ensure clean git state
     ensure_git_status_clean
 
-    # 2. Sync certificates and provisioning profiles from Match
+    # 2. Ensure app exists in App Store Connect (create if needed)
+    ensure_app_exists
+
+    # 3. Sync certificates and provisioning profiles from Match
     match(
       type: "appstore",
       readonly: true,
@@ -109,7 +148,7 @@ platform :ios do
       api_key: get_api_key
     )
 
-    # 3. Build the app for App Store
+    # 4. Build the app for App Store
     build_app(
       scheme: "Psst",
       export_method: "app-store",
@@ -119,7 +158,7 @@ platform :ios do
       include_bitcode: false
     )
 
-    # 3. Upload to App Store (manual submission required)
+    # 5. Upload to App Store (manual submission required)
     upload_to_app_store(
       api_key: get_api_key,
       skip_metadata: true,
@@ -172,6 +211,27 @@ platform :ios do
     )
 
     UI.success("✅ Screenshots generated in fastlane/screenshots/")
+  end
+
+  # ============================================================================
+  # CREATE APP LANE - Manually Create App in App Store Connect
+  # ============================================================================
+  desc "Create app in App Store Connect"
+  desc "Usage: fastlane create_app"
+  desc "This is automatically called by beta/release lanes, but can be run manually if needed"
+  lane :create_app do
+    produce(
+      api_key: get_api_key,
+      app_identifier: "gauntlet.Psst",
+      app_name: "Psst",
+      language: "English",
+      sku: "gauntlet-psst-001",
+      enable_services: {
+        push_notification: "on",
+        app_group: "on"
+      }
+    )
+    UI.success("✅ App created successfully in App Store Connect!")
   end
 
   # ============================================================================
