@@ -23,10 +23,9 @@ platform :ios do
   desc "This will:"
   desc "  1. Ensure clean git state"
   desc "  2. Increment build number"
-  desc "  3. Sync certificates/profiles from Match"
-  desc "  4. Build the app"
-  desc "  5. Upload to TestFlight"
-  desc "  6. Commit build number bump"
+  desc "  3. Build the app (using Xcode automatic signing)"
+  desc "  4. Upload to TestFlight"
+  desc "  5. Commit build number bump"
   lane :beta do
     # 1. Ensure clean git state (uncommitted changes will block deployment)
     ensure_git_status_clean
@@ -34,13 +33,9 @@ platform :ios do
     # 2. Increment build number automatically
     increment_build_number(xcodeproj: "Psst.xcodeproj")
 
-    # 3. Sync certificates and provisioning profiles from Match
-    # Note: Set readonly: false if you need to generate new certificates
-    match(
-      type: "appstore",
-      readonly: true,
-      app_identifier: "gauntlet.Psst"
-    )
+    # 3. Code signing: Using Xcode automatic signing
+    # Note: If you want automated certificate management across team members,
+    # consider setting up Match later (see fastlane/README.md)
 
     # 4. Build the app for App Store distribution
     build_app(
@@ -49,7 +44,10 @@ platform :ios do
       output_directory: "./build",
       output_name: "Psst.ipa",
       clean: true,
-      include_bitcode: false
+      include_bitcode: false,
+      export_options: {
+        signingStyle: "automatic"
+      }
     )
 
     # 5. Upload to TestFlight
@@ -83,24 +81,20 @@ platform :ios do
     # 1. Ensure clean git state
     ensure_git_status_clean
 
-    # 2. Sync certificates (App Store distribution)
-    match(
-      type: "appstore",
-      readonly: true,
-      app_identifier: "gauntlet.Psst"
-    )
-
-    # 3. Build the app for App Store
+    # 2. Build the app for App Store (using Xcode automatic signing)
     build_app(
       scheme: "Psst",
       export_method: "app-store",
       output_directory: "./build",
       output_name: "Psst.ipa",
       clean: true,
-      include_bitcode: false
+      include_bitcode: false,
+      export_options: {
+        signingStyle: "automatic"
+      }
     )
 
-    # 4. Upload to App Store (manual submission required)
+    # 3. Upload to App Store (manual submission required)
     upload_to_app_store(
       api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
       skip_metadata: true,

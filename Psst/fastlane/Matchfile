@@ -1,3 +1,12 @@
+# ============================================================================
+# MATCH IS CURRENTLY DISABLED
+# ============================================================================
+# The Fastfile is configured to use Xcode automatic signing instead of Match.
+# This file is kept for future reference if you want to enable Match later.
+# To enable Match, uncomment the match() calls in the Fastfile and set up
+# MATCH_GIT_URL and MATCH_PASSWORD in your .env file.
+# ============================================================================
+
 # For more information about the Matchfile, see:
 # https://docs.fastlane.tools/actions/match/
 
