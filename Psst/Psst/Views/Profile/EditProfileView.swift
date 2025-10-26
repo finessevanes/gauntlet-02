@@ -99,7 +99,8 @@ struct EditProfileView: View {
                                 selectedImage: selectedImage,
                                 isLoading: false,
                                 size: 120,
-                                forcePlaceholder: pendingDeletion
+                                forcePlaceholder: pendingDeletion,
+                                displayName: user.displayName
                             )
                             
                             // Delete Button (only show if photo exists)

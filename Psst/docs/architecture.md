@@ -997,7 +997,153 @@ const trainerId = trainer.uid;
 
 ---
 
-**Document Owner:** Finesse Vanes (Arnold - The Architect)
-**Last Updated:** October 24, 2025
+## Brownfield Analysis: PR #009 - Trainer-Client Relationships
 
-**Arnold says:** "I'll be back... with working user roles."
+**Status:** Analysis Complete
+**Date:** October 25, 2025
+**Document:** `Psst/docs/brownfield-analysis-pr-009.md`
+
+### Overview
+
+PR #009 introduces **explicit trainer-client relationships** to replace the current "everyone can message everyone" architecture. This is a **high-risk brownfield change** that modifies critical components.
+
+### Affected Services
+
+**Modified Files:**
+- `ChatService.swift` - Add relationship validation to `createChat()` method (Lines 144-214)
+- `UserService.swift` - Add `getUserByEmail()` method for email lookup
+- `firestore.rules` - Add security rules for new `/contacts` collections
+
+**New Files:**
+- `ContactService.swift` - Manage trainer-client relationships
+- Models: `Client.swift`, `Prospect.swift`, `Contact.swift` protocol
+- Views: `ContactsView.swift`, `AddClientView.swift`, etc.
+
+### Integration Points
+
+```
+ContactService (NEW)
+    ↓
+    ├── UserService.getUserByEmail() (NEW METHOD)
+    ├── UserService.getUser() (EXISTING)
+    ├── AuthenticationService.currentUser (EXISTING)
+    └── Firestore /contacts/{trainerId}/clients (NEW)
+
+ChatService.createChat() (MODIFIED)
+    ↓
+    ├── ContactService.validateRelationship() (NEW)
+    ├── UserService.getUser() (EXISTING - for roles)
+    └── Firestore /chats (EXISTING)
+```
+
+### Key Risks
+
+1. **Breaking existing chat functionality** (CRITICAL)
+   - Mitigation: Feature flag, gradual rollout, comprehensive testing
+2. **Migration script failures** (CRITICAL)
+   - Mitigation: Dry-run in staging, idempotent script, Firestore backup
+3. **Email lookup performance** (MEDIUM)
+   - Mitigation: Firestore index on email field, caching, timeouts
+
+### Migration Strategy
+
+**Goal:** Auto-add existing chat participants as clients for all trainers
+
+**Approach:**
+1. Identify all trainers (role == "trainer")
+2. For each trainer, get all chats where they're a member
+3. Extract unique client IDs from chat members
+4. Create client relationships in `/contacts/{trainerId}/clients/{clientId}`
+
+**Deployment Phases:**
+1. Week 1: Deploy ContactService + security rules (no validation)
+2. Week 2: Test migration script in staging
+3. Week 3: Run migration in production
+4. Week 4: Enable relationship validation (10% → 50% → 100%)
+
+### Required Changes Summary
+
+**ChatService.swift:**
+- Add `contactService` dependency
+- Add relationship validation in `createChat()` before chat creation
+- Fetch user roles to determine trainer/client
+- Throw `ChatError.relationshipNotFound` if no relationship exists
+
+**UserService.swift:**
+- Add `getUserByEmail(_ email: String) async throws -> User` method
+- Query Firestore by email field (requires index)
+- Return first match or throw `UserServiceError.userNotFound`
+
+**Security Rules (firestore.rules):**
+```javascript
+match /contacts/{trainerId}/clients/{clientId} {
+  allow read, write: if request.auth != null &&
+                        request.auth.uid == trainerId;
+}
+
+match /contacts/{trainerId}/prospects/{prospectId} {
+  allow read, write: if request.auth != null &&
+                        request.auth.uid == trainerId;
+}
+```
+
+### Performance Targets (from PRD)
+
+- Contact list load: < 500ms
+- Email lookup: < 200ms
+- Relationship validation: < 100ms
+- Search filtering: < 100ms
+
+### Testing Requirements
+
+**Unit Tests:**
+- ContactServiceTests (9 test cases)
+- ChatServiceTests (6 new test cases for relationship validation)
+- UserServiceTests (4 new test cases for email lookup)
+
+**Integration Tests:**
+- End-to-end flows: add client → create chat
+- Migration script testing in staging
+- Group peer discovery scenarios
+
+**Manual Testing:**
+- Test with real user accounts
+- Verify relationship validation errors are clear
+- Test offline scenarios
+
+### Rollback Plan
+
+**If migration fails:**
+1. Stop immediately, disable feature flag
+2. Delete `/contacts` collection (or mark invalid)
+3. Fix migration script, re-run from step 1
+
+**If validation causes issues:**
+1. Disable feature flag immediately
+2. Investigate failures from logs
+3. Re-run migration for affected users
+4. Re-enable validation once fixed
+
+**Rollback Time:** < 5 minutes (disable feature flag and re-deploy)
+
+### Success Criteria
+
+✅ All existing chats remain accessible after migration
+✅ New relationship validation works without blocking legitimate conversations
+✅ Migration completes without data loss
+✅ Performance targets met (< 500ms contact list, < 200ms email lookup)
+✅ Feature flag enables gradual rollout
+✅ Rollback plan tested and documented
+
+### Related Documents
+
+- **PRD:** `Psst/docs/prds/pr-009-prd.md`
+- **TODO:** `Psst/docs/todos/pr-009-todo.md`
+- **Brownfield Analysis:** `Psst/docs/brownfield-analysis-pr-009.md` ← **Full detailed analysis**
+
+---
+
+**Document Owner:** Finesse Vanes (Arnold - The Architect)
+**Last Updated:** October 25, 2025
+
+**Arnold says:** "I'll be back... with working relationships. And a rollback plan."

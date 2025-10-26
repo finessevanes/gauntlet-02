@@ -150,7 +150,6 @@ struct ChatView: View {
         .toolbar {
             // Show member photos for group chats (PR #004)
             if chat.isGroupChat {
-                // Show member photos for group chats (PR #004)
                 ToolbarItem(placement: .principal) {
                     Button(action: {
                         presenceViewModel.showMemberListSheet()

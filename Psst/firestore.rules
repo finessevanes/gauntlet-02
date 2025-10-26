@@ -161,6 +161,40 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if false;
     }
+
+    // Contacts collection - Trainer-Client Relationships (PR #009)
+    // Parent contacts document (metadata only)
+    match /contacts/{trainerId} {
+      // Trainers can read/write their own contacts metadata document
+      allow read, write: if request.auth != null &&
+                            request.auth.uid == trainerId;
+    }
+
+    // Collection group query rule for clients to find their trainers
+    match /{path=**}/clients/{clientId} {
+      // Allow read if the authenticated user IS this client
+      // Check both path variable AND document data field
+      allow read: if request.auth != null &&
+                     (request.auth.uid == clientId ||
+                      request.auth.uid == resource.data.clientId ||
+                      request.auth.uid == resource.data.id);
+    }
+
+    match /contacts/{trainerId}/clients/{clientId} {
+      // Trainer can read/write their own clients
+      // Client can read if they are the client (clientId matches their UID)
+      allow read: if request.auth != null &&
+                     (request.auth.uid == trainerId ||
+                      request.auth.uid == clientId);
+      allow write: if request.auth != null &&
+                      request.auth.uid == trainerId;
+    }
+
+    match /contacts/{trainerId}/prospects/{prospectId} {
+      // Only trainer can read/write their own prospects
+      allow read, write: if request.auth != null &&
+                            request.auth.uid == trainerId;
+    }
   }
 }
 

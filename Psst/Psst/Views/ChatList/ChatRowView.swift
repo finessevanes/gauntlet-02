@@ -73,9 +73,10 @@ struct ChatRowView: View {
                         userID: otherUser?.id,
                         selectedImage: nil,
                         isLoading: false,
-                        size: 56
+                        size: 56,
+                        displayName: otherUser?.displayName
                     )
-                    
+
                     // Green presence halo (only when online)
                     PresenceHalo(isOnline: isContactOnline, size: 56)
                         .animation(.easeInOut(duration: 0.2), value: isContactOnline)

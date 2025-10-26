@@ -39,9 +39,10 @@ struct UserRow: View {
                     userID: user.id,
                     selectedImage: nil,
                     isLoading: false,
-                    size: 40
+                    size: 40,
+                    displayName: user.displayName
                 )
-                
+
                 // Green presence halo (only when online)
                 PresenceHalo(isOnline: isUserOnline, size: 40)
                     .animation(.easeInOut(duration: 0.2), value: isUserOnline)
