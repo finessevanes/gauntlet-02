@@ -13,24 +13,27 @@ import SwiftUI
 /// Handles loading states, placeholder display, and cache-aware loading
 struct ProfilePhotoPreview: View {
     // MARK: - Properties
-    
+
     /// Remote image URL from Firebase Storage
     var imageURL: String?
-    
+
     /// User ID for cache lookup (optional, enables caching)
     var userID: String?
-    
+
     /// Local image selected by user (not yet uploaded)
     var selectedImage: UIImage?
-    
+
     /// Whether image is currently uploading
     var isLoading: Bool = false
-    
+
     /// Size of the circular preview
     var size: CGFloat = 120
-    
+
     /// If true, force showing placeholder and clear any cached/remote image
     var forcePlaceholder: Bool = false
+
+    /// Display name for showing initials when no photo is available
+    var displayName: String?
     
     // MARK: - State
     
@@ -138,19 +141,64 @@ struct ProfilePhotoPreview: View {
     }
     
     // MARK: - Placeholder View
-    
+
     private var placeholderView: some View {
         ZStack {
             Circle()
-                .fill(Color(.systemGray5))
+                .fill(initialsBackgroundColor)
                 .frame(width: size, height: size)
-            
-            Image(systemName: "person.circle.fill")
-                .resizable()
-                .scaledToFit()
-                .frame(width: size * 0.6, height: size * 0.6)
-                .foregroundColor(Color(.systemGray3))
+
+            if let displayName = displayName, !displayName.isEmpty {
+                // Show initials
+                Text(getInitials(from: displayName))
+                    .font(.system(size: size * 0.4, weight: .medium))
+                    .foregroundColor(initialsForegroundColor)
+            } else {
+                // Fallback to person icon if no display name
+                Image(systemName: "person.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: size * 0.6, height: size * 0.6)
+                    .foregroundColor(Color(.systemGray3))
+            }
         }
+    }
+
+    // MARK: - Color Helpers
+
+    /// Background color for initials based on display name hash
+    private var initialsBackgroundColor: Color {
+        guard let displayName = displayName, !displayName.isEmpty else {
+            return Color(.systemGray5)
+        }
+
+        // Generate consistent color based on display name
+        let colors: [Color] = [
+            Color(red: 0.4, green: 0.8, blue: 0.6), // Green (like in screenshot)
+            Color(red: 0.4, green: 0.6, blue: 1.0), // Blue
+            Color(red: 1.0, green: 0.6, blue: 0.4), // Orange
+            Color(red: 0.8, green: 0.4, blue: 0.8), // Purple
+            Color(red: 1.0, green: 0.8, blue: 0.4), // Yellow
+            Color(red: 0.6, green: 0.8, blue: 1.0)  // Light blue
+        ]
+
+        let hash = abs(displayName.hashValue)
+        return colors[hash % colors.count]
+    }
+
+    /// Foreground color for initials
+    private var initialsForegroundColor: Color {
+        guard displayName != nil else {
+            return Color(.systemGray3)
+        }
+        return .white
+    }
+
+    /// Extract initials from display name (first letter)
+    private func getInitials(from name: String) -> String {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return "?" }
+        return String(trimmed.prefix(1).uppercased())
     }
     
     // MARK: - Helper Methods

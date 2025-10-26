@@ -49,21 +49,9 @@ struct ReadReceiptMemberRow: View {
             userID: detail.userID,
             selectedImage: nil,
             isLoading: false,
-            size: 40
+            size: 40,
+            displayName: detail.userName
         )
-    }
-    
-    /// Initials fallback view (first letter of userName)
-    private var initialsView: some View {
-        ZStack {
-            Circle()
-                .fill(Color.accentColor.opacity(0.3))
-                .frame(width: 40, height: 40)
-            
-            Text(String(detail.userName.prefix(1)).uppercased())
-                .font(.system(size: 18, weight: .semibold))
-                .foregroundColor(.accentColor)
-        }
     }
 }
 
