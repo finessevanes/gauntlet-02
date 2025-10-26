@@ -16,6 +16,24 @@ default_platform(:ios)
 platform :ios do
 
   # ============================================================================
+  # GLOBAL SETUP - App Store Connect API Key
+  # ============================================================================
+  before_all do
+    # Set up App Store Connect API key for all lanes
+    ENV["FASTLANE_APPLE_APPLICATION_SPECIFIC_PASSWORD"] = nil
+    ENV["FASTLANE_SESSION"] = nil
+  end
+
+  # Helper method to get API key
+  def get_api_key
+    app_store_connect_api_key(
+      key_id: ENV["APP_STORE_CONNECT_API_KEY_ID"],
+      issuer_id: ENV["APP_STORE_CONNECT_ISSUER_ID"],
+      key_filepath: ENV["APP_STORE_CONNECT_API_KEY_FILEPATH"]
+    )
+  end
+
+  # ============================================================================
   # BETA LANE - Deploy to TestFlight
   # ============================================================================
   desc "Deploy a new beta build to TestFlight"
@@ -23,9 +41,10 @@ platform :ios do
   desc "This will:"
   desc "  1. Ensure clean git state"
   desc "  2. Increment build number"
-  desc "  3. Build the app (using Xcode automatic signing)"
-  desc "  4. Upload to TestFlight"
-  desc "  5. Commit build number bump"
+  desc "  3. Sync certificates/profiles from Match"
+  desc "  4. Build the app"
+  desc "  5. Upload to TestFlight"
+  desc "  6. Commit build number bump"
   lane :beta do
     # 1. Ensure clean git state (uncommitted changes will block deployment)
     ensure_git_status_clean
@@ -33,9 +52,13 @@ platform :ios do
     # 2. Increment build number automatically
     increment_build_number(xcodeproj: "Psst.xcodeproj")
 
-    # 3. Code signing: Using Xcode automatic signing
-    # Note: If you want automated certificate management across team members,
-    # consider setting up Match later (see fastlane/README.md)
+    # 3. Sync certificates and provisioning profiles from Match
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "gauntlet.Psst",
+      api_key: get_api_key
+    )
 
     # 4. Build the app for App Store distribution
     build_app(
@@ -44,15 +67,12 @@ platform :ios do
       output_directory: "./build",
       output_name: "Psst.ipa",
       clean: true,
-      include_bitcode: false,
-      export_options: {
-        signingStyle: "automatic"
-      }
+      include_bitcode: false
     )
 
     # 5. Upload to TestFlight
     upload_to_testflight(
-      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      api_key: get_api_key,
       skip_waiting_for_build_processing: true,
       distribute_external: false,
       changelog: "New beta build deployed via Fastlane"
@@ -81,22 +101,27 @@ platform :ios do
     # 1. Ensure clean git state
     ensure_git_status_clean
 
-    # 2. Build the app for App Store (using Xcode automatic signing)
+    # 2. Sync certificates and provisioning profiles from Match
+    match(
+      type: "appstore",
+      readonly: true,
+      app_identifier: "gauntlet.Psst",
+      api_key: get_api_key
+    )
+
+    # 3. Build the app for App Store
     build_app(
       scheme: "Psst",
       export_method: "app-store",
       output_directory: "./build",
       output_name: "Psst.ipa",
       clean: true,
-      include_bitcode: false,
-      export_options: {
-        signingStyle: "automatic"
-      }
+      include_bitcode: false
     )
 
     # 3. Upload to App Store (manual submission required)
     upload_to_app_store(
-      api_key_path: ENV["APP_STORE_CONNECT_API_KEY_PATH"],
+      api_key: get_api_key,
       skip_metadata: true,
       skip_screenshots: true,
       submit_for_review: false,
@@ -158,7 +183,8 @@ platform :ios do
     match(
       type: "development",
       readonly: false,
-      app_identifier: "gauntlet.Psst"
+      app_identifier: "gauntlet.Psst",
+      api_key: get_api_key
     )
     UI.success("✅ Development certificates synced!")
   end
@@ -169,7 +195,8 @@ platform :ios do
     match(
       type: "appstore",
       readonly: false,
-      app_identifier: "gauntlet.Psst"
+      app_identifier: "gauntlet.Psst",
+      api_key: get_api_key
     )
     UI.success("✅ App Store certificates synced!")
   end

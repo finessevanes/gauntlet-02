@@ -1,506 +1,328 @@
-# Fastlane Setup & Documentation
+# Fastlane Setup & Usage Guide for Psst
 
-Automated iOS deployment pipeline for Psst app using Fastlane with App Store Connect API authentication.
+Complete guide for iOS deployment automation using Fastlane.
 
 ---
 
 ## Table of Contents
-
-- [Overview](#overview)
-- [Prerequisites](#prerequisites)
-- [Initial Setup](#initial-setup)
-- [Available Lanes](#available-lanes)
-- [New Team Member Setup](#new-team-member-setup)
-- [Troubleshooting](#troubleshooting)
-- [Security Notes](#security-notes)
+1. [First-Time Setup](#first-time-setup)
+2. [Daily Usage](#daily-usage)
+3. [Available Commands](#available-commands)
+4. [Troubleshooting](#troubleshooting)
+5. [File Reference](#file-reference)
 
 ---
 
-## Overview
+## First-Time Setup
 
-Fastlane automates the entire iOS deployment process:
+### Prerequisites
+- Xcode installed
+- Apple Developer account (vanessa.mercado24@gmail.com)
+- GitHub account with access to certificate repo
 
-- **Single Command Deployments**: `fastlane beta` or `fastlane release`
-- **Automated Code Signing**: Match manages certificates and provisioning profiles
-- **No 2FA Friction**: App Store Connect API key authentication
-- **Consistent Builds**: Same configuration across all developer machines
-
----
-
-## Prerequisites
-
-Before setting up Fastlane, ensure you have:
-
-- [x] **Xcode** installed (latest version recommended)
-- [x] **Homebrew** package manager ([install here](https://brew.sh))
-- [x] **Apple Developer Program** membership ($99/year)
-- [x] **App Store Connect** access with sufficient permissions
-- [x] **Git** access to certificate storage repository
-
----
-
-## Initial Setup
-
-### 1. Install Fastlane
-
+### Step 1: Install Fastlane
 ```bash
-# Install via Homebrew (recommended)
+# Install fastlane (if not already installed)
 brew install fastlane
 
-# Verify installation
-fastlane --version
+# Or using RubyGems
+sudo gem install fastlane
 ```
 
-### 2. Create App Store Connect API Key
+### Step 2: Configure Environment Variables
 
-This enables API-based authentication without 2FA prompts.
+1. **Copy the example .env file:**
+   ```bash
+   cd /path/to/Psst
+   cp fastlane/.env.example fastlane/.env
+   ```
 
-**Steps:**
-1. Log in to [App Store Connect](https://appstoreconnect.apple.com)
-2. Navigate to: **Users and Access** → **Keys** → **App Store Connect API**
-3. Click **"+"** to create a new API key
-4. **Name**: "Fastlane CI" (or any descriptive name)
-5. **Access**: Select **"Developer"** role
-6. Click **Generate**
-7. **Download** the `.p8` private key file (⚠️ only available once!)
-8. Note the **Key ID** and **Issuer ID** displayed on the page
+2. **Edit `fastlane/.env` with your values:**
+   ```bash
+   # App Store Connect API Authentication
+   APP_STORE_CONNECT_API_KEY_ID="YOUR_KEY_ID"
+   APP_STORE_CONNECT_ISSUER_ID="YOUR_ISSUER_ID"
+   APP_STORE_CONNECT_API_KEY_FILEPATH="./fastlane/AuthKey_YOUR_KEY_ID.p8"
 
-**Important**: Store the `.p8` file securely - it cannot be re-downloaded!
+   # Match Certificate Management
+   MATCH_GIT_URL="https://github.com/YOUR_USERNAME/psst-certificates.git"
+   MATCH_PASSWORD="YOUR_STRONG_PASSWORD"
+   ```
 
-### 3. Configure Environment Variables
+3. **Get App Store Connect API Key:**
+   - Go to https://appstoreconnect.apple.com/access/api
+   - Navigate to: **Users and Access → Keys → App Store Connect API**
+   - Click **"+"** to create a new key
+   - Name it "Fastlane Deployment"
+   - Select **Admin** access
+   - Download the `.p8` file
+   - Copy the **Key ID** and **Issuer ID**
+   - Place the `.p8` file in `fastlane/` folder
+   - Update `.env` with these values
+
+### Step 3: Create Certificate Repository
+
+1. **Create a PRIVATE GitHub repo:**
+   ```bash
+   # On GitHub: Create new repo named "psst-certificates"
+   # Make it PRIVATE (important for security!)
+   ```
+
+2. **Update `.env` with repo URL:**
+   ```bash
+   MATCH_GIT_URL="https://github.com/YOUR_USERNAME/psst-certificates.git"
+   ```
+
+3. **Choose a strong Match password:**
+   ```bash
+   # This encrypts your certificates in the repo
+   MATCH_PASSWORD="YourStrongPassword123!"
+   ```
+
+### Step 4: Initialize Certificates
+
+**Run these commands in order:**
 
 ```bash
-# Navigate to project root
+# Navigate to Psst directory
 cd /path/to/Psst
 
-# Copy template to create .env file
-cp fastlane/.env.example fastlane/.env
-
-# Edit .env with your actual values
-nano fastlane/.env
-```
-
-**Required values** (update in `.env`):
-
-```bash
-# Replace with your Key ID from App Store Connect
-APP_STORE_CONNECT_API_KEY_ID="ABC123XYZ"
-
-# Replace with your Issuer ID from App Store Connect
-APP_STORE_CONNECT_ISSUER_ID="12345678-90ab-cdef-1234-567890abcdef"
-
-# Update path with your Key ID
-APP_STORE_CONNECT_API_KEY_PATH="./fastlane/AuthKey_ABC123XYZ.p8"
-
-# Generate a strong random password (save in team password manager!)
-MATCH_PASSWORD="your-super-secret-password-123"
-
-# Replace with your certificate storage repo URL
-MATCH_GIT_URL="git@github.com:your-org/psst-certificates.git"
-```
-
-### 4. Move API Key File
-
-```bash
-# Move downloaded .p8 file to fastlane directory
-mv ~/Downloads/AuthKey_ABC123XYZ.p8 fastlane/
-
-# Verify it's git-ignored (should NOT appear in git status)
-git status
-```
-
-### 5. Create Certificate Storage Repository
-
-Match stores code signing certificates in a private Git repository.
-
-```bash
-# Create a NEW private GitHub repository named "psst-certificates"
-# (Do this via GitHub web interface)
-
-# Or use GitHub CLI:
-gh repo create psst-certificates --private
-
-# Update MATCH_GIT_URL in .env with the repository URL
-```
-
-### 6. Initialize Match (First Time Only)
-
-```bash
-# Generate and upload App Store certificates
-fastlane match_appstore
-
-# Generate and upload Development certificates (optional)
+# Generate development certificates
 fastlane match_dev
+
+# Generate App Store certificates
+fastlane match_appstore
 ```
 
 **What this does:**
-- Generates code signing certificates
-- Creates provisioning profiles
-- Encrypts them with `MATCH_PASSWORD`
-- Uploads to your certificate storage repository
-- Installs certificates in your Mac's Keychain
+- Creates signing certificates in your Apple Developer account
+- Generates provisioning profiles
+- Stores them encrypted in your GitHub repo
+- Installs them on your Mac
 
-⚠️ **Important**: Save `MATCH_PASSWORD` in your team password manager (1Password, LastPass, etc.) immediately!
+**IMPORTANT:** Save your `MATCH_PASSWORD` somewhere safe! You'll need it on other machines or CI/CD.
 
 ---
 
-## Available Lanes
+## Daily Usage
 
-### `fastlane beta`
-
-Deploy to **TestFlight** for beta testing.
+### Deploy to TestFlight (Beta Testing)
 
 ```bash
+cd /path/to/Psst
 fastlane beta
 ```
 
-**What it does:**
-1. Ensures clean git state (fails if uncommitted changes)
-2. Auto-increments build number
-3. Syncs certificates from Match
-4. Builds the app (.ipa file)
+**What this does:**
+1. Checks git is clean (commit your changes first!)
+2. Increments build number automatically
+3. Syncs certificates from Match repo
+4. Builds the app
 5. Uploads to TestFlight
-6. Commits build number bump to git
+6. Commits the build number bump
 
-**Time:** ~5-10 minutes (build + upload)
+**After upload:**
+- Build processes in ~5-10 minutes
+- Available in TestFlight app
+- Invite testers in App Store Connect
 
-**Result:** Build available in TestFlight after Apple processing (~5-10 min)
-
----
-
-### `fastlane release`
-
-Deploy to **App Store** (manual submission required).
+### Deploy to App Store (Production)
 
 ```bash
+cd /path/to/Psst
 fastlane release
 ```
 
-**What it does:**
-1. Ensures clean git state
-2. Syncs App Store certificates
-3. Builds the app
-4. Uploads to App Store Connect
-5. Does **NOT** submit for review (do this manually in App Store Connect)
+**What this does:**
+1. Syncs certificates
+2. Builds the app
+3. Uploads to App Store Connect
+4. **Does NOT submit for review** (you do this manually)
 
-**Time:** ~5-10 minutes
+**To complete submission:**
+1. Go to https://appstoreconnect.apple.com
+2. Go to your app → App Store tab
+3. Fill in metadata, screenshots, description
+4. Submit for review
 
-**Next step:** Complete submission in [App Store Connect](https://appstoreconnect.apple.com)
-
----
-
-### `fastlane test`
-
-Run **unit tests and UI tests**.
+### Run Tests
 
 ```bash
+cd /path/to/Psst
 fastlane test
 ```
 
-**What it does:**
-- Runs all tests on "Vanes" simulator
-- Generates code coverage report
-- Outputs results to `fastlane/test_output/`
-
-**Time:** ~2-5 minutes (depends on test suite size)
+Runs unit and UI tests on the "Vanes" simulator.
 
 ---
 
-### `fastlane screenshots`
+## Available Commands
 
-Generate **App Store screenshots** automatically.
-
-```bash
-fastlane screenshots
-```
-
-**What it does:**
-- Runs UI tests to capture screenshots
-- Generates screenshots for iPhone 15 Pro, iPhone 15 Pro Max, iPad Pro
-- Saves to `fastlane/screenshots/`
-
-**Requirements:** UI tests must be configured to capture screenshots
-
----
-
-### `fastlane match_appstore`
-
-Sync **App Store certificates** from Match storage.
-
-```bash
-fastlane match_appstore
-```
-
-**When to use:**
-- First-time setup on a new machine
-- Certificate expired and needs regeneration
-- New team member joining
-
----
-
-### `fastlane match_dev`
-
-Sync **development certificates** from Match storage.
-
-```bash
-fastlane match_dev
-```
-
-**When to use:**
-- Setting up development environment
-- Running app on physical device
-
----
-
-## New Team Member Setup
-
-When a new developer joins the team:
-
-### 1. Install Prerequisites
-
-```bash
-# Install Homebrew (if not already installed)
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-
-# Install Fastlane
-brew install fastlane
-
-# Verify installation
-fastlane --version
-```
-
-### 2. Get Credentials
-
-From team password manager, retrieve:
-- `MATCH_PASSWORD` (certificate encryption password)
-- `APP_STORE_CONNECT_API_KEY_ID`
-- `APP_STORE_CONNECT_ISSUER_ID`
-- Access to `.p8` API key file
-
-### 3. Configure Environment
-
-```bash
-# Clone project
-git clone git@github.com:your-org/Psst.git
-cd Psst
-
-# Create .env from template
-cp fastlane/.env.example fastlane/.env
-
-# Edit with actual values
-nano fastlane/.env
-
-# Add .p8 file to fastlane/ directory
-# (Get from team password manager or App Store Connect)
-```
-
-### 4. Sync Certificates
-
-```bash
-# Sync App Store certificates
-fastlane match_appstore
-
-# Sync Development certificates (optional)
-fastlane match_dev
-```
-
-### 5. Verify Setup
-
-```bash
-# Try deploying to TestFlight
-fastlane beta
-```
-
-**Success!** You should see build uploaded to TestFlight.
-
-**Time to productive:** ~15-30 minutes
+| Command | Purpose | When to Use |
+|---------|---------|-------------|
+| `fastlane beta` | Deploy to TestFlight | Share with beta testers |
+| `fastlane release` | Upload to App Store | Production release |
+| `fastlane test` | Run all tests | Before deploying |
+| `fastlane screenshots` | Generate App Store screenshots | Before App Store submission |
+| `fastlane match_dev` | Sync dev certificates | First time or new machine |
+| `fastlane match_appstore` | Sync production certificates | First time or new machine |
 
 ---
 
 ## Troubleshooting
 
-### Error: "APP_STORE_CONNECT_API_KEY_PATH not found"
+### "A required agreement is missing or has expired"
 
-**Cause:** `.env` file missing or API key path incorrect
+**Solution:**
+1. Go to https://developer.apple.com/account
+2. Sign in with **vanessa.mercado24@gmail.com**
+3. Check for pending agreements banner at top
+4. Accept any pending agreements
+5. Wait 5-10 minutes for Apple's systems to update
+6. Try command again
 
-**Fix:**
+### "Unresolved conflict between options: 'api_key_path' and 'api_key'"
+
+**Solution:**
+1. Make sure `.env` uses `APP_STORE_CONNECT_API_KEY_FILEPATH` (not `_PATH`)
+2. Check Fastfile uses `key_filepath` parameter
+3. Restart terminal to reload environment variables
+
+### "Could not find the newly generated certificate"
+
+**Solution:**
+1. Delete certificates from Apple Developer Portal manually
+2. Run `fastlane match_appstore --force` to regenerate
+3. Enter Match password when prompted
+
+### "Wrong password for certificates repo"
+
+**Solution:**
+1. Check `MATCH_PASSWORD` in `.env` file
+2. Make sure no extra quotes or spaces
+3. If forgotten, you'll need to revoke and regenerate all certificates
+
+### "No spaces in srcroot"
+
+**Solution:**
+- Your project path has spaces
+- Move project to path without spaces (e.g., `/Users/username/Projects/Psst`)
+
+### Git Not Clean Error
+
+**Solution:**
 ```bash
-# Verify .env exists
-ls -la fastlane/.env
-
-# Verify .p8 file exists
-ls -la fastlane/AuthKey_*.p8
-
-# Check path in .env matches actual filename
-cat fastlane/.env | grep APP_STORE_CONNECT_API_KEY_PATH
-```
-
----
-
-### Error: "Failed to decrypt certificates"
-
-**Cause:** Incorrect `MATCH_PASSWORD`
-
-**Fix:**
-```bash
-# Verify password in team password manager
-# Update .env with correct password
-nano fastlane/.env
-
-# Retry Match sync
-fastlane match_appstore --readonly
-```
-
----
-
-### Error: "Git status not clean"
-
-**Cause:** Uncommitted changes in repository
-
-**Fix:**
-```bash
-# Commit or stash changes first
-git status
+# Commit your changes first
 git add .
-git commit -m "commit message"
+git commit -m "your commit message"
 
-# Then retry deployment
+# Then run fastlane again
 fastlane beta
 ```
 
 ---
 
-### Error: "Certificate has expired"
+## File Reference
 
-**Cause:** Code signing certificate expired (certificates last 1 year)
+### `.env` - Environment Variables (KEEP SECRET!)
+Contains:
+- App Store Connect API credentials
+- Certificate repo URL
+- Match password
 
-**Fix:**
-```bash
-# Delete expired certificate from Match
-fastlane match nuke distribution
+**IMPORTANT:** Never commit this file! It's in `.gitignore`.
 
-# Generate new certificate
-fastlane match_appstore
+### `.env.example` - Template
+Template for setting up `.env` on new machines.
 
-# Retry deployment
-fastlane beta
-```
+### `Fastfile` - Automation Scripts
+Defines all lanes (commands):
+- `beta` - TestFlight deployment
+- `release` - App Store deployment
+- `test` - Run tests
+- `match_dev` / `match_appstore` - Certificate management
 
----
+### `Matchfile` - Certificate Configuration
+Configuration for Match:
+- Git repo URL
+- App identifier (gauntlet.Psst)
+- Apple ID (vanessa.mercado24@gmail.com)
 
-### Error: "Build number already exists"
-
-**Cause:** TestFlight already has a build with this number
-
-**Fix:**
-```bash
-# Manually increment build number in Xcode
-# Or run beta lane again (auto-increments)
-fastlane beta
-```
-
----
-
-### Error: "Network timeout during upload"
-
-**Cause:** Slow internet connection or large IPA file
-
-**Fix:**
-- Retry upload (Fastlane will resume)
-- Check internet connection
-- Upload during off-peak hours
-- Consider compressing assets
+### `Appfile` - App Metadata
+Basic app configuration:
+- App identifier
+- Apple ID
+- Team ID
 
 ---
 
-### Error: "Provisioning profile doesn't match"
+## Important Notes
 
-**Cause:** Mismatch between app identifier and profile
+### Security Best Practices
+1. **Never commit `.env`** - Contains secrets
+2. **Keep Match password safe** - Can't recover if lost
+3. **Certificate repo must be PRIVATE** - Contains signing certificates
+4. **Limit API key access** - Only give to trusted team members
 
-**Fix:**
-```bash
-# Re-sync provisioning profiles
-fastlane match_appstore --force_for_new_devices
+### Using on Multiple Machines
 
-# Or regenerate completely
-fastlane match nuke distribution
-fastlane match_appstore
-```
+**On a new Mac:**
+1. Clone the Psst repo
+2. Copy `.env` file from secure location (or create new from `.env.example`)
+3. Run `fastlane match_dev` to download certificates
+4. Run `fastlane match_appstore` to download production certificates
+5. Ready to deploy!
 
----
+### CI/CD (GitHub Actions, etc.)
 
-## Security Notes
-
-### Files to NEVER commit to git:
-
-- ❌ `fastlane/.env` (contains secrets)
-- ❌ `fastlane/AuthKey_*.p8` (API private key)
-- ❌ `*.ipa` (build artifacts)
-- ❌ `*.mobileprovision` (provisioning profiles)
-
-These are already in `.gitignore` ✅
-
-### Best Practices:
-
-1. **Store secrets in team password manager**
-   - `MATCH_PASSWORD`
-   - `.p8` API key file
-   - App Store Connect credentials
-
-2. **Rotate API keys periodically**
-   - Every 6-12 months
-   - When team members leave
-   - If key is suspected to be compromised
-
-3. **Use separate API keys for CI/CD**
-   - Different key for local development vs automated CI
-
-4. **Limit API key permissions**
-   - Use "Developer" role (not "Admin")
-   - Principle of least privilege
-
-5. **Certificate storage repo access**
-   - Keep `psst-certificates` repo private
-   - Only grant access to trusted team members
-   - Use SSH keys (not HTTPS passwords)
-
----
-
-## Additional Resources
-
-- **Fastlane Docs**: https://docs.fastlane.tools
-- **Match Docs**: https://docs.fastlane.tools/actions/match
-- **App Store Connect API**: https://developer.apple.com/app-store-connect/api
-- **Troubleshooting**: https://docs.fastlane.tools/troubleshooting
+Store these as secrets:
+- `APP_STORE_CONNECT_API_KEY_ID`
+- `APP_STORE_CONNECT_ISSUER_ID`
+- `MATCH_PASSWORD`
+- Upload `.p8` file as secret file
 
 ---
 
 ## Quick Reference
 
+### First Time Setup
 ```bash
-# Deploy to TestFlight
-fastlane beta
+# 1. Install fastlane
+brew install fastlane
 
-# Deploy to App Store (manual submission)
-fastlane release
+# 2. Setup environment
+cp fastlane/.env.example fastlane/.env
+# Edit .env with your credentials
 
-# Run tests
+# 3. Initialize certificates
+fastlane match_dev
+fastlane match_appstore
+```
+
+### Daily Workflow
+```bash
+# Test before deploying
 fastlane test
 
-# Generate screenshots
-fastlane screenshots
+# Deploy to TestFlight
+git add . && git commit -m "Ready for beta"
+fastlane beta
 
-# Sync certificates (new machine)
-fastlane match_appstore --readonly
-
-# Regenerate expired certificates
-fastlane match nuke distribution
-fastlane match_appstore
-
-# View all available lanes
-fastlane lanes
+# Deploy to App Store
+fastlane release
 ```
 
 ---
 
-**Questions?** See main project [README.md](../README.md) or contact the team.
+## Support
+
+- **Fastlane Docs:** https://docs.fastlane.tools
+- **Match Guide:** https://docs.fastlane.tools/actions/match/
+- **TestFlight Guide:** https://docs.fastlane.tools/actions/upload_to_testflight/
+- **App Store Connect:** https://appstoreconnect.apple.com
+
+---
+
+**Last Updated:** 2025-01-25
+**Project:** Psst iOS App
+**Developer:** vanessa.mercado24@gmail.com
