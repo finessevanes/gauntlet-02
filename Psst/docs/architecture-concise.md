@@ -117,16 +117,16 @@
 
 ## Cloud Functions (TypeScript)
 
-**Active Functions:**
-1. `onMessageCreate` - Send push notifications (PR #004)
-2. `generateEmbedding` - Auto-embed messages to Pinecone (PR #006)
-3. `chatWithAI` - AI assistant endpoint with RAG (PR #006-007)
-4. `semanticSearch` - Semantic search over message history (PR #006)
-5. `executeFunctionCall` - Execute AI-requested actions (PR #008)
-6. `extractProfileInfoOnMessage` - Auto-build client profiles (PR #007)
-7. `onCalendarEventCreate` - Firestore trigger for Google Calendar sync (PR #010C)
-8. `migrateExistingChats` - PR #009 migration script
-9. `fixProspectChats` - PR #009 prospect fix script
+**Active Functions (9 + 2 migrations):**
+1. `onMessageCreate` - Push notifications (PR #004)
+2. `generateEmbedding` - Auto-embed to Pinecone (PR #006)
+3. `chatWithAI` - AI assistant with RAG (PR #006-007)
+4. `semanticSearch` - Semantic search (PR #006)
+5. `executeFunctionCall` - AI actions (PR #008)
+6. `extractProfileInfoOnMessage` - Auto profiles (PR #007)
+7. `onCalendarEventCreate` - Google Calendar sync (PR #010C)
+8. `migrateExistingChats` - PR #009 migration
+9. `fixProspectChats` - PR #009 prospect fix
 
 **Key Services (Backend):**
 - `openaiService.ts` - OpenAI API integration
@@ -142,46 +142,25 @@
 
 ## iOS App Structure
 
-**Services (20 files):**
-- `AuthenticationService.swift` - User auth, session management
-- `UserService.swift` - User CRUD operations
-- `ChatService.swift` - Chat creation, user lookup
-- `MessageService.swift` - Message send/receive, read receipts
-- `PresenceService.swift` - Real-time presence tracking
-- `TypingIndicatorService.swift` - Typing status updates
-- `ImageUploadService.swift` - Image compression + Storage upload
-- `ImageCacheService.swift` - Image download + caching
-- `MessageQueue.swift` - Offline message queue
-- `NetworkMonitor.swift` - Network connectivity detection
-- `NotificationService.swift` - Push notification handling
-- `AIService.swift` - AI assistant integration (PR #006)
-- `ProfileService.swift` - Client profile management (PR #007)
-- `ContactService.swift` - Trainer-client relationships (PR #009)
-- `CalendarService.swift` - Event CRUD, conflict detection (PR #010C)
-- `GoogleCalendarSyncService.swift` - OAuth + Google Calendar sync (PR #010C)
-- `CalendarConflictService.swift` - Smart time suggestions (PR #010C)
+**Services (18 files):**
+- **Core:** AuthenticationService, UserService, ChatService, MessageService, PresenceService, TypingIndicatorService, MessageQueue, NetworkMonitor, NotificationService, ImageUploadService, ImageCacheService, FirebaseService
+- **AI (PRs #006-008):** AIService, ProfileService, ContactService
+- **Calendar (PR #010A-C):** CalendarService, CalendarConflictService, GoogleCalendarSyncService
 
-**ViewModels (13 files):**
-- `AuthViewModel.swift` - Auth state management
-- `ChatListViewModel.swift` - Chat list + real-time updates
-- `ChatInteractionViewModel.swift` - Message sending + receiving
-- `MessageManagementViewModel.swift` - Read receipts + status
-- `PresenceTrackingViewModel.swift` - User presence updates
-- `ReadReceiptDetailViewModel.swift` - Read receipt details
-- `AIAssistantViewModel.swift` - AI chat state (PR #006)
-- `ContextualAIViewModel.swift` - Contextual AI actions (PR #008)
-- `ClientProfileViewModel.swift` - Auto profile management (PR #007)
-- `ContactViewModel.swift` - Contact management (PR #009)
-- `CalendarViewModel.swift` - Calendar state, event management (PR #010C)
+**ViewModels (11 files):**
+- **Core:** AuthViewModel, ChatListViewModel, ChatInteractionViewModel, MessageManagementViewModel, PresenceTrackingViewModel, ReadReceiptDetailViewModel
+- **AI (PRs #006-008):** AIAssistantViewModel, ContextualAIViewModel, ClientProfileViewModel
+- **Features (PRs #009-010):** ContactViewModel, CalendarViewModel
 
-**Key Models (30+ files):**
-- Core: `User.swift`, `Chat.swift`, `Message.swift`, `QueuedMessage.swift`
-- AI: `AIMessage.swift`, `AIConversation.swift`, `AIResponse.swift`, `AIContextAction.swift`
-- Contacts: `Client.swift`, `Prospect.swift`, `Contact.swift`
-- Profiles: `ClientProfile.swift`, `ProfileItem.swift`, `ProfileCategory.swift`
-- Calendar: `CalendarEvent.swift`, `SchedulingResult.swift` (PR #010C)
-- Actions: `Reminder.swift`, `FunctionCall.swift`, `RelatedMessage.swift`
-- Presence: `UserPresence.swift`, `GroupPresence.swift`, `TypingStatus.swift`
+**Models (27 files):**
+- **Core (8):** User, Chat, Message, QueuedMessage, UserPresence, GroupPresence, TypingStatus, ReadReceiptDetail
+- **AI (10):** AIMessage, AIConversation, AIResponse, AIContextAction, AIContextResult, AISelectionRequest, FunctionCall, Reminder, ReminderSuggestion, RelatedMessage
+- **Contacts (3):** Client, Prospect, Contact
+- **Profiles (4):** ClientProfile, ProfileItem, ProfileCategory, ProfileItemSource
+- **Calendar (2):** CalendarEvent, SchedulingResult
+
+**Views (~83 files organized in):**
+- Authentication (4), ChatList (6), AI (~15), Calendar (~10), Contacts (3), Components (~30), UserSelection (3), Profile (2), Settings (4), ConversationList (1), Root/Tab/Loading (3)
 
 ---
 
@@ -257,8 +236,8 @@ Client: "My knee hurts"
 
 ## Next Planned PRs
 
-- 🔜 **PR #010 (Full):** Calendar UI (Week view, Today's Schedule widget, Cal tab)
-- 🔜 **PR #011:** Enhanced UI/UX for AI Features
+- 🔜 **PR #010 (Full):** Calendar UI polish (Week view refinements, Today's Schedule widget)
+- 🔜 **PR #011:** Voice AI Interface (Whisper STT + iOS TTS, hands-free conversations) - **PRD/TODO ready**
 - 🔜 **PR #012:** User Preferences & Personalization
 - 🔜 **PR #013:** YOLO Mode (aggressive AI automation)
 
@@ -362,10 +341,11 @@ npm run serve  # Start emulator
 
 ---
 
-**Recent Changes (Oct 26, 2025):**
+**Recent Changes (Oct 26, 2025 - Comprehensive Update):**
 - ✅ Added PR #010C (Google Calendar Integration) to completed PRs
-- ✅ Updated Swift file count (128 → 152 files)
-- ✅ Added Calendar services and ViewModels
-- ✅ Updated Firestore collections schema with calendar events
-- ✅ Added googleCalendarService.ts to backend services
-- ✅ Added External Services section (Google Calendar API)
+- ✅ Updated file counts: 152 Swift files (27 Models, 18 Services, 11 ViewModels, ~83 Views), 26 TypeScript files
+- ✅ Reorganized Services/ViewModels/Models sections with accurate categorization
+- ✅ Added PR #011 (Voice AI) to planned PRs with PRD/TODO ready status
+- ✅ Updated Firestore collections with googleCalendarEventId and syncedAt fields
+- ✅ Updated Cloud Functions count (9 active functions + 2 migrations)
+- ✅ Added External Services section for Google Calendar API integration

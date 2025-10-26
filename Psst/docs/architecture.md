@@ -1,7 +1,7 @@
 # Psst Architecture Documentation
 
-**Last Updated:** October 26, 2025
-**Version:** Post-MVP + AI Features Active + Google Calendar Sync (PRs #006-010C)
+**Last Updated:** October 26, 2025 (Comprehensive Update)
+**Version:** Post-MVP + AI Features Active + Google Calendar Sync + PR #011 Planned (PRs #006.5-010C Complete)
 **Documented by:** Arnold (The Architect)
 
 > **📌 Quick Links:**
@@ -68,20 +68,48 @@ Psst is a personal trainer messaging app built with SwiftUI and Firebase with **
 Psst/
 ├── PsstApp.swift                      # App entry point, Firebase initialization
 ├── ContentView.swift                  # Root content wrapper
-├── Models/
-│   ├── User.swift                     # User data model (Firebase Auth integration)
-│   ├── Chat.swift                     # Chat/conversation model (1-on-1 and groups)
-│   ├── Message.swift                  # Message model with media support
-│   ├── QueuedMessage.swift            # Offline message queue model
-│   ├── UserPresence.swift             # Real-time presence tracking
-│   ├── GroupPresence.swift            # Group presence aggregation
-│   ├── TypingStatus.swift             # Typing indicator model
-│   └── ReadReceiptDetail.swift        # Read receipt details for UI
+├── Models/                            # 27 Swift model files
+│   ├── Core Models/
+│   │   ├── User.swift                 # User data model (Firebase Auth integration)
+│   │   ├── Chat.swift                 # Chat/conversation model (1-on-1 and groups)
+│   │   ├── Message.swift              # Message model with media support
+│   │   ├── QueuedMessage.swift        # Offline message queue model
+│   │   ├── UserPresence.swift         # Real-time presence tracking
+│   │   ├── GroupPresence.swift        # Group presence aggregation
+│   │   ├── TypingStatus.swift         # Typing indicator model
+│   │   └── ReadReceiptDetail.swift    # Read receipt details for UI
+│   │
+│   ├── AI Models (PRs #006-008)/
+│   │   ├── AIMessage.swift            # AI conversation message model
+│   │   ├── AIConversation.swift       # AI chat session model
+│   │   ├── AIResponse.swift           # AI function call responses
+│   │   ├── AIContextAction.swift      # Contextual AI action types
+│   │   ├── AIContextResult.swift      # Results from contextual actions
+│   │   ├── AISelectionRequest.swift   # User selection prompts
+│   │   ├── FunctionCall.swift         # AI function call data
+│   │   ├── Reminder.swift             # AI-created reminders
+│   │   ├── ReminderSuggestion.swift   # AI reminder suggestions
+│   │   └── RelatedMessage.swift       # Semantically related messages
+│   │
+│   ├── Profile Models (PR #007)/
+│   │   ├── ClientProfile.swift        # Auto-extracted client data
+│   │   ├── ProfileItem.swift          # Individual profile fields
+│   │   ├── ProfileCategory.swift      # Profile categorization
+│   │   └── ProfileItemSource.swift    # Track extraction source
+│   │
+│   ├── Contact Models (PR #009)/
+│   │   ├── Client.swift               # Client contact model
+│   │   ├── Prospect.swift             # Prospect contact model
+│   │   └── Contact.swift              # Contact protocol
+│   │
+│   └── Calendar Models (PR #010A-C)/
+│       ├── CalendarEvent.swift        # Training/Call/Adhoc events with Google sync
+│       └── SchedulingResult.swift     # Scheduling conflict resolution
 │
-├── Views/
+├── Views/                             # ~83 Swift view files
 │   ├── Authentication/
 │   │   ├── LoginView.swift            # Email/password login
-│   │   ├── SignUpView.swift           # User registration
+│   │   ├── SignUpView.swift           # User registration with role selection
 │   │   ├── EmailSignInView.swift      # Email signin flow
 │   │   └── ForgotPasswordView.swift   # Password reset
 │   │
@@ -93,16 +121,50 @@ Psst/
 │   │   ├── MessageInputView.swift     # Text input + image picker
 │   │   └── GroupMemberStatusView.swift # Group member presence
 │   │
-│   ├── Components/
+│   ├── AI/ (PRs #006-008)             # ~15 AI-related view files
+│   │   ├── AIAssistantView.swift      # Dedicated AI chat interface
+│   │   ├── AIMessageRow.swift         # AI response bubble styling
+│   │   ├── ContextualAIMenu.swift     # Long-press menu on messages
+│   │   ├── AILoadingIndicator.swift   # "AI is thinking..." indicator
+│   │   ├── AISummaryView.swift        # AI-generated summaries
+│   │   ├── AIRelatedMessagesView.swift # Show related context
+│   │   ├── AIReminderSheet.swift      # AI-suggested reminders
+│   │   ├── AISelectionCard.swift      # User selection prompts
+│   │   ├── ActionConfirmationCard.swift # Confirm AI actions
+│   │   ├── ActionResultViews.swift    # Display AI action results
+│   │   ├── ClientProfileDetailView.swift # Auto-extracted profile display
+│   │   ├── ClientProfileBannerView.swift # Profile summary banner
+│   │   ├── FloatingAIButton.swift     # Quick AI assistant access
+│   │   ├── EventConfirmationCard.swift # Confirm calendar events
+│   │   ├── ConflictWarningCard.swift  # Scheduling conflict warnings
+│   │   └── AddProspectPromptCard.swift # Add prospects from AI
+│   │
+│   ├── Calendar/ (PR #010A-C)         # ~10 calendar view files
+│   │   ├── CalendarView.swift         # Main calendar interface
+│   │   ├── WeekTimelineView.swift     # Week view with timeline
+│   │   ├── TodaysScheduleWidget.swift # Today's schedule summary
+│   │   ├── EventCardView.swift        # Event display card
+│   │   ├── EventDetailView.swift      # Event details modal
+│   │   ├── EventCreationSheet.swift   # Create new events
+│   │   ├── EventEditSheet.swift       # Edit existing events
+│   │   ├── ClientPickerView.swift     # Select client for event
+│   │   ├── CurrentTimeIndicatorView.swift # Live time indicator
+│   │   └── CalendarEmptyStateView.swift # Empty calendar state
+│   │
+│   ├── Contacts/ (PR #009)            # Contact management views
+│   │   ├── ContactsView.swift         # Clients + prospects list
+│   │   ├── AddClientView.swift        # Add new client form
+│   │   └── ContactDetailView.swift    # Contact details
+│   │
+│   ├── Components/                    # ~30 reusable components
 │   │   ├── ProfilePhotoPicker.swift   # Profile photo upload
-│   │   ├── ImageMessageView.swift     # Image message display with tap-to-zoom
-│   │   ├── MessageStatusIndicator.swift # Sending/delivered/failed status
-│   │   ├── TypingIndicatorView.swift  # Animated "..." typing indicator
-│   │   ├── OnlineIndicator.swift      # User online status badge
-│   │   ├── UnreadDotIndicator.swift   # Unread message dot
+│   │   ├── ImageMessageView.swift     # Image message display
+│   │   ├── MessageStatusIndicator.swift # Message status
+│   │   ├── TypingIndicatorView.swift  # Typing animation
+│   │   ├── PresenceIndicator.swift    # Online status badge
 │   │   ├── ReadReceiptDetailView.swift # Read receipt modal
-│   │   ├── NetworkStatusBanner.swift   # Offline warning banner
-│   │   └── [19 other reusable components]
+│   │   ├── NetworkStatusBanner.swift  # Offline warning
+│   │   └── [23 other reusable components]
 │   │
 │   ├── UserSelection/
 │   │   ├── UserSelectionView.swift    # Select users for chat
@@ -114,38 +176,62 @@ Psst/
 │   │   └── EditProfileView.swift      # Edit profile (name, photo)
 │   │
 │   ├── Settings/
-│   │   ├── SettingsView.swift         # App settings
+│   │   ├── SettingsView.swift         # App settings + Google Calendar
 │   │   ├── NotificationsSettingsView.swift
 │   │   ├── AboutView.swift
 │   │   └── HelpSupportView.swift
 │   │
-│   ├── RootView.swift                 # Auth state routing (login vs. main app)
-│   ├── MainTabView.swift              # Tab navigation (Chats, Profile, Settings)
+│   ├── ConversationList/              # Alternative chat list view
+│   │   └── ConversationListView.swift
+│   │
+│   ├── RootView.swift                 # Auth state routing
+│   ├── MainTabView.swift              # Tab navigation (Chats, Calendar, Profile, Settings)
 │   └── LoadingScreenView.swift        # App loading state
 │
-├── ViewModels/
-│   ├── AuthViewModel.swift            # Authentication state management
-│   ├── ChatListViewModel.swift        # Chat list data + real-time updates
-│   ├── ChatInteractionViewModel.swift # Message sending + real-time message updates
-│   ├── MessageManagementViewModel.swift # Message read receipts + status
-│   ├── PresenceTrackingViewModel.swift  # User presence updates
-│   └── ReadReceiptDetailViewModel.swift # Read receipt details modal
+├── ViewModels/                        # 11 Swift ViewModel files
+│   ├── Core ViewModels/
+│   │   ├── AuthViewModel.swift        # Authentication state management
+│   │   ├── ChatListViewModel.swift    # Chat list data + real-time updates
+│   │   ├── ChatInteractionViewModel.swift # Message sending + real-time updates
+│   │   ├── MessageManagementViewModel.swift # Message read receipts + status
+│   │   ├── PresenceTrackingViewModel.swift # User presence updates
+│   │   └── ReadReceiptDetailViewModel.swift # Read receipt details modal
+│   │
+│   ├── AI ViewModels (PRs #006-008)/
+│   │   ├── AIAssistantViewModel.swift # AI chat state management (PR #006)
+│   │   ├── ContextualAIViewModel.swift # Contextual AI actions (PR #008)
+│   │   └── ClientProfileViewModel.swift # Auto profile management (PR #007)
+│   │
+│   └── Feature ViewModels (PRs #009-010)/
+│       ├── ContactViewModel.swift     # Contact management (PR #009)
+│       └── CalendarViewModel.swift    # Calendar events and scheduling (PR #010A)
 │
-├── Services/
-│   ├── FirebaseService.swift          # Firebase SDK initialization
-│   ├── AuthenticationService.swift    # User login/signup/logout
-│   ├── UserService.swift              # User profile CRUD
-│   ├── ChatService.swift              # Chat CRUD + user name fetching
-│   ├── MessageService.swift           # Message send/receive + read receipts
-│   ├── PresenceService.swift          # Realtime DB presence tracking
-│   ├── TypingIndicatorService.swift   # Typing status updates
-│   ├── MessageQueue.swift             # Offline message queue
-│   ├── NetworkMonitor.swift           # Network connectivity monitor
-│   ├── NotificationService.swift      # Push notification handling
-│   ├── ImageUploadService.swift       # Image compression + Storage upload
-│   └── ImageCacheService.swift        # Image download + cache
+├── Services/                          # 18 Swift service files
+│   ├── Core Services/
+│   │   ├── FirebaseService.swift      # Firebase SDK initialization
+│   │   ├── AuthenticationService.swift # User login/signup/logout
+│   │   ├── UserService.swift          # User profile CRUD
+│   │   ├── ChatService.swift          # Chat CRUD + user name fetching
+│   │   ├── MessageService.swift       # Message send/receive + read receipts
+│   │   ├── PresenceService.swift      # Realtime DB presence tracking
+│   │   ├── TypingIndicatorService.swift # Typing status updates
+│   │   ├── MessageQueue.swift         # Offline message queue
+│   │   ├── NetworkMonitor.swift       # Network connectivity monitor
+│   │   ├── NotificationService.swift  # Push notification handling
+│   │   ├── ImageUploadService.swift   # Image compression + Storage upload
+│   │   └── ImageCacheService.swift    # Image download + cache
+│   │
+│   ├── AI Services (PRs #006-008)/
+│   │   ├── AIService.swift            # AI Cloud Function calls
+│   │   ├── ProfileService.swift       # Client profile CRUD (PR #007)
+│   │   └── ContactService.swift       # Trainer-client relationships (PR #009)
+│   │
+│   └── Calendar Services (PR #010A-C)/
+│       ├── CalendarService.swift      # Calendar CRUD and event management
+│       ├── CalendarConflictService.swift # Scheduling conflict detection
+│       └── GoogleCalendarSyncService.swift # OAuth + Google Calendar API
 │
-└── Utilities/
+└── Utilities/                         # ~10 utility files
     ├── Logger.swift                    # Logging utility
     ├── ColorScheme.swift               # App color palette
     ├── Typography.swift                # Text styles
@@ -153,7 +239,9 @@ Psst/
     ├── Date+Extensions.swift           # Date formatting helpers
     ├── DeepLinkHandler.swift           # Deep link navigation
     ├── ProfilePhotoError.swift         # Error types for profile photos
-    └── PresenceObserverModifier.swift  # SwiftUI modifier for presence
+    ├── PresenceObserverModifier.swift  # SwiftUI modifier for presence
+    ├── FeatureFlags.swift              # Feature toggle system
+    └── Config.example.swift            # Configuration template
 ```
 
 ---
@@ -225,30 +313,51 @@ Used for real-time presence tracking (faster than Firestore for high-frequency u
 
 ### Cloud Functions (TypeScript)
 
-**Active Functions (9 deployed):**
+**Active Functions (9 deployed + 2 migration scripts):**
 ```
-functions/src/
-├── index.ts                        # Main exports file
-├── onMessageCreate.ts              # Push notification triggers (PR #004)
-├── generateEmbedding.ts            # Auto-embed messages to Pinecone (PR #006)
-├── chatWithAI.ts                   # AI assistant endpoint (PR #006-007)
-├── semanticSearch.ts               # RAG semantic search (PR #006)
-├── executeFunctionCall.ts          # AI function calling (PR #008)
-├── extractProfileInfoOnMessage.ts  # Auto client profile extraction (PR #007)
-├── onCalendarEventCreate.ts        # Google Calendar sync trigger (PR #010C)
-├── migrations/
-│   ├── migrateExistingChats.ts     # PR #009 migration script
-│   └── fixProspectChats.ts         # PR #009 prospect fix script
-└── services/
-    ├── openaiService.ts            # OpenAI API integration
-    ├── pineconeService.ts          # Pinecone vector DB
-    ├── vectorSearchService.ts      # Semantic search logic
-    ├── aiChatService.ts            # AI conversation management
-    ├── profileExtractionService.ts # Profile data extraction
-    ├── functionExecutionService.ts # Function call execution
-    ├── conversationService.ts      # Conversation history
-    ├── auditLogService.ts          # AI action audit logs
-    └── googleCalendarService.ts    # Google Calendar API integration (PR #010C)
+functions/src/                      # 26 TypeScript files total
+├── index.ts                        # Main exports file (all function exports)
+│
+├── Cloud Functions (9 active)/
+│   ├── onMessageCreate.ts          # Push notification triggers (PR #004)
+│   ├── generateEmbedding.ts        # Auto-embed messages to Pinecone (PR #006)
+│   ├── chatWithAI.ts               # AI assistant endpoint (PR #006-007)
+│   ├── semanticSearch.ts           # RAG semantic search (PR #006)
+│   ├── executeFunctionCall.ts      # AI function calling (PR #008)
+│   ├── extractProfileInfoOnMessage.ts # Auto client profile extraction (PR #007)
+│   └── onCalendarEventCreate.ts    # Google Calendar sync trigger (PR #010C)
+│
+├── migrations/                     # Migration scripts (PR #009)
+│   ├── migrateExistingChats.ts     # Backfill trainer-client relationships
+│   └── fixProspectChats.ts         # Fix prospect chat permissions
+│
+├── services/                       # 9 backend service files
+│   ├── openaiService.ts            # OpenAI API (GPT-4 + embeddings)
+│   ├── pineconeService.ts          # Pinecone vector DB client
+│   ├── vectorSearchService.ts      # Semantic search queries
+│   ├── aiChatService.ts            # AI conversation orchestration
+│   ├── profileExtractionService.ts # Extract structured profile data
+│   ├── functionExecutionService.ts # Execute AI function calls
+│   ├── conversationService.ts      # Conversation history management
+│   ├── auditLogService.ts          # AI action audit logging
+│   └── googleCalendarService.ts    # Google Calendar API (PR #010C)
+│
+├── schemas/
+│   └── aiFunctionSchemas.ts        # AI function call type definitions
+│
+├── types/
+│   ├── aiConversation.ts           # AI conversation types
+│   └── rag.ts                      # RAG pipeline types
+│
+├── config/
+│   ├── ai.config.ts                # AI configuration constants
+│   └── secrets.ts                  # Secret management helpers
+│
+├── utils/
+│   └── retryHelper.ts              # Retry logic for API calls
+│
+└── @types/
+    └── pinecone.d.ts               # Pinecone TypeScript definitions
 ```
 
 **Dependencies:**
@@ -677,13 +786,14 @@ iOS displays ActionResultViews with confirmation
 - Manual event creation and editing
 - Client session tracking
 
-#### 🔜 PR #011: Enhanced UI/UX for AI Features
-**Status:** Not started
-**Goal:** Polish AI interactions and improve visual design
-- Redesign AI chat interface
-- Better loading states and animations
-- Improved error handling UX
-- AI feature onboarding flow
+#### 🔜 PR #011: Voice AI Interface
+**Status:** PRD and TODO created, ready for development
+**Goal:** Enable hands-free voice conversations with AI assistant
+- Voice input via OpenAI Whisper (speech-to-text)
+- Voice output via iOS text-to-speech
+- Conversation mode for back-and-forth voice exchanges
+- Maintain full feature parity with text chat (RAG, function calling)
+- Target: <5s response time for voice interactions
 
 #### 🔜 PR #012: User Preferences & Personalization
 **Status:** Not started
@@ -979,16 +1089,18 @@ firebase functions:config:set pinecone.index="chat-messages"
 
 ### Technology Highlights
 **Frontend:**
-- 152 Swift files across Models, Views, ViewModels, Services
+- **152 Swift files** across Models (27), Services (18), ViewModels (11), Views (~83), Utilities (~10)
 - SwiftUI + Combine for reactive UI
-- MVVM architecture pattern
+- MVVM architecture pattern with service layer
 - Thread-safe async/await concurrency
-- Google Calendar API integration
+- Google Calendar OAuth 2.0 integration
+- AI-powered features across ~15 dedicated AI views
 
 **Backend:**
-- 9 Cloud Functions (TypeScript, Node.js 18)
+- **26 TypeScript files**: 9 Cloud Functions + 9 services + 8 support files
+- Node.js 18 runtime
 - OpenAI GPT-4 for AI reasoning and function calling
-- Pinecone vector database for semantic search
+- Pinecone vector database for semantic search (100K vectors free tier)
 - Firebase Firestore, Realtime DB, Cloud Storage
 - Google Calendar API (OAuth 2.0 + one-way sync)
 - Comprehensive security rules with role-based access
@@ -996,9 +1108,10 @@ firebase functions:config:set pinecone.index="chat-messages"
 **AI Integration:**
 - Auto-embedding pipeline (all messages → Pinecone)
 - RAG context retrieval for relevant conversation history
-- Function calling for autonomous actions
+- Function calling for autonomous actions (scheduleCall, sendMessage, setReminder)
 - Auto profile extraction from natural conversations
 - Audit logging for all AI operations
+- Contextual AI actions (long-press messages for summaries, related context)
 
 ---
 
@@ -1060,11 +1173,16 @@ firebase functions:config:set pinecone.index="chat-messages"
 
 ---
 
-**Recent Changes (Oct 26, 2025):**
-- ✅ Documented PR #010C (Google Calendar Integration)
-- ✅ Updated Cloud Functions count (8 → 9 functions)
-- ✅ Added `googleCalendarService.ts` backend service
-- ✅ Added calendar services: `GoogleCalendarSyncService.swift`, `CalendarConflictService.swift`
-- ✅ Updated Swift file count (128 → 152 files)
-- ✅ Added Google Calendar sync to system capabilities
-- ✅ Updated dependencies: googleapis v164.1.0, luxon v3.7.2
+**Recent Changes (Oct 26, 2025 - Comprehensive Update):**
+- ✅ Fully documented PR #010C (Google Calendar Integration with OAuth 2.0)
+- ✅ Added PR #011 (Voice AI Interface) to planned PRs with PRD/TODO status
+- ✅ Updated project structure with accurate file counts:
+  - iOS: 152 Swift files (27 Models, 18 Services, 11 ViewModels, ~83 Views, ~10 Utilities)
+  - Backend: 26 TypeScript files (9 functions, 9 services, 8 support files)
+- ✅ Expanded Views section to show AI (~15 files), Calendar (~10 files), Contacts folders
+- ✅ Added detailed breakdown of AI Models, Contact Models, Calendar Models
+- ✅ Updated Services with AI Services and Calendar Services sections
+- ✅ Added ViewModels breakdown (Core, AI, Feature ViewModels)
+- ✅ Updated Cloud Functions structure with all 26 TypeScript files categorized
+- ✅ Updated system capabilities to reflect Google Calendar sync
+- ✅ Added technology highlights with precise file counts and architecture details
