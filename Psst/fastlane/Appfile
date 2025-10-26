@@ -1,5 +1,5 @@
 app_identifier("gauntlet.Psst") # The bundle identifier of your app
-apple_id("finessevanes@gmail.com") # Your Apple Developer Portal username
+apple_id("vanessa.mercado24@gmail.com") # Your Apple Developer Portal username
 
 itc_team_id("127354878") # App Store Connect Team ID
 team_id("4CLVCQ7N3P") # Developer Portal Team ID
