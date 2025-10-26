@@ -527,6 +527,84 @@ class ContactService {
 
     // MARK: - Public Methods - Search & Validation
 
+    /// Find a contact by name (exact or case-insensitive match)
+    /// Used by AI scheduling to resolve client names from natural language
+    /// - Parameters:
+    ///   - name: Client or prospect display name
+    ///   - trainerId: ID of the trainer
+    /// - Returns: Contact object (Client or Prospect) or nil if not found
+    /// - Throws: ContactError
+    func findContactByName(_ name: String, trainerId: String) async throws -> Contact? {
+        // Get all clients and prospects
+        let clients = try await getClients()
+        let prospects = try await getProspects()
+
+        let lowercasedName = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Try exact case-insensitive match first (clients)
+        if let exactClient = clients.first(where: { $0.displayName.lowercased() == lowercasedName }) {
+            Log.i("ContactService", "Found exact client match: \(exactClient.displayName)")
+            return exactClient
+        }
+
+        // Try exact case-insensitive match (prospects)
+        if let exactProspect = prospects.first(where: { $0.displayName.lowercased() == lowercasedName }) {
+            Log.i("ContactService", "Found exact prospect match: \(exactProspect.displayName)")
+            return exactProspect
+        }
+
+        Log.i("ContactService", "No match found for name: \(name)")
+        return nil
+    }
+
+    /// Suggest contact matches for ambiguous names (multiple matches or partial matches)
+    /// - Parameters:
+    ///   - name: Partial or ambiguous client name
+    ///   - trainerId: ID of the trainer
+    /// - Returns: Array of Contact objects matching partial name, sorted by relevance
+    /// - Throws: ContactError
+    func suggestContactMatches(_ name: String, trainerId: String) async throws -> [Contact] {
+        // Get all clients and prospects
+        let clients = try await getClients()
+        let prospects = try await getProspects()
+
+        let lowercasedName = name.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Find partial matches (clients)
+        let matchingClients = clients.filter { client in
+            client.displayName.lowercased().contains(lowercasedName)
+        }
+
+        // Find partial matches (prospects)
+        let matchingProspects = prospects.filter { prospect in
+            prospect.displayName.lowercased().contains(lowercasedName)
+        }
+
+        // Combine into single array (clients first for priority)
+        var results: [Contact] = matchingClients
+        results.append(contentsOf: matchingProspects)
+
+        // Sort by relevance (exact matches first, then by name length)
+        results.sort { contact1, contact2 in
+            let name1Lower = contact1.displayName.lowercased()
+            let name2Lower = contact2.displayName.lowercased()
+
+            // Exact matches first
+            let exact1 = name1Lower == lowercasedName
+            let exact2 = name2Lower == lowercasedName
+            if exact1 != exact2 {
+                return exact1
+            }
+
+            // Then by name length (shorter first - more specific)
+            return name1Lower.count < name2Lower.count
+        }
+
+        Log.i("ContactService", "Found \(results.count) matches for '\(name)'")
+
+        return results
+    }
+
     /// Search clients and prospects by name
     /// - Parameter query: Search query string
     /// - Returns: Combined array of clients and prospects matching query
