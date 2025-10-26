@@ -29,7 +29,7 @@ interface ChatData {
  * Fixes all chats that contain prospect IDs by replacing them with real client IDs
  * This is a one-time migration to fix data after prospect upgrades
  */
-export const fixProspectChats = functions.https.onRequest(async (req, res) => {
+export const fixProspectChats = functions.https.onRequest(async (req, res): Promise<void> => {
   const db = admin.firestore();
 
   try {
@@ -67,12 +67,13 @@ export const fixProspectChats = functions.https.onRequest(async (req, res) => {
     console.log(`\n✅ Found ${totalProspectsFound} converted prospects`);
 
     if (totalProspectsFound === 0) {
-      return res.status(200).json({
+      res.status(200).json({
         success: true,
         message: "No converted prospects found. Nothing to fix.",
         totalProspectsFound: 0,
         totalChatsUpdated: 0,
       });
+      return;
     }
 
     // Step 2: Find and update chats with prospect IDs
@@ -113,19 +114,21 @@ export const fixProspectChats = functions.https.onRequest(async (req, res) => {
     console.log(`   - Converted prospects found: ${totalProspectsFound}`);
     console.log(`   - Chats updated: ${totalChatsUpdated}`);
 
-    return res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Migration completed successfully",
       totalProspectsFound,
       totalChatsUpdated,
     });
+    return;
 
   } catch (error) {
     console.error("❌ Migration failed:", error);
 
-    return res.status(500).json({
+    res.status(500).json({
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
     });
+    return;
   }
 });

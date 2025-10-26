@@ -139,6 +139,10 @@ struct CalendarEvent: Identifiable, Codable {
         // Handle new startTime/endTime format
         if let startTimestamp = data["startTime"] as? Timestamp {
             self.startTime = startTimestamp.dateValue()
+            print("📅 [CalendarEvent.init] Parsed startTime from Firestore:")
+            print("📅   - Firestore Timestamp seconds: \(startTimestamp.seconds)")
+            print("📅   - Swift Date: \(self.startTime)")
+            print("📅   - Date description: \(self.startTime.description)")
         } else if let dateTime = data["dateTime"] as? Timestamp {
             // Backward compatibility: use old dateTime field
             self.startTime = dateTime.dateValue()

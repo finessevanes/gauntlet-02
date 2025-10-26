@@ -144,6 +144,54 @@ class AIService: ObservableObject {
         return !trimmed.isEmpty && trimmed.count <= 2000
     }
 
+    // MARK: - AI Scheduling (PR #010B)
+
+    /// Detect event type from natural language query
+    /// - Parameter query: User's natural language scheduling request
+    /// - Returns: EventType (.training, .call, or .adhoc)
+    func detectEventType(from query: String) -> CalendarEvent.EventType {
+        let lowercased = query.lowercased()
+
+        // Training keywords
+        if lowercased.contains("session") ||
+           lowercased.contains("training") ||
+           lowercased.contains("workout") ||
+           lowercased.contains("train") {
+            return .training
+        }
+
+        // Call keywords
+        if lowercased.contains("call") ||
+           lowercased.contains("phone") ||
+           lowercased.contains("zoom") ||
+           lowercased.contains("meet") {
+            return .call
+        }
+
+        // Default to adhoc for appointments or when no client mentioned
+        return .adhoc
+    }
+
+    /// Schedule event with conflict detection
+    /// - Parameters:
+    ///   - query: Natural language scheduling query
+    ///   - trainerId: ID of the trainer
+    /// - Returns: SchedulingResult (.success, .conflict, .clientNotFound, .clientAmbiguous)
+    /// - Throws: AIError if scheduling fails
+    func scheduleWithConflictCheck(
+        query: String,
+        trainerId: String
+    ) async throws -> SchedulingResult {
+        // This method coordinates between ContactService, CalendarConflictService, and CalendarService
+        // For now, this is a placeholder that will be called by the Cloud Function
+        // The actual scheduling logic will be in the backend
+
+        // TODO: Implement client name extraction and date/time parsing
+        // This will be handled by the backend Cloud Function with GPT-4 function calling
+
+        throw AIError.invalidRequest
+    }
+
     // MARK: - Function Calling (PR #008)
 
     /// Executes an AI function call after user confirmation

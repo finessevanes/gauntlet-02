@@ -73,6 +73,7 @@ export const chatWithAIFunction = functions
       // ========================================
 
       const { message, conversationId, timezone } = data;
+      console.log(`[chatWithAI] Incoming timezone: ${timezone || 'none provided'}`);
 
       // Validate message
       if (!message || typeof message !== 'string') {
@@ -191,6 +192,14 @@ export const chatWithAIFunction = functions
         tokensUsed = result.tokensUsed;
         modelUsed = result.model;
         functionCall = result.functionCall;
+
+        if (functionCall) {
+          console.log('[chatWithAI] Function call detected from OpenAI:');
+          console.log(`  - Name: ${functionCall.name}`);
+          console.log(`  - Parameters: ${JSON.stringify(functionCall.parameters)}`);
+        } else {
+          console.log('[chatWithAI] No function call detected for this response.');
+        }
         
       } catch (error: any) {
         console.error('[chatWithAI] AI generation failed:', error);
@@ -299,4 +308,3 @@ export const chatWithAIFunction = functions
     }
   }
 );
-

@@ -23,15 +23,25 @@ export const scheduleCallSchema = {
       },
       dateTime: {
         type: 'string',
-        description: 'ISO 8601 datetime string for when the call should be scheduled (e.g., "2024-01-15T14:00:00Z")'
+        description:
+          'ISO 8601 datetime string in the TRAINER\'S LOCAL TIME (YYYY-MM-DDTHH:MM:SS). Always mirror the exact time the user said (e.g., "3pm tomorrow" → "2025-10-27T15:00:00"). Do NOT convert to UTC, do NOT append a "Z", and let the backend handle any timezone math.'
+      },
+      timezone: {
+        type: 'string',
+        description:
+          'Trainer timezone as an IANA identifier (e.g., "America/Phoenix"). Always include the timezone specified in the system prompt (or explicitly mentioned by the user) so the backend knows how to interpret the dateTime.'
       },
       duration: {
         type: 'number',
         description: 'Duration of the call in minutes (default: 30 minutes)',
         default: 30
+      },
+      query: {
+        type: 'string',
+        description: 'The original natural language request from the trainer (e.g., "schedule a training session with John tomorrow at 3pm"). This is used to detect the event type (training, call, or adhoc). ALWAYS include the exact user query.'
       }
     },
-    required: ['clientName', 'dateTime']
+    required: ['clientName', 'dateTime', 'query']
   }
 };
 
@@ -54,7 +64,7 @@ export const setReminderSchema = {
       },
       dateTime: {
         type: 'string',
-        description: 'ISO 8601 datetime string for when to show the reminder'
+        description: 'ISO 8601 datetime string for when to show the reminder. Use the EXACT time the user said (e.g., if user says "3pm Friday" return "2024-01-17T15:00:00"). NO timezone conversion, NO "Z" suffix.'
       }
     },
     required: ['reminderText', 'dateTime']
@@ -131,8 +141,10 @@ export const AIFunctionSchemas = [
 export interface ScheduleCallParams {
   clientName: string;
   clientId?: string; // Added: Resolved client ID (after selection disambiguation)
-  dateTime: string;
+  dateTime: string; // Local time in user's timezone (e.g., "2025-10-27T21:00:00")
   duration?: number;
+  query?: string; // PR #010B: Original natural language query for event type detection
+  timezone?: string; // User's timezone (e.g., "America/Phoenix") - for UTC conversion
 }
 
 export interface SetReminderParams {
