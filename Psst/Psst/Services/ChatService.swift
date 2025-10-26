@@ -19,8 +19,9 @@ enum ChatError: LocalizedError {
     case invalidUserID
     case invalidGroupName
     case insufficientMembers
+    case relationshipNotFound  // NEW: PR #009
     case firestoreError(Error)
-    
+
     var errorDescription: String? {
         switch self {
         case .notAuthenticated:
@@ -33,6 +34,8 @@ enum ChatError: LocalizedError {
             return "Group name must be 1-50 characters"
         case .insufficientMembers:
             return "Groups require at least 3 members"
+        case .relationshipNotFound:
+            return "This trainer hasn't added you as a client yet"
         case .firestoreError(let error):
             return "Firestore error: \(error.localizedDescription)"
         }
@@ -43,8 +46,10 @@ enum ChatError: LocalizedError {
 /// Handles real-time chat listing and user data fetching
 class ChatService {
     // MARK: - Properties
-    
+
     private let db = Firestore.firestore()
+    private let contactService = ContactService.shared  // PR #009
+    private let userService = UserService.shared  // PR #009
     
     // MARK: - Public Methods
     
@@ -147,19 +152,60 @@ class ChatService {
             print("❌ Cannot create chat: user not authenticated")
             throw ChatError.notAuthenticated
         }
-        
+
         // Validate target user is not self
         guard targetUserID != currentUserID else {
             print("❌ Cannot create chat: target user is self")
             throw ChatError.cannotChatWithSelf
         }
-        
+
         // Validate target user ID is not empty
         guard !targetUserID.isEmpty else {
             print("❌ Cannot create chat: target user ID is empty")
             throw ChatError.invalidUserID
         }
-        
+
+        // PR #009: Relationship validation (feature flag controlled)
+        if FeatureFlags.enableRelationshipValidation {
+            do {
+                // Get both users to determine roles
+                let currentUser = try await userService.getUser(id: currentUserID)
+                let targetUser = try await userService.getUser(id: targetUserID)
+
+                // Determine trainer/client based on roles
+                if currentUser.role == .trainer && targetUser.role == .client {
+                    // Validate trainer → client relationship
+                    let hasRelationship = try await contactService.validateRelationship(
+                        trainerId: currentUserID,
+                        clientId: targetUserID
+                    )
+                    if !hasRelationship {
+                        print("❌ Relationship not found: trainer=\(currentUserID) client=\(targetUserID)")
+                        throw ChatError.relationshipNotFound
+                    }
+                    print("✅ Validated trainer→client relationship")
+                } else if currentUser.role == .client && targetUser.role == .trainer {
+                    // Validate client → trainer relationship (reversed)
+                    let hasRelationship = try await contactService.validateRelationship(
+                        trainerId: targetUserID,
+                        clientId: currentUserID
+                    )
+                    if !hasRelationship {
+                        print("❌ Relationship not found: trainer=\(targetUserID) client=\(currentUserID)")
+                        throw ChatError.relationshipNotFound
+                    }
+                    print("✅ Validated client→trainer relationship")
+                }
+                // Both trainers or both clients: no validation needed (business decision)
+            } catch let error as ChatError {
+                // Re-throw ChatError as-is
+                throw error
+            } catch {
+                // Log other errors but don't block chat creation (graceful degradation)
+                print("⚠️ Relationship validation failed, allowing chat: \(error.localizedDescription)")
+            }
+        }
+
         // Step 1: Check for existing chat with this user
         print("🔍 Checking for existing chat with user: \(targetUserID)")
         do {

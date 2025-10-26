@@ -595,6 +595,53 @@ class UserService {
         }
     }
     
+    /// Lookup user by email address
+    /// Used by ContactService when adding clients by email
+    /// - Parameter email: User's email address
+    /// - Returns: User object if found
+    /// - Throws: UserServiceError.userNotFound if no user with that email exists
+    func getUserByEmail(_ email: String) async throws -> User {
+        // Validate email format
+        guard email.contains("@") else {
+            throw UserServiceError.invalidEmail
+        }
+
+        Log.i("UserService", "Looking up user by email: \(email)")
+
+        let start = Date()
+        let sw = Stopwatch()
+
+        do {
+            // Query Firestore (REQUIRES INDEX on email field - see PR #009 Implementation Guide)
+            let snapshot = try await db.collection(usersCollection)
+                .whereField("email", isEqualTo: email)
+                .limit(to: 1)
+                .getDocuments()
+
+            guard let document = snapshot.documents.first else {
+                Log.w("UserService", "No user found with email: \(email)")
+                throw UserServiceError.userNotFound
+            }
+
+            let user = try document.data(as: User.self)
+
+            // Log performance (target: < 200ms)
+            let duration = Date().timeIntervalSince(start) * 1000
+            Log.i("UserService", "Found user by email: \(user.displayName) in \(Int(duration))ms (\(sw.ms)ms)")
+
+            // Cache the user
+            userCache[user.id] = user
+
+            return user
+
+        } catch let error as UserServiceError {
+            throw error
+        } catch {
+            Log.e("UserService", "Failed to lookup user by email: \(error.localizedDescription)")
+            throw UserServiceError.fetchFailed(error)
+        }
+    }
+
     /// Gets the current authenticated user's profile
     /// - Returns: Current User object
     /// - Throws: UserServiceError.userNotFound if not authenticated
@@ -602,7 +649,7 @@ class UserService {
         guard let currentUser = Auth.auth().currentUser else {
             throw UserServiceError.userNotFound
         }
-        
+
         return try await getUser(id: currentUser.uid)
     }
     
