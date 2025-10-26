@@ -20,10 +20,12 @@ When starting, you will receive:
 
 ### Additional Steps for Brownfield
 
-1. **Read architecture FIRST**: `Psst/docs/architecture.md` - understand current system
+1. **Read architecture FIRST**: `Psst/docs/architecture-concise.md` - understand current system (efficient 370-line version)
 2. **Identify affected files**: List which existing files will be modified
 3. **Respect existing patterns**: Follow MVVM, service layer, async/await conventions already in use
 4. **Plan for compatibility**: Don't break existing features
+
+> **Note:** Use `architecture-concise.md` (not `architecture.md`) for faster context loading. If you need detailed brownfield analysis for a specific PR, check `brownfield-analysis-pr-{number}.md` files.
 
 ### Additional PRD Sections for Brownfield
 
@@ -64,11 +66,13 @@ List files that will be MODIFIED (not created):
 
 **Read these before starting:**
 - `Psst/docs/ai-briefs.md` — Your specific PR details
-- `Psst/docs/architecture.md` — Codebase structure
+- `Psst/docs/architecture-concise.md` — Codebase structure (efficient agent version)
 - `Psst/docs/AI-PRODUCT-VISION.md` — Big picture context (for AI features)
 - `Psst/agents/prd-template.md` — Template to fill out
 - `Psst/agents/todo-template.md` — Template to fill out
 - `Psst/agents/shared-standards.md` — Common requirements and standards
+
+> **Architecture docs:** Always use `architecture-concise.md` for context. If you need PR-specific brownfield details, check `docs/brownfield-analysis-pr-{number}.md`. Full `architecture.md` is 1,000+ lines and should only be read if absolutely necessary.
 
 ## Output Documents
 

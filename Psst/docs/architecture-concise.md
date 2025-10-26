@@ -1,7 +1,7 @@
 # Psst Architecture Documentation (Concise)
 
-**Last Updated:** October 25, 2025
-**Version:** AI Features Active (PRs #006-009 Complete)
+**Last Updated:** October 26, 2025
+**Version:** AI Features Active + Google Calendar Sync (PRs #006-010C Complete)
 **Documented by:** Arnold (The Architect)
 
 > **For detailed brownfield analysis:** See `brownfield-analysis-pr-009.md`
@@ -21,6 +21,7 @@
 - ✅ Auto client profile extraction
 - ✅ AI function calling (schedule, message, remind)
 - ✅ Trainer-client relationship management
+- ✅ Google Calendar integration (OAuth + one-way sync)
 
 ---
 
@@ -29,20 +30,22 @@
 ```
 ┌─────────────────────────────────────────────┐
 │  iOS App (SwiftUI)                          │
-│  • 128 Swift files (MVVM pattern)           │
+│  • 152 Swift files (MVVM pattern)           │
 │  • Services: Auth, Chat, Message, AI,       │
-│    Contact, Profile, Presence, Image        │
+│    Contact, Profile, Presence, Image,       │
+│    Calendar, GoogleCalendarSync             │
 │  • Real-time Firestore listeners            │
 │  • Async/await concurrency                  │
 └─────────────────┬───────────────────────────┘
-                  │ Firebase SDK
+                  │ Firebase SDK + Google Calendar API
                   ▼
 ┌─────────────────────────────────────────────┐
 │  Firebase Backend                            │
-│  • Firestore (chats, users, profiles)       │
+│  • Firestore (chats, users, profiles,       │
+│    calendar events)                          │
 │  • Realtime DB (presence tracking)          │
 │  • Cloud Storage (images)                   │
-│  • 8 Cloud Functions (TypeScript)           │
+│  • 9 Cloud Functions (TypeScript)           │
 └─────────────────┬───────────────────────────┘
                   │ OpenAI API + Pinecone API
                   ▼
@@ -51,6 +54,13 @@
 │  • OpenAI GPT-4 (reasoning + function calls) │
 │  • text-embedding-3-small (1536-dim vectors)│
 │  • Pinecone vector DB (semantic search)     │
+└─────────────────────────────────────────────┘
+                  │
+                  ▼
+┌─────────────────────────────────────────────┐
+│  External Services                           │
+│  • Google Calendar API (OAuth + event sync) │
+│  • One-way sync: Psst → Google Calendar    │
 └─────────────────────────────────────────────┘
 ```
 
@@ -87,9 +97,12 @@
   /ai_conversations/{conversationId}/messages/{messageId}
     - role (user|assistant), content, timestamp
 
-/calendar/{eventId}
-  - trainerId, clientId, title, startTime, endTime
-  - createdBy: "ai" | "user"
+/calendar/{trainerId}/events/{eventId}
+  - trainerId, clientId/prospectId, title, startTime, endTime
+  - eventType: "training" | "call" | "adhoc"
+  - status: "scheduled" | "completed" | "cancelled"
+  - googleCalendarEventId, syncedAt (Google Calendar sync)
+  - createdBy: "ai" | "trainer"
 
 /reminders/{reminderId}
   - trainerId, text, dueDate, completed
@@ -111,8 +124,9 @@
 4. `semanticSearch` - Semantic search over message history (PR #006)
 5. `executeFunctionCall` - Execute AI-requested actions (PR #008)
 6. `extractProfileInfoOnMessage` - Auto-build client profiles (PR #007)
-7. `migrateExistingChats` - PR #009 migration script
-8. `fixProspectChats` - PR #009 prospect fix script
+7. `onCalendarEventCreate` - Firestore trigger for Google Calendar sync (PR #010C)
+8. `migrateExistingChats` - PR #009 migration script
+9. `fixProspectChats` - PR #009 prospect fix script
 
 **Key Services (Backend):**
 - `openaiService.ts` - OpenAI API integration
@@ -122,12 +136,13 @@
 - `profileExtractionService.ts` - GPT-4 profile extraction
 - `functionExecutionService.ts` - AI function execution
 - `auditLogService.ts` - AI action logging
+- `googleCalendarService.ts` - Google Calendar API integration (PR #010C)
 
 ---
 
 ## iOS App Structure
 
-**Services (17 files):**
+**Services (20 files):**
 - `AuthenticationService.swift` - User auth, session management
 - `UserService.swift` - User CRUD operations
 - `ChatService.swift` - Chat creation, user lookup
@@ -142,8 +157,11 @@
 - `AIService.swift` - AI assistant integration (PR #006)
 - `ProfileService.swift` - Client profile management (PR #007)
 - `ContactService.swift` - Trainer-client relationships (PR #009)
+- `CalendarService.swift` - Event CRUD, conflict detection (PR #010C)
+- `GoogleCalendarSyncService.swift` - OAuth + Google Calendar sync (PR #010C)
+- `CalendarConflictService.swift` - Smart time suggestions (PR #010C)
 
-**ViewModels (12 files):**
+**ViewModels (13 files):**
 - `AuthViewModel.swift` - Auth state management
 - `ChatListViewModel.swift` - Chat list + real-time updates
 - `ChatInteractionViewModel.swift` - Message sending + receiving
@@ -153,13 +171,17 @@
 - `AIAssistantViewModel.swift` - AI chat state (PR #006)
 - `ContextualAIViewModel.swift` - Contextual AI actions (PR #008)
 - `ClientProfileViewModel.swift` - Auto profile management (PR #007)
+- `ContactViewModel.swift` - Contact management (PR #009)
+- `CalendarViewModel.swift` - Calendar state, event management (PR #010C)
 
-**Key Models (28 files):**
-- Core: `User.swift`, `Chat.swift`, `Message.swift`
-- AI: `AIMessage.swift`, `AIConversation.swift`, `AIResponse.swift`
+**Key Models (30+ files):**
+- Core: `User.swift`, `Chat.swift`, `Message.swift`, `QueuedMessage.swift`
+- AI: `AIMessage.swift`, `AIConversation.swift`, `AIResponse.swift`, `AIContextAction.swift`
 - Contacts: `Client.swift`, `Prospect.swift`, `Contact.swift`
 - Profiles: `ClientProfile.swift`, `ProfileItem.swift`, `ProfileCategory.swift`
-- Actions: `CalendarEvent.swift`, `Reminder.swift`, `FunctionCall.swift`
+- Calendar: `CalendarEvent.swift`, `SchedulingResult.swift` (PR #010C)
+- Actions: `Reminder.swift`, `FunctionCall.swift`, `RelatedMessage.swift`
+- Presence: `UserPresence.swift`, `GroupPresence.swift`, `TypingStatus.swift`
 
 ---
 
@@ -223,11 +245,19 @@ Client: "My knee hurts"
 - Contact management UI
 - Migration scripts for existing data
 
+**✅ PR #010C: Google Calendar Integration** (Merged)
+- OAuth 2.0 flow for Google Calendar API
+- One-way sync: Psst events → Google Calendar
+- `GoogleCalendarSyncService.swift` with token management
+- Calendar event types: Training, Call, Adhoc
+- Firestore trigger `onCalendarEventCreate` for auto-sync
+- Settings UI for connecting/disconnecting Google Calendar
+
 ---
 
 ## Next Planned PRs
 
-- 🔜 **PR #010:** Calendar & Scheduling System
+- 🔜 **PR #010 (Full):** Calendar UI (Week view, Today's Schedule widget, Cal tab)
 - 🔜 **PR #011:** Enhanced UI/UX for AI Features
 - 🔜 **PR #012:** User Preferences & Personalization
 - 🔜 **PR #013:** YOLO Mode (aggressive AI automation)
@@ -325,7 +355,17 @@ npm run serve  # Start emulator
 ---
 
 **Document Owner:** Arnold (The Architect)
-**Last Updated:** October 25, 2025
+**Last Updated:** October 26, 2025
 **Status:** ✅ Concise reference for agent context management
 
 **Arnold says:** "Come with me if you want to build... efficiently."
+
+---
+
+**Recent Changes (Oct 26, 2025):**
+- ✅ Added PR #010C (Google Calendar Integration) to completed PRs
+- ✅ Updated Swift file count (128 → 152 files)
+- ✅ Added Calendar services and ViewModels
+- ✅ Updated Firestore collections schema with calendar events
+- ✅ Added googleCalendarService.ts to backend services
+- ✅ Added External Services section (Google Calendar API)

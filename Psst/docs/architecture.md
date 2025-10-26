@@ -1,7 +1,7 @@
 # Psst Architecture Documentation
 
-**Last Updated:** October 25, 2025
-**Version:** Post-MVP + AI Features Active + Trainer-Client Relationships (PR #009)
+**Last Updated:** October 26, 2025
+**Version:** Post-MVP + AI Features Active + Google Calendar Sync (PRs #006-010C)
 **Documented by:** Arnold (The Architect)
 
 > **📌 Quick Links:**
@@ -47,6 +47,12 @@ Psst is a personal trainer messaging app built with SwiftUI and Firebase with **
 - **Trainer-Client Relationships** - Explicit relationship model with trainer-controlled access
 - **Contact Management** - Trainers manage client roster and prospects
 - **Group Peer Discovery** - Clients in shared groups can message each other
+
+### Calendar Integration (PR #010C)
+- **Google Calendar OAuth** - Secure OAuth 2.0 flow for calendar access
+- **One-Way Sync** - Psst events automatically sync to Google Calendar
+- **Event Types** - Training sessions, calls, and adhoc appointments
+- **Smart Scheduling** - AI-powered natural language event creation
 
 ### User Roles (PR #006.5)
 - **Role-Based System** - Users are either trainers or clients
@@ -219,7 +225,7 @@ Used for real-time presence tracking (faster than Firestore for high-frequency u
 
 ### Cloud Functions (TypeScript)
 
-**Active Functions (8 deployed):**
+**Active Functions (9 deployed):**
 ```
 functions/src/
 ├── index.ts                        # Main exports file
@@ -229,6 +235,7 @@ functions/src/
 ├── semanticSearch.ts               # RAG semantic search (PR #006)
 ├── executeFunctionCall.ts          # AI function calling (PR #008)
 ├── extractProfileInfoOnMessage.ts  # Auto client profile extraction (PR #007)
+├── onCalendarEventCreate.ts        # Google Calendar sync trigger (PR #010C)
 ├── migrations/
 │   ├── migrateExistingChats.ts     # PR #009 migration script
 │   └── fixProspectChats.ts         # PR #009 prospect fix script
@@ -240,7 +247,8 @@ functions/src/
     ├── profileExtractionService.ts # Profile data extraction
     ├── functionExecutionService.ts # Function call execution
     ├── conversationService.ts      # Conversation history
-    └── auditLogService.ts          # AI action audit logs
+    ├── auditLogService.ts          # AI action audit logs
+    └── googleCalendarService.ts    # Google Calendar API integration (PR #010C)
 ```
 
 **Dependencies:**
@@ -248,6 +256,8 @@ functions/src/
 - `openai` v6.6.0 - OpenAI GPT-4 and embeddings API
 - `firebase-admin` v12.0.0 - Firestore, Auth, Storage access
 - `firebase-functions` v5.1.0 - Cloud Functions runtime
+- `googleapis` v164.1.0 - Google Calendar API integration (PR #010C)
+- `luxon` v3.7.2 - Date/time manipulation (PR #010C)
 
 ---
 
@@ -260,9 +270,10 @@ functions/src/
 - ✅ PR #007: Auto Client Profiles (AI extracts profile data from chats)
 - ✅ PR #008: AI Function Calling (schedule calls, send messages, set reminders)
 - ✅ PR #009: Trainer-Client Relationships (access control + contact management)
+- ✅ PR #010C: Google Calendar Integration (OAuth + one-way sync to Google Calendar)
 
 **Next Planned:**
-- 🔜 PR #010: Calendar & Scheduling System
+- 🔜 PR #010 (Full): Calendar UI (Week view, Today's Schedule widget, Cal tab)
 - 🔜 PR #011: Enhanced UI/UX for AI Features
 - 🔜 PR #012: User Preferences & Personalization
 - 🔜 PR #013: YOLO Mode (aggressive AI automation)
@@ -878,6 +889,56 @@ firebase functions:config:set pinecone.index="chat-messages"
 **For full brownfield analysis:** See `brownfield-analysis-pr-009.md`
 
 ---
+
+### PR #010C: Google Calendar Integration (Implemented)
+
+**Status:** ✅ Complete - Merged to develop (Oct 26, 2025)
+
+**Key Changes:**
+- Implemented OAuth 2.0 flow for Google Calendar API access
+- One-way sync: Psst calendar events → Google Calendar
+- Automatic sync via Firestore trigger `onCalendarEventCreate`
+- Token management with automatic refresh handling
+- Settings UI for connecting/disconnecting Google Calendar account
+- Support for calendar event types: Training, Call, Adhoc
+
+**Files Created:**
+- `GoogleCalendarSyncService.swift` - OAuth flow, token management, API calls
+- `onCalendarEventCreate.ts` - Firestore trigger for auto-sync
+- `googleCalendarService.ts` - Backend Google Calendar API integration
+- `SecretsManager.swift` - Secure credential storage
+- Calendar views: Multiple calendar UI components in Views/Calendar/
+
+**Files Modified:**
+- `CalendarService.swift` - Added Google Calendar sync integration
+- `CalendarEvent.swift` - Added `googleCalendarEventId`, `syncedAt` fields
+- `SettingsView.swift` - Added Google Calendar connection UI
+- `functions/package.json` - Added `googleapis` v164.1.0, `luxon` v3.7.2
+- `Info.plist` - Configured OAuth callback URL scheme
+
+**Data Model Updates:**
+```swift
+/calendar/{trainerId}/events/{eventId}
+  - googleCalendarEventId: String? (null if not synced)
+  - syncedAt: Timestamp? (last successful sync)
+
+/users/{userId}/integrations/googleCalendar
+  - refreshToken: String (encrypted)
+  - connectedAt: Timestamp
+  - email: String (connected Google account)
+```
+
+**Key Features:**
+- ✅ OAuth 2.0 secure authentication flow
+- ✅ Automatic token refresh when expired
+- ✅ Event creation, update, and deletion sync
+- ✅ Visual sync status indicators in UI
+- ✅ Error handling for API failures
+- ✅ Settings toggle to disconnect calendar
+
+**Note:** PR #010C implements backend sync and basic calendar views. Full calendar UI polish (week view refinements, Today's Schedule widget, Cal tab) will be completed in PR #010 (Full).
+
+---
 ## Summary: Current System Capabilities
 
 ### For Trainers
@@ -902,6 +963,13 @@ firebase functions:config:set pinecone.index="chat-messages"
 - Group peer discovery (clients in shared groups can DM)
 - Relationship-based access control
 
+**Calendar & Scheduling:**
+- Google Calendar integration with OAuth 2.0
+- One-way sync: Psst events → Google Calendar
+- AI-powered natural language scheduling
+- Event types: Training sessions, calls, adhoc appointments
+- Automatic sync with visual status indicators
+
 ### For Clients
 - Message their assigned trainer(s)
 - Join group chats created by trainers
@@ -911,16 +979,18 @@ firebase functions:config:set pinecone.index="chat-messages"
 
 ### Technology Highlights
 **Frontend:**
-- 128 Swift files across Models, Views, ViewModels, Services
+- 152 Swift files across Models, Views, ViewModels, Services
 - SwiftUI + Combine for reactive UI
 - MVVM architecture pattern
 - Thread-safe async/await concurrency
+- Google Calendar API integration
 
 **Backend:**
-- 8 Cloud Functions (TypeScript, Node.js 18)
+- 9 Cloud Functions (TypeScript, Node.js 18)
 - OpenAI GPT-4 for AI reasoning and function calling
 - Pinecone vector database for semantic search
 - Firebase Firestore, Realtime DB, Cloud Storage
+- Google Calendar API (OAuth 2.0 + one-way sync)
 - Comprehensive security rules with role-based access
 
 **AI Integration:**
@@ -983,7 +1053,18 @@ firebase functions:config:set pinecone.index="chat-messages"
 ---
 
 **Document Owner:** Finesse Vanes (Arnold - The Architect)
-**Last Updated:** October 25, 2025
+**Last Updated:** October 26, 2025
 **Status:** ✅ Complete brownfield analysis for AI-enhanced messaging app
 
 **Arnold says:** "I'll be back... when you need more documentation. Come with me if you want to build."
+
+---
+
+**Recent Changes (Oct 26, 2025):**
+- ✅ Documented PR #010C (Google Calendar Integration)
+- ✅ Updated Cloud Functions count (8 → 9 functions)
+- ✅ Added `googleCalendarService.ts` backend service
+- ✅ Added calendar services: `GoogleCalendarSyncService.swift`, `CalendarConflictService.swift`
+- ✅ Updated Swift file count (128 → 152 files)
+- ✅ Added Google Calendar sync to system capabilities
+- ✅ Updated dependencies: googleapis v164.1.0, luxon v3.7.2
