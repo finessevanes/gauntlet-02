@@ -16,10 +16,11 @@ When starting, you will receive:
 ## Input Documents
 
 **READ these first:**
+- `Psst/docs/architecture-concise.md` — System overview (ALWAYS READ FIRST for brownfield context)
 - `Psst/docs/prds/pr-{number}-prd.md` — Requirements
 - `Psst/docs/todos/pr-{number}-todo.md` — Step-by-step guide
 - `Psst/docs/ai-briefs.md` — Context
-- `Psst/docs/architecture.md` — Codebase structure
+- `Psst/docs/architecture.md` — Detailed codebase structure (if needed)
 - `Psst/agents/shared-standards.md` — Common requirements and patterns
 
 ---
