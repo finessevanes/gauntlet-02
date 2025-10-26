@@ -104,7 +104,8 @@ struct SettingsView: View {
                 userID: authViewModel.currentUser?.id,
                 selectedImage: nil,
                 isLoading: false,
-                size: 60
+                size: 60,
+                displayName: authViewModel.currentUser?.displayName
             )
             
             // User Info (name, email, and role badge)

@@ -45,9 +45,10 @@ struct UserSelectionView: View {
     }
     
     // MARK: - Service Instances
-    
+
     private let userService = UserService.shared
     private let chatService = ChatService()
+    private let contactService = ContactService.shared
     
     // MARK: - Computed Properties
     
@@ -328,22 +329,60 @@ struct UserSelectionView: View {
         }
     }
     
-    /// Fetch all users from Firestore
+    /// Fetch users based on current user's role and relationships
+    /// - Clients: Show their assigned trainer(s) AND peer clients from group chats
+    /// - Trainers: Only see their clients
     private func fetchUsers() async {
         isLoading = true
         errorMessage = nil
-        
+
         do {
-            let fetchedUsers = try await userService.fetchAllUsers()
-            
+            // Get current user's profile to check role
+            let currentUser = try await userService.getCurrentUserProfile()
+
+            let fetchedUsers: [User]
+
+            if currentUser.role == .client {
+                // CLIENT: Show both trainers AND peer clients from group chats
+                async let trainersTask = contactService.getMyTrainers()
+                async let peerClientsTask = contactService.getPeerClients()
+
+                let trainers = try await trainersTask
+                let peerClients = try await peerClientsTask
+
+                // Combine trainers and peer clients, removing duplicates
+                var allUsers: [User] = trainers
+                for peerClient in peerClients {
+                    if !allUsers.contains(where: { $0.id == peerClient.id }) {
+                        allUsers.append(peerClient)
+                    }
+                }
+
+                fetchedUsers = allUsers
+                print("✅ [CLIENT] Loaded \(trainers.count) trainer(s) and \(peerClients.count) peer client(s)")
+            } else {
+                // TRAINER: Only show their clients
+                let clients = try await contactService.getClients()
+
+                // Convert Client objects to User objects
+                var clientUsers: [User] = []
+                for client in clients {
+                    if let user = try? await userService.getUser(id: client.id) {
+                        clientUsers.append(user)
+                    }
+                }
+
+                fetchedUsers = clientUsers
+                print("✅ [TRAINER] Loaded \(fetchedUsers.count) client(s)")
+            }
+
             await MainActor.run {
                 self.users = fetchedUsers
                 self.isLoading = false
-                print("✅ Loaded \(fetchedUsers.count) users")
             }
         } catch {
             await MainActor.run {
-                self.errorMessage = "Unable to load users. Check your connection."
+                self.errorMessage = "Unable to load contacts. Check your connection."
                 self.showError = true
                 self.isLoading = false
                 print("❌ Error fetching users: \(error.localizedDescription)")
@@ -395,6 +434,8 @@ struct UserSelectionView: View {
                         errorMessage = "Invalid group name"
                     case .insufficientMembers:
                         errorMessage = "Groups require at least 3 members"
+                    case .relationshipNotFound:
+                        errorMessage = "This trainer hasn't added you as a client yet"
                     case .firestoreError(let firestoreError):
                         errorMessage = "Failed to create chat: \(firestoreError.localizedDescription)"
                     }
@@ -462,10 +503,14 @@ struct UserSelectionView: View {
                         errorMessage = "Group name must be 1-50 characters"
                     case .insufficientMembers:
                         errorMessage = "Groups require at least 3 members"
+                    case .cannotChatWithSelf:
+                        errorMessage = "You cannot create a group with yourself"
+                    case .invalidUserID:
+                        errorMessage = "Invalid user selected"
+                    case .relationshipNotFound:
+                        errorMessage = "This trainer hasn't added you as a client yet"
                     case .firestoreError(let firestoreError):
                         errorMessage = "Failed to create group: \(firestoreError.localizedDescription)"
-                    default:
-                        errorMessage = "Failed to create group. Please try again."
                     }
                 } else {
                     errorMessage = "Failed to create group. Please try again."
@@ -499,7 +544,8 @@ struct RedesignedUserRow: View {
                     userID: user.id,
                     selectedImage: nil,
                     isLoading: false,
-                    size: 56
+                    size: 56,
+                    displayName: user.displayName
                 )
                 
                 // Green presence halo (online status indicator)
