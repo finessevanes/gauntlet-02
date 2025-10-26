@@ -4,11 +4,6 @@
 **Version:** Post-MVP + AI Features Active + Trainer-Client Relationships (PR #009)
 **Documented by:** Arnold (The Architect)
 
-> **📌 Quick Links:**
-> - **Concise Version (350 lines):** `architecture-concise.md` ← Use this for agent context!
-> - **PR #009 Brownfield:** `brownfield-analysis-pr-009.md`
-> - **Full Backup (1,381 lines):** `architecture-full-backup.md`
-
 ---
 
 ## Table of Contents
@@ -878,6 +873,387 @@ firebase functions:config:set pinecone.index="chat-messages"
 **For full brownfield analysis:** See `brownfield-analysis-pr-009.md`
 
 ---
+
+**Add Role Selection:**
+- New state: `@State private var selectedRole: UserRole?`
+- New UI screen: Role selection (before or after form)
+- Options: "I'm a Trainer" / "I'm a Client"
+- Visual distinction (icons, descriptions)
+
+**Enforce Required Name:**
+- Update `isFormValid` computed property
+- Remove fallback logic
+- Validate displayName is not empty
+
+**Flow Options:**
+- **Option A:** Role selection first → then signup form
+- **Option B:** Signup form → then role selection
+- **Recommended:** Option A (cleaner UX)
+
+#### 3. **AuthenticationService** (MODIFY)
+**File:** `Psst/Psst/Services/AuthenticationService.swift`
+
+**Update signUp method:**
+```swift
+// Current
+func signUp(email: String, password: String, displayName: String? = nil) async throws -> User
+
+// New
+func signUp(email: String, password: String, displayName: String, role: UserRole) async throws -> User
+```
+
+**Changes:**
+- Make displayName required (remove optional, remove fallback)
+- Add role parameter
+- Pass role to UserService.createUser()
+
+#### 4. **UserService** (MODIFY)
+**File:** `Psst/Psst/Services/UserService.swift`
+
+**Update createUser method:**
+```swift
+// Current
+func createUser(id: String, email: String, displayName: String, photoURL: String?) async throws -> User
+
+// New
+func createUser(id: String, email: String, displayName: String, role: UserRole, photoURL: String?) async throws -> User
+```
+
+**Changes:**
+- Add role parameter
+- Include role in Firestore document creation
+
+#### 5. **Firestore Schema** (NEW FIELD)
+**Collection:** `/users/{uid}`
+
+**Add field:**
+```
+role: "trainer" | "client"
+```
+
+**Migration Strategy:**
+- Existing users: Add Cloud Function or manual script to set default role
+- New users: Role required at signup
+
+#### 6. **UI Display** (OPTIONAL ENHANCEMENTS)
+**Files to potentially update:**
+- `ProfileView.swift` - Show role badge
+- `ChatListView.swift` / `ChatRowView.swift` - Show user role
+- `ChatView.swift` header - Display role in toolbar
+
+---
+
+### Affected Existing Code
+
+#### Files That MUST Be Modified:
+1. ✅ **User.swift** - Add role field
+2. ✅ **SignUpView.swift** - Add role selection, enforce required name
+3. ✅ **AuthenticationService.swift** - Update signUp signature
+4. ✅ **UserService.swift** - Update createUser signature
+
+#### Files That MAY Need Updates:
+5. ⚠️ **AuthViewModel.swift** - Update signUp call
+6. ⚠️ **ProfileView.swift** - Display user role
+7. ⚠️ **EditProfileView.swift** - Allow role change? (probably not)
+8. ⚠️ **Firestore Security Rules** - Add role-based rules (for future features)
+
+#### Files That Reference User Model:
+- Most ViewModels read `currentUser` from AuthenticationService
+- No breaking changes as long as role field has default/fallback
+
+---
+
+### Testing Requirements
+
+#### Unit Tests to Create:
+- `UserModelTests.swift` - Test role encoding/decoding
+- `AuthenticationServiceTests.swift` - Update signup tests with role
+- `UserServiceTests.swift` - Update createUser tests with role
+
+#### UI Tests to Create:
+- `SignUpUITests.swift` - Test role selection flow
+- `SignUpUITests.swift` - Test required displayName validation
+
+#### Manual Testing:
+- Create trainer account → verify role in Firestore
+- Create client account → verify role in Firestore
+- Attempt signup without name → should fail
+- Attempt signup without role → should fail
+
+---
+
+### Security Rules Updates
+
+**File:** `Psst/firestore.rules`
+
+**Current `/users` rule:**
+```javascript
+match /users/{userId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null && request.auth.uid == userId;
+  allow update: if request.auth != null && request.auth.uid == userId;
+  allow delete: if false;
+}
+```
+
+**Potential enhancement (for future role-based features):**
+```javascript
+match /users/{userId} {
+  allow read: if request.auth != null;
+  allow create: if request.auth != null &&
+                  request.auth.uid == userId &&
+                  request.resource.data.role in ['trainer', 'client'];
+  allow update: if request.auth != null &&
+                  request.auth.uid == userId &&
+                  // Prevent role changes after creation
+                  request.resource.data.role == resource.data.role;
+  allow delete: if false;
+}
+```
+
+---
+
+### Migration Strategy for Existing Users
+
+**Problem:** Existing users in production don't have a role field.
+
+**Options:**
+
+1. **Default to trainer** (safest for MVP):
+   - Modify User model to default role to `.trainer` if missing
+   - Add migration code in AuthenticationService
+
+2. **Prompt on next login**:
+   - Show role selection modal for users without role
+   - Update profile once selected
+
+3. **One-time migration script**:
+   - Cloud Function to set all existing users to `.trainer`
+
+**Recommended:** Option 1 (default to trainer) for MVP simplicity.
+
+---
+
+### Dependencies for PR #007 (Auto Client Profiles)
+
+**Why PR #007 is blocked:**
+
+Cloud Function `extractProfileInfoOnMessage` needs to:
+1. Identify which user is the trainer
+2. Identify which user is the client
+3. Create profile for client (owned by trainer)
+
+**Current broken logic:**
+```typescript
+const clientId = otherMemberId;  // Wrong! Both could be trainers
+const trainerId = senderId;      // Wrong! Both could be clients
+```
+
+**Fixed logic (after PR #006.5):**
+```typescript
+// Fetch both users from Firestore
+const user1 = await getUser(senderId);
+const user2 = await getUser(otherMemberId);
+
+// Identify trainer and client
+const trainer = user1.role === 'trainer' ? user1 : user2;
+const client = user1.role === 'client' ? user1 : user2;
+
+// Only create profile if chat is between trainer and client
+if (!trainer || !client) {
+  console.log('Skipping: Not a trainer-client conversation');
+  return;
+}
+
+// Create profile for client
+const clientId = client.uid;
+const trainerId = trainer.uid;
+```
+
+---
+
+### Implementation Checklist
+
+**Phase 1: Models & Services**
+- [ ] Create `UserRole` enum
+- [ ] Add `role` field to User model
+- [ ] Update User codable conformance
+- [ ] Update User Firestore dictionary conversion
+- [ ] Update AuthenticationService.signUp() signature
+- [ ] Update UserService.createUser() signature
+
+**Phase 2: UI Changes**
+- [ ] Create role selection UI component
+- [ ] Update SignUpView with role selection
+- [ ] Enforce required displayName validation
+- [ ] Update AuthViewModel to pass role
+
+**Phase 3: Testing**
+- [ ] Unit tests for User model with role
+- [ ] Unit tests for signup with role
+- [ ] UI tests for role selection flow
+- [ ] Manual testing on simulator
+
+**Phase 4: Security & Migration**
+- [ ] Update Firestore security rules
+- [ ] Add migration logic for existing users
+- [ ] Deploy security rules
+
+**Phase 5: Optional Enhancements**
+- [ ] Display role badge in ProfileView
+- [ ] Show role in chat headers
+- [ ] Add role filtering (future feature)
+
+---
+
+## Brownfield Analysis: PR #009 - Trainer-Client Relationships
+
+**Status:** Analysis Complete
+**Date:** October 25, 2025
+**Document:** `Psst/docs/brownfield-analysis-pr-009.md`
+
+### Overview
+
+PR #009 introduces **explicit trainer-client relationships** to replace the current "everyone can message everyone" architecture. This is a **high-risk brownfield change** that modifies critical components.
+
+### Affected Services
+
+**Modified Files:**
+- `ChatService.swift` - Add relationship validation to `createChat()` method (Lines 144-214)
+- `UserService.swift` - Add `getUserByEmail()` method for email lookup
+- `firestore.rules` - Add security rules for new `/contacts` collections
+
+**New Files:**
+- `ContactService.swift` - Manage trainer-client relationships
+- Models: `Client.swift`, `Prospect.swift`, `Contact.swift` protocol
+- Views: `ContactsView.swift`, `AddClientView.swift`, etc.
+
+### Integration Points
+
+```
+ContactService (NEW)
+    ↓
+    ├── UserService.getUserByEmail() (NEW METHOD)
+    ├── UserService.getUser() (EXISTING)
+    ├── AuthenticationService.currentUser (EXISTING)
+    └── Firestore /contacts/{trainerId}/clients (NEW)
+
+ChatService.createChat() (MODIFIED)
+    ↓
+    ├── ContactService.validateRelationship() (NEW)
+    ├── UserService.getUser() (EXISTING - for roles)
+    └── Firestore /chats (EXISTING)
+```
+
+### Key Risks
+
+1. **Breaking existing chat functionality** (CRITICAL)
+   - Mitigation: Feature flag, gradual rollout, comprehensive testing
+2. **Migration script failures** (CRITICAL)
+   - Mitigation: Dry-run in staging, idempotent script, Firestore backup
+3. **Email lookup performance** (MEDIUM)
+   - Mitigation: Firestore index on email field, caching, timeouts
+
+### Migration Strategy
+
+**Goal:** Auto-add existing chat participants as clients for all trainers
+
+**Approach:**
+1. Identify all trainers (role == "trainer")
+2. For each trainer, get all chats where they're a member
+3. Extract unique client IDs from chat members
+4. Create client relationships in `/contacts/{trainerId}/clients/{clientId}`
+
+**Deployment Phases:**
+1. Week 1: Deploy ContactService + security rules (no validation)
+2. Week 2: Test migration script in staging
+3. Week 3: Run migration in production
+4. Week 4: Enable relationship validation (10% → 50% → 100%)
+
+### Required Changes Summary
+
+**ChatService.swift:**
+- Add `contactService` dependency
+- Add relationship validation in `createChat()` before chat creation
+- Fetch user roles to determine trainer/client
+- Throw `ChatError.relationshipNotFound` if no relationship exists
+
+**UserService.swift:**
+- Add `getUserByEmail(_ email: String) async throws -> User` method
+- Query Firestore by email field (requires index)
+- Return first match or throw `UserServiceError.userNotFound`
+
+**Security Rules (firestore.rules):**
+```javascript
+match /contacts/{trainerId}/clients/{clientId} {
+  allow read, write: if request.auth != null &&
+                        request.auth.uid == trainerId;
+}
+
+match /contacts/{trainerId}/prospects/{prospectId} {
+  allow read, write: if request.auth != null &&
+                        request.auth.uid == trainerId;
+}
+```
+
+### Performance Targets (from PRD)
+
+- Contact list load: < 500ms
+- Email lookup: < 200ms
+- Relationship validation: < 100ms
+- Search filtering: < 100ms
+
+### Testing Requirements
+
+**Unit Tests:**
+- ContactServiceTests (9 test cases)
+- ChatServiceTests (6 new test cases for relationship validation)
+- UserServiceTests (4 new test cases for email lookup)
+
+**Integration Tests:**
+- End-to-end flows: add client → create chat
+- Migration script testing in staging
+- Group peer discovery scenarios
+
+**Manual Testing:**
+- Test with real user accounts
+- Verify relationship validation errors are clear
+- Test offline scenarios
+
+### Rollback Plan
+
+**If migration fails:**
+1. Stop immediately, disable feature flag
+2. Delete `/contacts` collection (or mark invalid)
+3. Fix migration script, re-run from step 1
+
+**If validation causes issues:**
+1. Disable feature flag immediately
+2. Investigate failures from logs
+3. Re-run migration for affected users
+4. Re-enable validation once fixed
+
+**Rollback Time:** < 5 minutes (disable feature flag and re-deploy)
+
+### Success Criteria
+
+✅ All existing chats remain accessible after migration
+✅ New relationship validation works without blocking legitimate conversations
+✅ Migration completes without data loss
+✅ Performance targets met (< 500ms contact list, < 200ms email lookup)
+✅ Feature flag enables gradual rollout
+✅ Rollback plan tested and documented
+
+### Related Documents
+
+- **PRD:** `Psst/docs/prds/pr-009-prd.md`
+- **TODO:** `Psst/docs/todos/pr-009-todo.md`
+- **Brownfield Analysis:** `Psst/docs/brownfield-analysis-pr-009.md` ← **Full detailed analysis**
+
+---
+
+---
+
 ## Summary: Current System Capabilities
 
 ### For Trainers

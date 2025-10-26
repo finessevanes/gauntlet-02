@@ -89,7 +89,8 @@ Activates Pam (Planning Agent) to create PRD and TODO.
 **Brownfield Mode:**
 
 - When enhancing EXISTING code (not building from scratch)
-- Pam reads `Psst/docs/architecture.md` first to understand current system
+- Pam reads `Psst/docs/architecture-concise.md` FIRST (efficient context!)
+- For detailed brownfield: Also reads `Psst/docs/architecture.md` or specific brownfield docs
 - PRD includes "Affected Existing Code" section
 - Highlights integration points and compatibility requirements
 
@@ -287,7 +288,12 @@ What to do:
    - Document patterns currently in use
    - Map integration points for new features
 
-3. Create/update Psst/docs/architecture.md with:
+3. Create/update architecture docs:
+   - ALWAYS update Psst/docs/architecture-concise.md (for agent efficiency)
+   - Update Psst/docs/architecture.md (for detailed reference)
+   - Create separate brownfield analysis doc for major enhancements
+
+Document structure:
    - Current System Overview (what exists today)
    - Service Responsibilities (what each service does)
    - Data Models (Firebase schema, Swift models)
@@ -351,7 +357,8 @@ Your role:
 Key reminders:
 - Read Psst/agents/shared-standards.md for project standards
 - Read PRD at Psst/docs/prds/pr-{number}-prd.md
-- Read Psst/docs/architecture.md to understand current system
+- Read Psst/docs/architecture-concise.md to understand current system (efficient!)
+- For detailed brownfield: See Psst/docs/architecture.md
 - Assess all risk categories: Technical, Cost, Performance, Integration, Security
 - Quantify risks with specific numbers (costs, time, complexity)
 - Provide actionable mitigations for each risk
