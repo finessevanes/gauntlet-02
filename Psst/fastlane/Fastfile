@@ -52,8 +52,8 @@ platform :ios do
     produce(
       username: "vanessa.mercado24@gmail.com",
       app_identifier: "gauntlet.Psst",
-      app_name: "Psst",
-      language: "English",
+      app_name: "Psst Messenger",
+      language: "en-US",
       sku: "gauntlet-psst-001",
       team_id: "4CLVCQ7N3P",
       itc_team_id: "127354878",
@@ -225,8 +225,8 @@ platform :ios do
     produce(
       username: "vanessa.mercado24@gmail.com",
       app_identifier: "gauntlet.Psst",
-      app_name: "Psst",
-      language: "English",
+      app_name: "Psst Messenger",
+      language: "en-US",
       sku: "gauntlet-psst-001",
       team_id: "4CLVCQ7N3P",
       itc_team_id: "127354878",
