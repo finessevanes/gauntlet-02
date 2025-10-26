@@ -37,4 +37,3 @@ enum AIContextAction: String, CaseIterable, Identifiable {
         }
     }
 }
-

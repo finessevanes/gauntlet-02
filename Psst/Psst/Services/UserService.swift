@@ -32,11 +32,42 @@ class UserService {
     private let db = Firestore.firestore()
     private let usersCollection = "users"
 
+    /// Concurrent queue for thread-safe cache access
+    private let cacheQueue = DispatchQueue(label: "com.psst.userservice.cache", attributes: .concurrent)
+
     /// In-memory cache for fetched users to improve performance
-    private var userCache: [String: User] = [:]
+    private var _userCache: [String: User] = [:]
 
     /// Private initializer to enforce singleton pattern
     private init() {}
+
+    // MARK: - Cache Access
+
+    /// Synchronously get a cached user if available (does not trigger network fetch)
+    /// - Parameter id: User's unique identifier
+    /// - Returns: Cached User object if available, nil otherwise
+    func getCachedUser(id: String) -> User? {
+        return cacheQueue.sync { _userCache[id] }
+    }
+
+    /// Thread-safe cache write operation
+    /// - Parameters:
+    ///   - user: User object to cache
+    ///   - id: User's unique identifier
+    private func setCachedUser(_ user: User, id: String) {
+        cacheQueue.async(flags: .barrier) { self._userCache[id] = user }
+    }
+
+    /// Thread-safe cache removal operation
+    /// - Parameter id: User's unique identifier
+    private func removeCachedUser(id: String) {
+        cacheQueue.async(flags: .barrier) { self._userCache.removeValue(forKey: id) }
+    }
+
+    /// Thread-safe cache clear operation
+    private func clearCacheInternal() {
+        cacheQueue.async(flags: .barrier) { self._userCache.removeAll() }
+    }
 
     // MARK: - Public Methods
 
@@ -87,7 +118,7 @@ class UserService {
             Log.i("UserService", "Created user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Cache the user
-            userCache[id] = user
+            setCachedUser(user, id: id)
 
             return user
         } catch {
@@ -102,7 +133,7 @@ class UserService {
     /// - Throws: UserServiceError.userNotFound if user doesn't exist
     func getUser(id: String) async throws -> User {
         // Check cache first
-        if let cachedUser = userCache[id] {
+        if let cachedUser = getCachedUser(id: id) {
             return cachedUser
         }
 
@@ -123,7 +154,7 @@ class UserService {
             Log.i("UserService", "Fetched user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Cache the user
-            userCache[id] = user
+            setCachedUser(user, id: id)
 
             return user
         } catch let error as UserServiceError {
@@ -217,7 +248,7 @@ class UserService {
             Log.i("UserService", "Updated user id=\(id) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Invalidate cache for this user
-            userCache.removeValue(forKey: id)
+            removeCachedUser(id: id)
 
         } catch {
             Log.e("UserService", "Failed to update user id=\(id): \(error.localizedDescription)")
@@ -228,38 +259,75 @@ class UserService {
     /// Observes real-time changes to a user document
     /// - Parameters:
     ///   - id: User's unique identifier
-    ///   - completion: Callback with Result containing User or Error
+    ///   - completion: Callback with Result containing User or Error (always called on main thread)
     /// - Returns: ListenerRegistration for removing the listener
+    /// - Note: Uses cache-then-network pattern - immediately returns cached data if available, then sets up listener for real-time updates
     func observeUser(id: String, completion: @escaping (Result<User, Error>) -> Void) -> ListenerRegistration {
+        // Check if data is already cached
+        let cacheHit = getCachedUser(id: id) != nil
+
+        // Cache-then-network pattern
+        // If cached data exists, immediately return it on main thread (no async delay)
+        if let cachedUser = getCachedUser(id: id) {
+            // Call completion on main thread to avoid queuing delay
+            if Thread.isMainThread {
+                completion(.success(cachedUser))
+            } else {
+                DispatchQueue.main.async {
+                    completion(.success(cachedUser))
+                }
+            }
+        }
+
+        // Set up Firestore listener for real-time updates
+        // This will call completion again if data changes on server
         return db.collection(usersCollection).document(id).addSnapshotListener { [weak self] snapshot, error in
             if let error = error {
                 Log.e("UserService", "Listener error userID=\(id): \(error.localizedDescription)")
-                completion(.failure(UserServiceError.fetchFailed(error)))
+                // Only call completion with error if we didn't already send cached data
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.fetchFailed(error)))
+                    }
+                }
                 return
             }
 
             guard let snapshot = snapshot, snapshot.exists else {
-                completion(.failure(UserServiceError.userNotFound))
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.userNotFound))
+                    }
+                }
                 return
             }
 
             do {
                 let user = try snapshot.data(as: User.self)
 
-                // Cache the user
-                self?.userCache[id] = user
+                // Update cache
+                self?.setCachedUser(user, id: id)
 
-                completion(.success(user))
+                // Call completion with fresh data from server on main thread
+                // If cache was hit, this updates the UI with any server changes
+                // If cache was missed, this provides the initial data
+                DispatchQueue.main.async {
+                    completion(.success(user))
+                }
             } catch {
                 Log.e("UserService", "Failed to decode user id=\(id): \(error.localizedDescription)")
-                completion(.failure(UserServiceError.fetchFailed(error)))
+                if !cacheHit {
+                    DispatchQueue.main.async {
+                        completion(.failure(UserServiceError.fetchFailed(error)))
+                    }
+                }
             }
         }
     }
 
     /// Clears the in-memory user cache
     func clearCache() {
-        userCache.removeAll()
+        clearCacheInternal()
         Log.i("UserService", "Cache cleared")
     }
     
@@ -314,10 +382,10 @@ class UserService {
             // Log performance
             let duration = Date().timeIntervalSince(start) * 1000
             Log.i("UserService", "Updated profile for user id=\(uid) in \(Int(duration))ms")
-            
+
             // Invalidate cache
-            userCache.removeValue(forKey: uid)
-            
+            removeCachedUser(id: uid)
+
         } catch {
             Log.e("UserService", "Failed to update profile for user id=\(uid): \(error.localizedDescription)")
             throw UserServiceError.updateFailed(error)
@@ -630,7 +698,7 @@ class UserService {
             Log.i("UserService", "Found user by email: \(user.displayName) in \(Int(duration))ms (\(sw.ms)ms)")
 
             // Cache the user
-            userCache[user.id] = user
+            setCachedUser(user, id: user.id)
 
             return user
 
@@ -754,10 +822,10 @@ class UserService {
         
         // Invalidate cache
         await ImageCacheService.shared.invalidateProfilePhotoCache(userID: uid)
-        
+
         // Invalidate user cache so next fetch gets updated user
-        userCache.removeValue(forKey: uid)
-        
+        removeCachedUser(id: uid)
+
         let duration = Date().timeIntervalSince(start) * 1000
         Log.i("UserService", "Deleted profile photo uid=\(uid) in \(Int(duration))ms")
     }

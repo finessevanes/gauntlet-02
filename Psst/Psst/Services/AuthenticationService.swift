@@ -97,7 +97,12 @@ class AuthenticationService: ObservableObject {
                     self?.currentUser = user
                 }
             case .failure(let error):
-                print("[AuthenticationService] ❌ Error observing user profile: \(error.localizedDescription)")
+                // Check if this is the expected "user not found" during initial signup
+                if let userServiceError = error as? UserServiceError, userServiceError == .userNotFound {
+                    print("[AuthenticationService] ⏳ Profile not yet created, waiting for sync...")
+                } else {
+                    print("[AuthenticationService] ❌ Error observing user profile: \(error.localizedDescription)")
+                }
             }
         }
     }

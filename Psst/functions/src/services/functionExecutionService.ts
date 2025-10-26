@@ -148,7 +148,10 @@ export async function executeScheduleCall(
 
     // Create calendar event
     const calendarRef = db.collection('calendar');
+    const eventDoc = calendarRef.doc(); // Generate document ID first
+
     const eventData = {
+      id: eventDoc.id, // Include the document ID as a field (matches iOS app pattern)
       trainerId,
       clientId,
       clientName: clientDisplayName.toUpperCase(),
@@ -160,7 +163,7 @@ export async function executeScheduleCall(
       status: 'scheduled'
     };
 
-    const eventDoc = await calendarRef.add(eventData);
+    await eventDoc.set(eventData); // Use set() instead of add() since we pre-generated the ID
 
     const formattedDate = scheduledDate.toLocaleString('en-US', {
       weekday: 'long',
@@ -269,7 +272,10 @@ export async function executeSetReminder(
 
     // Create reminder
     const remindersRef = db.collection('reminders');
+    const reminderDoc = remindersRef.doc(); // Generate document ID first
+
     const reminderData = {
+      id: reminderDoc.id, // Include the document ID as a field (matches iOS app pattern)
       trainerId,
       clientId,
       clientName: clientName || null,
@@ -281,7 +287,7 @@ export async function executeSetReminder(
       completedAt: null
     };
 
-    const reminderDoc = await remindersRef.add(reminderData);
+    await reminderDoc.set(reminderData); // Use set() instead of add() since we pre-generated the ID
 
     const formattedDate = dueDate.toLocaleString('en-US', {
       weekday: 'long',
@@ -457,14 +463,17 @@ export async function executeSendMessage(
 
     // Create message
     const messagesRef = chatRef.collection('messages');
+    const messageDoc = messagesRef.doc(); // Generate document ID first
+
     const messageData = {
+      id: messageDoc.id, // Include the document ID as a field (matches iOS app pattern)
       text: messageText,
       senderID: trainerId,
       timestamp: admin.firestore.FieldValue.serverTimestamp(),
       readBy: [trainerId]
     };
 
-    const messageDoc = await messagesRef.add(messageData);
+    await messageDoc.set(messageData); // Use set() instead of add() since we pre-generated the ID
 
     // Update chat's lastMessage and lastMessageTimestamp
     await chatRef.update({

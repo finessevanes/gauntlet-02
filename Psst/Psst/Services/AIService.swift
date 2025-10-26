@@ -268,14 +268,18 @@ class AIService: ObservableObject {
 
         // Create summarization prompt
         let prompt = """
-        Please provide a concise summary of this conversation with \(messageCount) messages. Format your response as:
+        Please provide a concise summary of this conversation with \(messageCount) messages. 
 
-        SUMMARY: [One paragraph summary]
+        IMPORTANT: Only provide distilled insights and key takeaways. Do NOT include any direct conversation quotes or verbatim message snippets in your response.
 
-        KEY POINTS:
-        - [Key point 1]
-        - [Key point 2]
-        - [Key point 3]
+        Format your response as:
+
+        SUMMARY: [2-3 sentences summary of the conversation]
+
+        KEY POINTS (use brief, abbreviated style - NOT full sentences):
+        - [Remove subject names, use fragments: "fitness goal is to lose weight" NOT "Jake's fitness goal is to lose weight"]
+        - [Keep concise and scannable, omit articles where possible]
+        - [Example style: "struggles with consistency, time management" NOT "Jake's main issues have been lack of consistency and time management"]
 
         Conversation messages:
         \(messageTexts)

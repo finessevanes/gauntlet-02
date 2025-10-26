@@ -77,7 +77,7 @@ struct ChatView: View {
     }
     
     // MARK: - Initialization
-    
+
     init(chat: Chat) {
         self.chat = chat
         self._messageViewModel = StateObject(wrappedValue: MessageManagementViewModel(chat: chat))
@@ -96,6 +96,14 @@ struct ChatView: View {
     
     private var mainContent: some View {
         VStack(spacing: 0) {
+            // Custom header for 1-on-1 chats (replaces toolbar to prevent pop-in)
+            if !chat.isGroupChat {
+                CustomChatHeader(
+                    otherUser: presenceViewModel.otherUser,
+                    isOnline: presenceViewModel.isContactOnline
+                )
+            }
+
             // Network status banner (offline/reconnecting/connected)
             NetworkStatusBanner(networkMonitor: networkMonitor, queueCount: $messageViewModel.queueCount)
 
@@ -136,40 +144,12 @@ struct ChatView: View {
                 }
             )
         }
-        .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "Chat")
+        .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarHidden(!chat.isGroupChat) // Hide for 1-on-1, show for group
         .toolbar {
-            // Show presence halo and profile photo in header for 1-on-1 chats
-            if !chat.isGroupChat {
-                ToolbarItem(placement: .principal) {
-                    HStack(spacing: 8) {
-                        // Profile photo with presence halo
-                        ZStack {
-                            ProfilePhotoPreview(
-                                imageURL: presenceViewModel.otherUser?.photoURL,
-                                userID: presenceViewModel.otherUser?.id,
-                                selectedImage: nil,
-                                isLoading: false,
-                                size: 32,
-                                displayName: presenceViewModel.otherUser?.displayName
-                            )
-
-                            // Green presence halo (only when online)
-                            PresenceHalo(isOnline: presenceViewModel.isContactOnline, size: 32)
-                                .animation(.easeInOut(duration: 0.2), value: presenceViewModel.isContactOnline)
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(presenceViewModel.otherUser?.displayName ?? "Chat")
-                                .font(.headline)
-                            Text(presenceViewModel.isContactOnline ? "Online" : "Offline")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                }
-            } else {
-                // Show member photos for group chats (PR #004)
+            // Show member photos for group chats (PR #004)
+            if chat.isGroupChat {
                 ToolbarItem(placement: .principal) {
                     Button(action: {
                         presenceViewModel.showMemberListSheet()
@@ -218,21 +198,28 @@ struct ChatView: View {
                 )
             }
         }
-        .onAppear {
+        .task {
+            // Use .task instead of .onAppear
+            // .task runs EARLIER in the view lifecycle (during navigation transition)
+            // This ensures header data is loaded BEFORE the view fully appears
+
             // Get current user ID from Firebase Auth
-            if let uid = Auth.auth().currentUser?.uid {
-                currentUserID = uid
+            guard let uid = Auth.auth().currentUser?.uid else { return }
 
-                // Initialize all view models
-                messageViewModel.initialize(currentUserID: uid)
-                presenceViewModel.initialize(currentUserID: uid, presenceService: presenceService)
-                interactionViewModel.setupKeyboardNotifications()
+            currentUserID = uid
 
-                // Initialize profile view model for trainers viewing clients (PR #007)
-                if !chat.isGroupChat, isCurrentUserTrainer, let clientId = clientIdForProfile {
-                    profileViewModel.observeProfile(clientId: clientId)
-                }
+            // Initialize all view models
+            messageViewModel.initialize(currentUserID: uid)
+            presenceViewModel.initialize(currentUserID: uid, presenceService: presenceService)
+
+            // Initialize profile view model for trainers viewing clients (PR #007)
+            if !chat.isGroupChat, isCurrentUserTrainer, let clientId = clientIdForProfile {
+                profileViewModel.observeProfile(clientId: clientId)
             }
+        }
+        .onAppear {
+            // Setup keyboard notifications on appear (needs the view to be fully rendered)
+            interactionViewModel.setupKeyboardNotifications()
         }
         .onDisappear {
             // Clean up all view models

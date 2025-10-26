@@ -64,9 +64,20 @@ class PresenceTrackingViewModel: ObservableObject {
     private var presenceListeners: [String: UUID] = [:]
     
     // MARK: - Initialization
-    
+
     init(chat: Chat) {
         self.chat = chat
+
+        // For 1-on-1 chats, eagerly load cached user data in init() BEFORE view renders
+        // This prevents the header from popping in after the view appears
+        if !chat.isGroupChat, let currentUserID = Auth.auth().currentUser?.uid {
+            if let otherUserID = chat.otherUserID(currentUserID: currentUserID) {
+                if let cachedUser = userService.getCachedUser(id: otherUserID) {
+                    self.otherUser = cachedUser
+                    self.otherUserID = otherUserID
+                }
+            }
+        }
     }
     
     // MARK: - Public Methods
@@ -75,13 +86,21 @@ class PresenceTrackingViewModel: ObservableObject {
     func initialize(currentUserID: String, presenceService: PresenceService) {
         self.currentUserID = currentUserID
         self.presenceService = presenceService
-        
+
         // Determine other user ID for presence tracking
         determineOtherUserID()
-        
+
+        // For 1-on-1 chats, immediately check cache and set otherUser BEFORE async listener
+        // This prevents header pop-in by showing cached data on first render
+        if !chat.isGroupChat, let otherUserID = otherUserID {
+            if let cachedUser = userService.getCachedUser(id: otherUserID) {
+                self.otherUser = cachedUser
+            }
+        }
+
         // Attach typing listener
         attachTypingListener()
-        
+
         // Load group members and observe presence (PR #004)
         if chat.isGroupChat {
             Task {
@@ -134,13 +153,13 @@ class PresenceTrackingViewModel: ObservableObject {
     /// Attach user profile listener for real-time profile updates
     private func attachUserProfileListener(userID: String) {
         userListener = userService.observeUser(id: userID) { result in
-            DispatchQueue.main.async {
-                switch result {
-                case .success(let user):
-                    self.otherUser = user
-                case .failure(let error):
-                    print("❌ Error observing user profile: \(error.localizedDescription)")
-                }
+            // UserService now guarantees completion is called on main thread
+            // No need for DispatchQueue.main.async - execute immediately
+            switch result {
+            case .success(let user):
+                self.otherUser = user
+            case .failure(let error):
+                print("❌ Error observing user profile: \(error.localizedDescription)")
             }
         }
     }
