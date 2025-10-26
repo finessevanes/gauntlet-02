@@ -10,6 +10,11 @@ GoogleService-Info.plist
 *.p8
 AuthKey_*.p8
 
+# Xcode Build Artifacts
+build/
+DerivedData/
+*.xcarchive
+
 # Fastlane
 fastlane/report.xml
 fastlane/Preview.html
@@ -19,4 +24,3 @@ fastlane/.env
 *.ipa
 *.dSYM.zip
 *.mobileprovision
-build/
