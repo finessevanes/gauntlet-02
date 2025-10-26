@@ -18,18 +18,21 @@ struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
     // MARK: - State
-    
+
     /// Logout loading state
     @State private var isLoggingOut = false
-    
+
     /// Show logout error alert
     @State private var showLogoutError = false
-    
+
     /// Error message for logout failures
     @State private var errorMessage = ""
-    
+
     /// Show notification test view
     @State private var showNotificationTest = false
+
+    // PR #010C: Google Calendar connection status
+    @StateObject private var googleCalendarService = GoogleCalendarSyncService.shared
     
     // MARK: - Body
     
@@ -45,7 +48,18 @@ struct SettingsView: View {
                         Label("Notifications", systemImage: "bell.circle")
                     }
                 }
-                
+
+                // Calendar Section (PR #010C)
+                Section(header: Text("CALENDAR")) {
+                    NavigationLink(destination: CalendarSettingsView()) {
+                        HStack {
+                            Label("Google Calendar", systemImage: "calendar")
+                            Spacer()
+                            connectionStatusBadge
+                        }
+                    }
+                }
+
                 // Support Section
                 Section(header: Text("SUPPORT")) {
                     NavigationLink(destination: HelpSupportView()) {
@@ -178,11 +192,11 @@ struct SettingsView: View {
     /// Shows loading state, signs out user, and handles errors
     private func handleLogout() {
         isLoggingOut = true
-        
+
         Task {
             // Call AuthViewModel's signOut method (async)
             await authViewModel.signOut()
-            
+
             // Check for errors after signout
             if let error = authViewModel.errorMessage {
                 errorMessage = error
@@ -192,7 +206,28 @@ struct SettingsView: View {
             // Navigation handled by AuthViewModel (returns to LoginView)
         }
     }
-    
+
+    // MARK: - PR #010C: Google Calendar Connection Status Badge
+
+    /// Connection status badge for Google Calendar row
+    private var connectionStatusBadge: some View {
+        HStack(spacing: 4) {
+            if googleCalendarService.isConnected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text("Connected")
+                    .font(.caption)
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(.gray)
+                Text("Not Connected")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+
 }
 
 // MARK: - Preview
