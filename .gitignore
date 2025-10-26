@@ -8,6 +8,11 @@ Psst/Psst/Config.swift
 **/Config.swift
 !**/Config.example.swift
 
+# Secrets (OAuth credentials, API keys)
+Psst/Psst/Secrets.plist
+**/Secrets.plist
+!**/Secrets.plist.example
+
 # Xcode
 *.xcuserstate
 *.xcuserdatad

@@ -31,6 +31,10 @@ struct CalendarEvent: Identifiable, Codable {
     let createdAt: Date
     var status: EventStatus
 
+    // MARK: - Google Calendar Sync Fields (PR #010C)
+    var googleCalendarEventId: String?  // Google Calendar event ID for updates/deletes
+    var syncedAt: Date?  // Last successful sync timestamp
+
     // DEPRECATED: Kept for backward compatibility with PR #008
     var dateTime: Date { startTime }
     var duration: Int { Int(endTime.timeIntervalSince(startTime) / 60) }
@@ -62,6 +66,8 @@ struct CalendarEvent: Identifiable, Codable {
         case createdBy
         case createdAt
         case status
+        case googleCalendarEventId
+        case syncedAt
     }
 
     // MARK: - Computed Properties
@@ -94,6 +100,21 @@ struct CalendarEvent: Identifiable, Codable {
         Int(endTime.timeIntervalSince(startTime) / 60)
     }
 
+    // MARK: - Google Calendar Sync Computed Properties (PR #010C)
+
+    /// Whether event is synced to Google Calendar
+    var isSynced: Bool {
+        googleCalendarEventId != nil
+    }
+
+    /// Sync status text for display (e.g., "Synced 2 minutes ago")
+    var syncStatusText: String {
+        guard let syncedAt = syncedAt else { return "Not synced" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        return "Synced \(formatter.localizedString(for: syncedAt, relativeTo: Date()))"
+    }
+
     init(
         id: String = UUID().uuidString,
         trainerId: String,
@@ -107,7 +128,9 @@ struct CalendarEvent: Identifiable, Codable {
         notes: String? = nil,
         createdBy: String = "trainer",
         createdAt: Date = Date(),
-        status: EventStatus = .scheduled
+        status: EventStatus = .scheduled,
+        googleCalendarEventId: String? = nil,
+        syncedAt: Date? = nil
     ) {
         self.id = id
         self.trainerId = trainerId
@@ -122,6 +145,8 @@ struct CalendarEvent: Identifiable, Codable {
         self.createdBy = createdBy
         self.createdAt = createdAt
         self.status = status
+        self.googleCalendarEventId = googleCalendarEventId
+        self.syncedAt = syncedAt
     }
 
     // Firestore conversion with backward compatibility for PR #008
@@ -180,6 +205,14 @@ struct CalendarEvent: Identifiable, Codable {
         } else {
             self.status = .scheduled
         }
+
+        // PR #010C: Google Calendar sync fields (optional)
+        self.googleCalendarEventId = data["googleCalendarEventId"] as? String
+        if let syncedAtTimestamp = data["syncedAt"] as? Timestamp {
+            self.syncedAt = syncedAtTimestamp.dateValue()
+        } else {
+            self.syncedAt = nil
+        }
     }
 
     // Convert to Firestore dictionary
@@ -207,6 +240,14 @@ struct CalendarEvent: Identifiable, Codable {
         }
         if let notes = notes {
             dict["notes"] = notes
+        }
+
+        // PR #010C: Google Calendar sync fields (optional)
+        if let googleCalendarEventId = googleCalendarEventId {
+            dict["googleCalendarEventId"] = googleCalendarEventId
+        }
+        if let syncedAt = syncedAt {
+            dict["syncedAt"] = Timestamp(date: syncedAt)
         }
 
         return dict

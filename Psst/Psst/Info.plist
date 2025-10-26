@@ -7,10 +7,14 @@
 		<dict>
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>Google OAuth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.505865284795-o8jjo13ebn38ou1e5s2hujr6rg5t4fkm</string>
+				<string>com.googleusercontent.apps.505865284795-inggmn5im1kb68ogljqp6cp0oucap8r4</string>
 			</array>
+			<key>CFBundleURLComment</key>
+			<string>Google Calendar OAuth callback (PR #010C)</string>
 		</dict>
 	</array>
 	<key>UIBackgroundModes</key>

@@ -36,3 +36,6 @@ export { executeFunctionCallFunction as executeFunctionCall } from './executeFun
 export { migrateExistingChats } from './migrations/migrateExistingChats';
 export { fixProspectChats } from './migrations/fixProspectChats';
 
+// Export Google Calendar sync trigger (PR #010C)
+export { onCalendarEventCreateFunction as onCalendarEventCreate } from './onCalendarEventCreate';
+

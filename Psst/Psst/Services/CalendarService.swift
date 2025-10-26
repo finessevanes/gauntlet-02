@@ -22,6 +22,7 @@ class CalendarService {
 
     private let db = Firestore.firestore()
     private let calendarCollection = "calendar"
+    private let googleCalendarService = GoogleCalendarSyncService.shared  // PR #010C
 
     /// Private initializer to enforce singleton pattern
     private init() {}
@@ -98,6 +99,23 @@ class CalendarService {
         // Write to Firestore
         let eventRef = db.collection(calendarCollection).document(event.id)
         try await eventRef.setData(event.toFirestore())
+
+        // PR #010C: Sync to Google Calendar (async, non-blocking)
+        if googleCalendarService.isConnected {
+            Task {
+                do {
+                    let googleEventId = try await googleCalendarService.retrySyncWithBackoff(event: event)
+                    // Update Firestore with Google event ID
+                    try await eventRef.updateData([
+                        "googleCalendarEventId": googleEventId,
+                        "syncedAt": FieldValue.serverTimestamp()
+                    ])
+                } catch {
+                    print("Google Calendar sync failed for event \(event.id): \(error.localizedDescription)")
+                    // Event still created in Psst, sync can be retried later
+                }
+            }
+        }
 
         return event
     }
@@ -181,6 +199,30 @@ class CalendarService {
         // Update in Firestore
         let eventRef = db.collection(calendarCollection).document(eventId)
         try await eventRef.updateData(updates)
+
+        // PR #010C: Re-sync to Google Calendar if connected (async, non-blocking)
+        if googleCalendarService.isConnected {
+            Task {
+                do {
+                    // Fetch updated event
+                    let eventDoc = try await eventRef.getDocument()
+                    guard let updatedEvent = CalendarEvent(document: eventDoc) else {
+                        print("Failed to fetch updated event \(eventId) for Google sync")
+                        return
+                    }
+
+                    // Re-sync to Google (will UPDATE existing event, not create new)
+                    let googleEventId = try await googleCalendarService.retrySyncWithBackoff(event: updatedEvent)
+                    // Update syncedAt timestamp
+                    try await eventRef.updateData([
+                        "googleCalendarEventId": googleEventId,
+                        "syncedAt": FieldValue.serverTimestamp()
+                    ])
+                } catch {
+                    print("Google Calendar re-sync failed for event \(eventId): \(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     /// Delete an event (hard delete - permanently removes from Firestore)
@@ -192,8 +234,24 @@ class CalendarService {
             throw CalendarError.unauthorized
         }
 
-        // Hard delete - permanently remove from Firestore
+        // PR #010C: Fetch event first to get Google Calendar event ID
         let eventRef = db.collection(calendarCollection).document(eventId)
+        let eventDoc = try await eventRef.getDocument()
+        let event = CalendarEvent(document: eventDoc)
+
+        // Delete from Google Calendar if synced
+        if let googleEventId = event?.googleCalendarEventId, googleCalendarService.isConnected {
+            Task {
+                do {
+                    try await googleCalendarService.deleteEventFromGoogle(googleEventId: googleEventId)
+                } catch {
+                    print("Failed to delete from Google Calendar: \(error.localizedDescription)")
+                    // Continue with Firestore deletion even if Google sync fails
+                }
+            }
+        }
+
+        // Hard delete - permanently remove from Firestore
         try await eventRef.delete()
     }
 
@@ -210,6 +268,39 @@ class CalendarService {
         try await updateEvent(eventId: eventId, updates: ["status": CalendarEvent.EventStatus.completed.rawValue])
     }
 
+    // MARK: - Google Calendar Sync Methods (PR #010C)
+
+    /// Manually retry Google Calendar sync for a specific event
+    /// - Parameter eventId: ID of the event to retry syncing
+    /// - Throws: CalendarError
+    func retryGoogleSync(eventId: String) async throws {
+        // Validate user is authenticated
+        guard Auth.auth().currentUser != nil else {
+            throw CalendarError.unauthorized
+        }
+
+        // Check if Google Calendar is connected
+        guard googleCalendarService.isConnected else {
+            throw CalendarError.googleSyncNotConnected
+        }
+
+        // Fetch event
+        let eventRef = db.collection(calendarCollection).document(eventId)
+        let eventDoc = try await eventRef.getDocument()
+        guard let event = CalendarEvent(document: eventDoc) else {
+            throw CalendarError.notFound
+        }
+
+        // Retry sync
+        let googleEventId = try await googleCalendarService.retrySyncWithBackoff(event: event)
+
+        // Update Firestore with Google event ID
+        try await eventRef.updateData([
+            "googleCalendarEventId": googleEventId,
+            "syncedAt": FieldValue.serverTimestamp()
+        ])
+    }
+
     // MARK: - Error Types
 
     enum CalendarError: LocalizedError {
@@ -219,6 +310,7 @@ class CalendarService {
         case missingClient
         case invalidTimeRange
         case networkError(Error)
+        case googleSyncNotConnected  // PR #010C
 
         var errorDescription: String? {
             switch self {
@@ -234,6 +326,8 @@ class CalendarService {
                 return "End time must be after start time."
             case .networkError(let error):
                 return "Network error: \(error.localizedDescription)"
+            case .googleSyncNotConnected:
+                return "Google Calendar not connected. Please connect in Settings."
             }
         }
     }
