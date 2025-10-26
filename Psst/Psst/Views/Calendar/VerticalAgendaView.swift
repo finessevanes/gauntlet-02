@@ -214,9 +214,7 @@ struct EventRowView: View {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone.current  // Explicitly use local timezone
         formatter.timeStyle = .short
-        let formatted = formatter.string(from: event.startTime)
-        print("📅 [EventRowView] Formatting time: \(event.startTime) -> \(formatted) (timezone: \(TimeZone.current.identifier))")
-        return formatted
+        return formatter.string(from: event.startTime)
     }
 
     private var durationFormatted: String {
