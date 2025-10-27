@@ -49,6 +49,15 @@ struct AIAssistantView: View {
                     Text(errorMessage)
                 }
             }
+            .alert("Voice Error", isPresented: .constant(viewModel.voiceError != nil)) {
+                Button("OK") {
+                    viewModel.clearVoiceError()
+                }
+            } message: {
+                if let voiceError = viewModel.voiceError {
+                    Text(voiceError)
+                }
+            }
             .modifier(StateChangeLogger(viewModel: viewModel))
     }
 
@@ -356,10 +365,20 @@ struct AIAssistantView: View {
 
     private var inputView: some View {
         HStack(spacing: 12) {
+            // Voice Button (PR #011 Phase 1)
+            VoiceButton(
+                state: viewModel.isRecording ? VoiceButton.ButtonState.recording :
+                       viewModel.isTranscribing ? VoiceButton.ButtonState.transcribing :
+                       viewModel.voiceError != nil ? VoiceButton.ButtonState.error : VoiceButton.ButtonState.idle,
+                action: {
+                    viewModel.toggleVoiceRecording()
+                }
+            )
+
             TextField("Ask me anything...", text: $viewModel.currentInput)
                 .textFieldStyle(.roundedBorder)
                 .focused($isInputFocused)
-                .disabled(viewModel.isLoading)
+                .disabled(viewModel.isLoading || viewModel.isRecording || viewModel.isTranscribing)
                 .onSubmit {
                     viewModel.sendMessage()
                 }
