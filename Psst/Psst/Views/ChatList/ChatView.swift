@@ -96,11 +96,21 @@ struct ChatView: View {
     
     private var mainContent: some View {
         VStack(spacing: 0) {
-            // Custom header for 1-on-1 chats (replaces toolbar to prevent pop-in)
+            // Custom headers (replaces toolbar to prevent pop-in)
             if !chat.isGroupChat {
+                // 1-on-1 chat header
                 CustomChatHeader(
                     otherUser: presenceViewModel.otherUser,
                     isOnline: presenceViewModel.isContactOnline
+                )
+            } else {
+                // Group chat header
+                CustomGroupChatHeader(
+                    groupName: chat.groupName ?? "Group Chat",
+                    groupMembers: presenceViewModel.groupMembers,
+                    onTapMembers: {
+                        presenceViewModel.showMemberListSheet()
+                    }
                 )
             }
 
@@ -144,47 +154,9 @@ struct ChatView: View {
                 }
             )
         }
-        .navigationTitle(chat.isGroupChat ? (chat.groupName ?? "Group Chat") : "")
+        .navigationTitle("") // Empty title for both 1-on-1 and group (using custom headers)
         .navigationBarTitleDisplayMode(.inline)
-        .navigationBarHidden(!chat.isGroupChat) // Hide for 1-on-1, show for group
-        .toolbar {
-            // Show member photos for group chats (PR #004)
-            if chat.isGroupChat {
-                // Show member photos for group chats (PR #004)
-                ToolbarItem(placement: .principal) {
-                    Button(action: {
-                        presenceViewModel.showMemberListSheet()
-                    }) {
-                        VStack(spacing: 4) {
-                            // Group name
-                            Text(chat.groupName ?? "Group Chat")
-                                .font(.headline)
-                                .foregroundColor(.primary)
-                            
-                            // Member photos row (first 3-5 members)
-                            HStack(spacing: -8) {
-                                ForEach(Array(presenceViewModel.groupMembers.prefix(5).enumerated()), id: \.element.id) { index, member in
-                                    ProfilePhotoWithPresence(
-                                        userID: member.id,
-                                        photoURL: member.photoURL,
-                                        displayName: member.displayName,
-                                        size: 24
-                                    )
-                                    .zIndex(Double(5 - index)) // Stack from left to right
-                                }
-                                
-                                // Show "+X more" if there are more members
-                                if presenceViewModel.groupMembers.count > 5 {
-                                    Text("+\(presenceViewModel.groupMembers.count - 5)")
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        .navigationBarHidden(true) // Hide navigation bar for all chats (using custom headers)
         .sheet(isPresented: $presenceViewModel.showMemberList) {
             // Group member list sheet (PR #004)
             GroupMemberStatusView(chat: chat)

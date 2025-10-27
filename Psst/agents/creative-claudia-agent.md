@@ -24,7 +24,7 @@ persona:
 dependencies:
   data:
     - ai-briefs.md
-    - architecture.mdtasks:
+    - architecture-concise.md
   tasks:
     - create-doc.md
     - execute-checklist.md

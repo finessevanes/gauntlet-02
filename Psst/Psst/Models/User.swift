@@ -47,6 +47,10 @@ struct User: Identifiable, Codable, Equatable {
     /// Nil if user hasn't granted notification permission or token not yet generated
     var fcmToken: String?
 
+    // MARK: - Google Calendar Integration (PR #010C)
+    /// Nested integrations object for third-party services
+    var integrations: UserIntegrations?
+
     /// CodingKeys enum to map Swift property names to Firestore field names
     /// Maps 'id' property to 'uid' in Firestore for consistency with Firebase Auth
     enum CodingKeys: String, CodingKey {
@@ -58,6 +62,7 @@ struct User: Identifiable, Codable, Equatable {
         case createdAt
         case updatedAt
         case fcmToken
+        case integrations
     }
     
     /// Custom decoder to handle missing timestamp fields and role gracefully
@@ -78,6 +83,9 @@ struct User: Identifiable, Codable, Equatable {
         // Decode timestamps with fallback to current date if missing
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? Date()
+
+        // PR #010C: Decode integrations (optional)
+        integrations = try container.decodeIfPresent(UserIntegrations.self, forKey: .integrations)
     }
 
     /// Initialize User from Firebase Auth User object
@@ -94,6 +102,7 @@ struct User: Identifiable, Codable, Equatable {
         self.createdAt = firebaseUser.metadata.creationDate ?? now
         self.updatedAt = now
         self.fcmToken = nil
+        self.integrations = nil  // PR #010C: No integrations on initial creation
     }
 
     /// Manual initializer for testing or custom user creation
@@ -106,7 +115,8 @@ struct User: Identifiable, Codable, Equatable {
     ///   - createdAt: Account creation date
     ///   - updatedAt: Last update timestamp
     ///   - fcmToken: Firebase Cloud Messaging token (optional)
-    init(id: String, email: String, displayName: String, role: UserRole = .trainer, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), fcmToken: String? = nil) {
+    ///   - integrations: Third-party service integrations (optional)
+    init(id: String, email: String, displayName: String, role: UserRole = .trainer, photoURL: String? = nil, createdAt: Date = Date(), updatedAt: Date = Date(), fcmToken: String? = nil, integrations: UserIntegrations? = nil) {
         self.id = id
         self.email = email
         self.displayName = displayName
@@ -115,6 +125,7 @@ struct User: Identifiable, Codable, Equatable {
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.fcmToken = fcmToken
+        self.integrations = integrations
     }
 
     /// Convert User model to dictionary for Firestore writes
@@ -138,7 +149,47 @@ struct User: Identifiable, Codable, Equatable {
         // For updates, this will be ignored if field already exists
         dict["createdAt"] = FieldValue.serverTimestamp()
 
+        // PR #010C: Google Calendar integrations (optional)
+        if let integrations = integrations {
+            var integrationsDict: [String: Any] = [:]
+
+            if let googleCalendar = integrations.googleCalendar {
+                var googleDict: [String: Any] = [:]
+                if let refreshToken = googleCalendar.refreshToken {
+                    googleDict["refreshToken"] = refreshToken
+                }
+                if let connectedAt = googleCalendar.connectedAt {
+                    googleDict["connectedAt"] = Timestamp(date: connectedAt)
+                }
+                if let connectedEmail = googleCalendar.connectedEmail {
+                    googleDict["connectedEmail"] = connectedEmail
+                }
+                integrationsDict["googleCalendar"] = googleDict
+            }
+
+            dict["integrations"] = integrationsDict
+        }
+
         return dict
+    }
+
+    /// Whether user has connected their Google Calendar
+    var isGoogleCalendarConnected: Bool {
+        integrations?.googleCalendar?.refreshToken != nil
+    }
+}
+
+// MARK: - User Integrations (PR #010C)
+
+/// Container for third-party service integrations
+struct UserIntegrations: Codable, Equatable {
+    var googleCalendar: GoogleCalendarIntegration?
+
+    /// Google Calendar OAuth integration data
+    struct GoogleCalendarIntegration: Codable, Equatable {
+        var refreshToken: String?  // OAuth refresh token (encrypted by Firestore)
+        var connectedAt: Date?     // When user connected their Google Calendar
+        var connectedEmail: String?  // Google account email address
     }
 }
 

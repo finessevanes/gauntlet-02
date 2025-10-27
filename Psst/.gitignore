@@ -9,3 +9,18 @@ GoogleService-Info.plist
 # Push Notification Keys (NEVER commit!)
 *.p8
 AuthKey_*.p8
+
+# Xcode Build Artifacts
+build/
+DerivedData/
+*.xcarchive
+
+# Fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/.env
+*.ipa
+*.dSYM.zip
+*.mobileprovision

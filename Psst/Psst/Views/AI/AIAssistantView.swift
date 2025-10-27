@@ -25,42 +25,38 @@ struct AIAssistantView: View {
     // MARK: - Main Content
 
     private var mainContentView: some View {
+        mainContent
+            .navigationTitle("AI Assistant")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(role: .destructive) {
+                        viewModel.clearConversation()
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                }
+            }
+            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+                Button("Retry") {
+                    viewModel.retry()
+                }
+                Button("Cancel", role: .cancel) {
+                    viewModel.clearError()
+                }
+            } message: {
+                if let errorMessage = viewModel.errorMessage {
+                    Text(errorMessage)
+                }
+            }
+            .modifier(StateChangeLogger(viewModel: viewModel))
+    }
+
+    private var mainContent: some View {
         VStack(spacing: 0) {
             messagesScrollView
             Divider()
             inputView
-        }
-        .navigationTitle("AI Assistant")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(role: .destructive) {
-                    viewModel.clearConversation()
-                } label: {
-                    Image(systemName: "trash")
-                }
-            }
-        }
-        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-            Button("Retry") {
-                viewModel.retry()
-            }
-            Button("Cancel", role: .cancel) {
-                viewModel.clearError()
-            }
-        } message: {
-            if let errorMessage = viewModel.errorMessage {
-                Text(errorMessage)
-            }
-        }
-        .onChange(of: viewModel.pendingSelection) { newValue in
-            print("🎨 [AIAssistantView.onChange] pendingSelection changed to: \(newValue?.prompt ?? "nil")")
-        }
-        .onChange(of: viewModel.pendingAction) { newValue in
-            print("🎨 [AIAssistantView.onChange] pendingAction changed to: \(newValue?.functionName ?? "nil")")
-        }
-        .onChange(of: viewModel.lastActionResult) { newValue in
-            print("🎨 [AIAssistantView.onChange] lastActionResult changed to: success=\(newValue?.success ?? false)")
         }
     }
 
@@ -108,6 +104,7 @@ struct AIAssistantView: View {
         selectionOverlay
         confirmationOverlay
         resultOverlay
+        schedulingOverlays
     }
 
     @ViewBuilder
@@ -119,15 +116,11 @@ struct AIAssistantView: View {
                 AISelectionCard(
                     request: selection,
                     onSelect: { option in
-                        print("🎨 [AIAssistantView] User tapped option: \(option.title)")
                         withAnimation {
-                            print("🎨 [AIAssistantView] Calling viewModel.handleSelection...")
                             viewModel.handleSelection(option)
-                            print("🎨 [AIAssistantView] handleSelection returned")
                         }
                     },
                     onCancel: {
-                        print("🎨 [AIAssistantView] User tapped Cancel")
                         withAnimation {
                             viewModel.cancelSelection()
                         }
@@ -140,12 +133,6 @@ struct AIAssistantView: View {
             .background(Color.black.opacity(0.3))
             .edgesIgnoringSafeArea(.all)
             .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingSelection != nil)
-            .onAppear {
-                print("🎨 [AIAssistantView] Selection card appeared")
-            }
-            .onDisappear {
-                print("🎨 [AIAssistantView] Selection card disappeared")
-            }
         }
     }
 
@@ -159,15 +146,13 @@ struct AIAssistantView: View {
                     action: action,
                     isExecuting: viewModel.isExecutingAction,
                     onConfirm: {
-                        print("🎨 [AIAssistantView] User tapped Confirm")
                         viewModel.confirmAction()
                     },
                     onCancel: {
-                        print("🎨 [AIAssistantView] User tapped Cancel action")
                         viewModel.cancelAction()
                     },
                     onEdit: {
-                        print("🎨 [AIAssistantView] User tapped Edit")
+                        // Edit functionality
                     }
                 )
                 .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -176,12 +161,6 @@ struct AIAssistantView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.black.opacity(0.3))
             .edgesIgnoringSafeArea(.all)
-            .onAppear {
-                print("🎨 [AIAssistantView] Confirmation card appeared for: \(action.functionName)")
-            }
-            .onDisappear {
-                print("🎨 [AIAssistantView] Confirmation card disappeared")
-            }
         }
     }
 
@@ -217,6 +196,112 @@ struct AIAssistantView: View {
         }
         .padding(.top, 20)
         .animation(.spring(), value: viewModel.lastActionResult != nil)
+    }
+
+    // MARK: - Scheduling Overlays (PR #010B)
+
+    @ViewBuilder
+    private var schedulingOverlays: some View {
+        eventConfirmationOverlay
+        conflictWarningOverlay
+        prospectPromptOverlay
+    }
+
+    @ViewBuilder
+    private var eventConfirmationOverlay: some View {
+        if let pending = viewModel.pendingEventConfirmation {
+            VStack {
+                Spacer()
+
+                EventConfirmationCard(
+                    eventType: pending.eventType,
+                    clientName: pending.clientName,
+                    startTime: pending.startTime,
+                    duration: pending.duration,
+                    location: pending.location,
+                    notes: pending.notes,
+                    onConfirm: {
+                        withAnimation {
+                            viewModel.confirmEventCreation()
+                        }
+                    },
+                    onCancel: {
+                        withAnimation {
+                            viewModel.cancelEventCreation()
+                        }
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.3))
+            .edgesIgnoringSafeArea(.all)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingEventConfirmation != nil)
+        }
+    }
+
+    @ViewBuilder
+    private var conflictWarningOverlay: some View {
+        if let pending = viewModel.pendingConflictResolution {
+            VStack {
+                Spacer()
+
+                ConflictWarningCard(
+                    conflictingEvent: pending.conflictingEvent,
+                    suggestedTimes: pending.suggestedTimes,
+                    requestedDuration: pending.duration,
+                    onSelectTime: { selectedDate in
+                        withAnimation {
+                            viewModel.selectAlternativeTime(selectedDate)
+                        }
+                    },
+                    onCancel: {
+                        withAnimation {
+                            viewModel.cancelConflictResolution()
+                        }
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.3))
+            .edgesIgnoringSafeArea(.all)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingConflictResolution != nil)
+        }
+    }
+
+    @ViewBuilder
+    private var prospectPromptOverlay: some View {
+        if let pending = viewModel.pendingProspectCreation {
+            VStack {
+                Spacer()
+
+                AddProspectPromptCard(
+                    clientName: pending.clientName,
+                    onAddProspect: {
+                        withAnimation {
+                            viewModel.confirmProspectCreation()
+                        }
+                    },
+                    onCancel: {
+                        withAnimation {
+                            viewModel.cancelProspectCreation()
+                        }
+                    }
+                )
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+                .padding(.horizontal, 20)
+                .padding(.bottom, 20)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.black.opacity(0.3))
+            .edgesIgnoringSafeArea(.all)
+            .animation(.spring(response: 0.3, dampingFraction: 0.7), value: viewModel.pendingProspectCreation != nil)
+        }
     }
 
     // MARK: - Subviews
@@ -290,6 +375,17 @@ struct AIAssistantView: View {
         }
         .padding()
         .background(Color(.systemBackground))
+    }
+}
+
+// MARK: - View Modifiers
+
+/// ViewModifier to log state changes for debugging
+struct StateChangeLogger: ViewModifier {
+    @ObservedObject var viewModel: AIAssistantViewModel
+
+    func body(content: Content) -> some View {
+        content
     }
 }
 

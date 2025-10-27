@@ -77,6 +77,42 @@
 - `Psst/Psst/ViewModels/MessageManagementViewModel.swift` - Ensure main thread updates
 - Add comprehensive threading tests
 
+### Reminders Management UI
+**Status:** Planned 📋
+
+**Context:** Reminders data model and backend functionality exist (`/reminders` collection in Firestore, created via PR #008), but there's no UI to view, manage, or complete reminders. Currently, reminders can only be created through AI chat suggestions (`AIReminderSheet.swift`) with no way to see existing reminders.
+
+**Proposed Solution:**
+- Create dedicated RemindersView as a new tab or integrate into Calendar tab
+- Build RemindersListView showing all reminders (upcoming, overdue, completed)
+- Add ReminderDetailView for viewing/editing individual reminders
+- Implement ReminderService for CRUD operations (similar to CalendarService)
+- Add filtering/sorting: by due date, by client, by completion status
+- Include reminder notifications (local notifications for due reminders)
+- Support swipe actions: mark complete, edit, delete
+- Show reminder count badge on tab icon for overdue items
+
+**Expected Benefits:**
+- Trainers can actually use the reminders they create via AI
+- Complete reminder workflow: create → view → manage → complete
+- Better follow-up and task management for client relationships
+- Visibility into upcoming and overdue tasks
+- Integration with calendar view for holistic schedule management
+
+**Files to Create:**
+- `Psst/Psst/Services/ReminderService.swift` - CRUD operations
+- `Psst/Psst/Views/Reminders/RemindersView.swift` - Main reminders list
+- `Psst/Psst/Views/Reminders/ReminderDetailView.swift` - Individual reminder detail/edit
+- `Psst/Psst/Views/Reminders/ReminderRowView.swift` - List row component
+- `Psst/Psst/ViewModels/RemindersViewModel.swift` - State management
+- `Psst/PsstTests/ReminderServiceTests.swift` - Unit tests
+- `Psst/PsstUITests/RemindersUITests.swift` - UI tests
+
+**Reference:**
+- Data model: `Psst/Models/Reminder.swift`
+- Creation UI: `Psst/Views/Components/AIReminderSheet.swift`
+- PR #008 PRD explicitly deferred this: "Not creating UI for calendar/reminders management"
+
 ---
 
 *Items to be added as they are identified*

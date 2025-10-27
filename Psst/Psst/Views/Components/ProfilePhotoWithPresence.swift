@@ -58,7 +58,8 @@ struct ProfilePhotoWithPresence: View {
                 userID: userID,
                 selectedImage: nil,
                 isLoading: false,
-                size: size
+                size: size,
+                displayName: displayName
             )
             .clipShape(Circle())
             

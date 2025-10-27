@@ -166,7 +166,7 @@ This is the simplest mode - user provides a feature name, and you create a brief
 
 #### Step 1: Read Context
 1. `Psst/docs/ai-briefs.md` - Existing briefs and next PR number
-2. `Psst/docs/architecture.md` (optional) - Technical context
+2. `Psst/docs/architecture-concise.md` (optional) - Technical context
 
 #### Step 2: Analyze the Feature Name
 Based on the feature name alone, infer:
@@ -367,7 +367,7 @@ You've completed your brief creation when:
 **Optionally Read:**
 - `Psst/docs/AI-PRODUCT-VISION.md` - Product vision (3 problems, personas, features)
 - `Psst/docs/AI-BUILD-PLAN.md` - 5-phase breakdown (Full Project mode)
-- `Psst/docs/architecture.md` - Technical constraints and existing systems
+- `Psst/docs/architecture-concise.md` - Technical constraints and existing systems (efficient version)
 - `Psst/agents/shared-standards.md` - Project standards (helps assess complexity)
 
 ---

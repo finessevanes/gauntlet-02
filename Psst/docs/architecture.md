@@ -1,7 +1,13 @@
 # Psst Architecture Documentation
 
-**Last Updated:** October 24, 2025
-**Version:** Post-MVP + AI Features Integration Plan + User Roles (PR #006.5)
+**Last Updated:** October 26, 2025 (Comprehensive Update)
+**Version:** Post-MVP + AI Features Active + Google Calendar Sync + PR #011 Planned (PRs #006.5-010C Complete)
+**Documented by:** Arnold (The Architect)
+
+> **📌 Quick Links:**
+> - **Concise Version (350 lines):** `architecture-concise.md` ← Use this for agent context!
+> - **PR #009 Brownfield:** `brownfield-analysis-pr-009.md`
+> - **Full Backup (1,381 lines):** `architecture-full-backup.md`
 
 ---
 
@@ -20,7 +26,9 @@
 
 ## System Overview
 
-Psst is a personal trainer messaging app built with SwiftUI and Firebase. The app currently supports:
+Psst is a personal trainer messaging app built with SwiftUI and Firebase with **AI-powered assistant capabilities**. The app currently supports:
+
+### Core Messaging Features
 - Real-time messaging (1-on-1 and group chats)
 - User presence tracking (online/offline status)
 - Read receipts and typing indicators
@@ -28,7 +36,27 @@ Psst is a personal trainer messaging app built with SwiftUI and Firebase. The ap
 - Offline message queuing
 - Push notifications
 
-**Upcoming Enhancement:** AI-powered assistant features to help trainers manage clients, conversations, and scheduling.
+### AI Features (ACTIVE - PRs #006-008)
+- **AI Chat Assistant** - Trainers can ask AI questions and get intelligent responses
+- **Semantic Search (RAG)** - AI searches message history using vector embeddings via Pinecone
+- **AI Function Calling** - AI can schedule calls, send messages, set reminders
+- **Contextual AI Actions** - Long-press messages for AI summaries, context surfacing, reminders
+- **Auto Client Profiles** - AI automatically extracts profile data from conversations (injuries, goals, preferences)
+
+### Access Control (PR #009)
+- **Trainer-Client Relationships** - Explicit relationship model with trainer-controlled access
+- **Contact Management** - Trainers manage client roster and prospects
+- **Group Peer Discovery** - Clients in shared groups can message each other
+
+### Calendar Integration (PR #010C)
+- **Google Calendar OAuth** - Secure OAuth 2.0 flow for calendar access
+- **One-Way Sync** - Psst events automatically sync to Google Calendar
+- **Event Types** - Training sessions, calls, and adhoc appointments
+- **Smart Scheduling** - AI-powered natural language event creation
+
+### User Roles (PR #006.5)
+- **Role-Based System** - Users are either trainers or clients
+- **Required Display Name** - All users must provide name during signup
 
 ---
 
@@ -40,20 +68,48 @@ Psst is a personal trainer messaging app built with SwiftUI and Firebase. The ap
 Psst/
 ├── PsstApp.swift                      # App entry point, Firebase initialization
 ├── ContentView.swift                  # Root content wrapper
-├── Models/
-│   ├── User.swift                     # User data model (Firebase Auth integration)
-│   ├── Chat.swift                     # Chat/conversation model (1-on-1 and groups)
-│   ├── Message.swift                  # Message model with media support
-│   ├── QueuedMessage.swift            # Offline message queue model
-│   ├── UserPresence.swift             # Real-time presence tracking
-│   ├── GroupPresence.swift            # Group presence aggregation
-│   ├── TypingStatus.swift             # Typing indicator model
-│   └── ReadReceiptDetail.swift        # Read receipt details for UI
+├── Models/                            # 27 Swift model files
+│   ├── Core Models/
+│   │   ├── User.swift                 # User data model (Firebase Auth integration)
+│   │   ├── Chat.swift                 # Chat/conversation model (1-on-1 and groups)
+│   │   ├── Message.swift              # Message model with media support
+│   │   ├── QueuedMessage.swift        # Offline message queue model
+│   │   ├── UserPresence.swift         # Real-time presence tracking
+│   │   ├── GroupPresence.swift        # Group presence aggregation
+│   │   ├── TypingStatus.swift         # Typing indicator model
+│   │   └── ReadReceiptDetail.swift    # Read receipt details for UI
+│   │
+│   ├── AI Models (PRs #006-008)/
+│   │   ├── AIMessage.swift            # AI conversation message model
+│   │   ├── AIConversation.swift       # AI chat session model
+│   │   ├── AIResponse.swift           # AI function call responses
+│   │   ├── AIContextAction.swift      # Contextual AI action types
+│   │   ├── AIContextResult.swift      # Results from contextual actions
+│   │   ├── AISelectionRequest.swift   # User selection prompts
+│   │   ├── FunctionCall.swift         # AI function call data
+│   │   ├── Reminder.swift             # AI-created reminders
+│   │   ├── ReminderSuggestion.swift   # AI reminder suggestions
+│   │   └── RelatedMessage.swift       # Semantically related messages
+│   │
+│   ├── Profile Models (PR #007)/
+│   │   ├── ClientProfile.swift        # Auto-extracted client data
+│   │   ├── ProfileItem.swift          # Individual profile fields
+│   │   ├── ProfileCategory.swift      # Profile categorization
+│   │   └── ProfileItemSource.swift    # Track extraction source
+│   │
+│   ├── Contact Models (PR #009)/
+│   │   ├── Client.swift               # Client contact model
+│   │   ├── Prospect.swift             # Prospect contact model
+│   │   └── Contact.swift              # Contact protocol
+│   │
+│   └── Calendar Models (PR #010A-C)/
+│       ├── CalendarEvent.swift        # Training/Call/Adhoc events with Google sync
+│       └── SchedulingResult.swift     # Scheduling conflict resolution
 │
-├── Views/
+├── Views/                             # ~83 Swift view files
 │   ├── Authentication/
 │   │   ├── LoginView.swift            # Email/password login
-│   │   ├── SignUpView.swift           # User registration
+│   │   ├── SignUpView.swift           # User registration with role selection
 │   │   ├── EmailSignInView.swift      # Email signin flow
 │   │   └── ForgotPasswordView.swift   # Password reset
 │   │
@@ -65,16 +121,50 @@ Psst/
 │   │   ├── MessageInputView.swift     # Text input + image picker
 │   │   └── GroupMemberStatusView.swift # Group member presence
 │   │
-│   ├── Components/
+│   ├── AI/ (PRs #006-008)             # ~15 AI-related view files
+│   │   ├── AIAssistantView.swift      # Dedicated AI chat interface
+│   │   ├── AIMessageRow.swift         # AI response bubble styling
+│   │   ├── ContextualAIMenu.swift     # Long-press menu on messages
+│   │   ├── AILoadingIndicator.swift   # "AI is thinking..." indicator
+│   │   ├── AISummaryView.swift        # AI-generated summaries
+│   │   ├── AIRelatedMessagesView.swift # Show related context
+│   │   ├── AIReminderSheet.swift      # AI-suggested reminders
+│   │   ├── AISelectionCard.swift      # User selection prompts
+│   │   ├── ActionConfirmationCard.swift # Confirm AI actions
+│   │   ├── ActionResultViews.swift    # Display AI action results
+│   │   ├── ClientProfileDetailView.swift # Auto-extracted profile display
+│   │   ├── ClientProfileBannerView.swift # Profile summary banner
+│   │   ├── FloatingAIButton.swift     # Quick AI assistant access
+│   │   ├── EventConfirmationCard.swift # Confirm calendar events
+│   │   ├── ConflictWarningCard.swift  # Scheduling conflict warnings
+│   │   └── AddProspectPromptCard.swift # Add prospects from AI
+│   │
+│   ├── Calendar/ (PR #010A-C)         # ~10 calendar view files
+│   │   ├── CalendarView.swift         # Main calendar interface
+│   │   ├── WeekTimelineView.swift     # Week view with timeline
+│   │   ├── TodaysScheduleWidget.swift # Today's schedule summary
+│   │   ├── EventCardView.swift        # Event display card
+│   │   ├── EventDetailView.swift      # Event details modal
+│   │   ├── EventCreationSheet.swift   # Create new events
+│   │   ├── EventEditSheet.swift       # Edit existing events
+│   │   ├── ClientPickerView.swift     # Select client for event
+│   │   ├── CurrentTimeIndicatorView.swift # Live time indicator
+│   │   └── CalendarEmptyStateView.swift # Empty calendar state
+│   │
+│   ├── Contacts/ (PR #009)            # Contact management views
+│   │   ├── ContactsView.swift         # Clients + prospects list
+│   │   ├── AddClientView.swift        # Add new client form
+│   │   └── ContactDetailView.swift    # Contact details
+│   │
+│   ├── Components/                    # ~30 reusable components
 │   │   ├── ProfilePhotoPicker.swift   # Profile photo upload
-│   │   ├── ImageMessageView.swift     # Image message display with tap-to-zoom
-│   │   ├── MessageStatusIndicator.swift # Sending/delivered/failed status
-│   │   ├── TypingIndicatorView.swift  # Animated "..." typing indicator
-│   │   ├── OnlineIndicator.swift      # User online status badge
-│   │   ├── UnreadDotIndicator.swift   # Unread message dot
+│   │   ├── ImageMessageView.swift     # Image message display
+│   │   ├── MessageStatusIndicator.swift # Message status
+│   │   ├── TypingIndicatorView.swift  # Typing animation
+│   │   ├── PresenceIndicator.swift    # Online status badge
 │   │   ├── ReadReceiptDetailView.swift # Read receipt modal
-│   │   ├── NetworkStatusBanner.swift   # Offline warning banner
-│   │   └── [19 other reusable components]
+│   │   ├── NetworkStatusBanner.swift  # Offline warning
+│   │   └── [23 other reusable components]
 │   │
 │   ├── UserSelection/
 │   │   ├── UserSelectionView.swift    # Select users for chat
@@ -86,38 +176,62 @@ Psst/
 │   │   └── EditProfileView.swift      # Edit profile (name, photo)
 │   │
 │   ├── Settings/
-│   │   ├── SettingsView.swift         # App settings
+│   │   ├── SettingsView.swift         # App settings + Google Calendar
 │   │   ├── NotificationsSettingsView.swift
 │   │   ├── AboutView.swift
 │   │   └── HelpSupportView.swift
 │   │
-│   ├── RootView.swift                 # Auth state routing (login vs. main app)
-│   ├── MainTabView.swift              # Tab navigation (Chats, Profile, Settings)
+│   ├── ConversationList/              # Alternative chat list view
+│   │   └── ConversationListView.swift
+│   │
+│   ├── RootView.swift                 # Auth state routing
+│   ├── MainTabView.swift              # Tab navigation (Chats, Calendar, Profile, Settings)
 │   └── LoadingScreenView.swift        # App loading state
 │
-├── ViewModels/
-│   ├── AuthViewModel.swift            # Authentication state management
-│   ├── ChatListViewModel.swift        # Chat list data + real-time updates
-│   ├── ChatInteractionViewModel.swift # Message sending + real-time message updates
-│   ├── MessageManagementViewModel.swift # Message read receipts + status
-│   ├── PresenceTrackingViewModel.swift  # User presence updates
-│   └── ReadReceiptDetailViewModel.swift # Read receipt details modal
+├── ViewModels/                        # 11 Swift ViewModel files
+│   ├── Core ViewModels/
+│   │   ├── AuthViewModel.swift        # Authentication state management
+│   │   ├── ChatListViewModel.swift    # Chat list data + real-time updates
+│   │   ├── ChatInteractionViewModel.swift # Message sending + real-time updates
+│   │   ├── MessageManagementViewModel.swift # Message read receipts + status
+│   │   ├── PresenceTrackingViewModel.swift # User presence updates
+│   │   └── ReadReceiptDetailViewModel.swift # Read receipt details modal
+│   │
+│   ├── AI ViewModels (PRs #006-008)/
+│   │   ├── AIAssistantViewModel.swift # AI chat state management (PR #006)
+│   │   ├── ContextualAIViewModel.swift # Contextual AI actions (PR #008)
+│   │   └── ClientProfileViewModel.swift # Auto profile management (PR #007)
+│   │
+│   └── Feature ViewModels (PRs #009-010)/
+│       ├── ContactViewModel.swift     # Contact management (PR #009)
+│       └── CalendarViewModel.swift    # Calendar events and scheduling (PR #010A)
 │
-├── Services/
-│   ├── FirebaseService.swift          # Firebase SDK initialization
-│   ├── AuthenticationService.swift    # User login/signup/logout
-│   ├── UserService.swift              # User profile CRUD
-│   ├── ChatService.swift              # Chat CRUD + user name fetching
-│   ├── MessageService.swift           # Message send/receive + read receipts
-│   ├── PresenceService.swift          # Realtime DB presence tracking
-│   ├── TypingIndicatorService.swift   # Typing status updates
-│   ├── MessageQueue.swift             # Offline message queue
-│   ├── NetworkMonitor.swift           # Network connectivity monitor
-│   ├── NotificationService.swift      # Push notification handling
-│   ├── ImageUploadService.swift       # Image compression + Storage upload
-│   └── ImageCacheService.swift        # Image download + cache
+├── Services/                          # 18 Swift service files
+│   ├── Core Services/
+│   │   ├── FirebaseService.swift      # Firebase SDK initialization
+│   │   ├── AuthenticationService.swift # User login/signup/logout
+│   │   ├── UserService.swift          # User profile CRUD
+│   │   ├── ChatService.swift          # Chat CRUD + user name fetching
+│   │   ├── MessageService.swift       # Message send/receive + read receipts
+│   │   ├── PresenceService.swift      # Realtime DB presence tracking
+│   │   ├── TypingIndicatorService.swift # Typing status updates
+│   │   ├── MessageQueue.swift         # Offline message queue
+│   │   ├── NetworkMonitor.swift       # Network connectivity monitor
+│   │   ├── NotificationService.swift  # Push notification handling
+│   │   ├── ImageUploadService.swift   # Image compression + Storage upload
+│   │   └── ImageCacheService.swift    # Image download + cache
+│   │
+│   ├── AI Services (PRs #006-008)/
+│   │   ├── AIService.swift            # AI Cloud Function calls
+│   │   ├── ProfileService.swift       # Client profile CRUD (PR #007)
+│   │   └── ContactService.swift       # Trainer-client relationships (PR #009)
+│   │
+│   └── Calendar Services (PR #010A-C)/
+│       ├── CalendarService.swift      # Calendar CRUD and event management
+│       ├── CalendarConflictService.swift # Scheduling conflict detection
+│       └── GoogleCalendarSyncService.swift # OAuth + Google Calendar API
 │
-└── Utilities/
+└── Utilities/                         # ~10 utility files
     ├── Logger.swift                    # Logging utility
     ├── ColorScheme.swift               # App color palette
     ├── Typography.swift                # Text styles
@@ -125,7 +239,9 @@ Psst/
     ├── Date+Extensions.swift           # Date formatting helpers
     ├── DeepLinkHandler.swift           # Deep link navigation
     ├── ProfilePhotoError.swift         # Error types for profile photos
-    └── PresenceObserverModifier.swift  # SwiftUI modifier for presence
+    ├── PresenceObserverModifier.swift  # SwiftUI modifier for presence
+    ├── FeatureFlags.swift              # Feature toggle system
+    └── Config.example.swift            # Configuration template
 ```
 
 ---
@@ -195,20 +311,81 @@ Used for real-time presence tracking (faster than Firestore for high-frequency u
 /chats/{chatID}/{messageID}/thumb.jpg   # Thumbnails (200x200)
 ```
 
-### Cloud Functions
+### Cloud Functions (TypeScript)
 
-**Current:** None deployed yet
+**Active Functions (9 deployed + 2 migration scripts):**
+```
+functions/src/                      # 26 TypeScript files total
+├── index.ts                        # Main exports file (all function exports)
+│
+├── Cloud Functions (9 active)/
+│   ├── onMessageCreate.ts          # Push notification triggers (PR #004)
+│   ├── generateEmbedding.ts        # Auto-embed messages to Pinecone (PR #006)
+│   ├── chatWithAI.ts               # AI assistant endpoint (PR #006-007)
+│   ├── semanticSearch.ts           # RAG semantic search (PR #006)
+│   ├── executeFunctionCall.ts      # AI function calling (PR #008)
+│   ├── extractProfileInfoOnMessage.ts # Auto client profile extraction (PR #007)
+│   └── onCalendarEventCreate.ts    # Google Calendar sync trigger (PR #010C)
+│
+├── migrations/                     # Migration scripts (PR #009)
+│   ├── migrateExistingChats.ts     # Backfill trainer-client relationships
+│   └── fixProspectChats.ts         # Fix prospect chat permissions
+│
+├── services/                       # 9 backend service files
+│   ├── openaiService.ts            # OpenAI API (GPT-4 + embeddings)
+│   ├── pineconeService.ts          # Pinecone vector DB client
+│   ├── vectorSearchService.ts      # Semantic search queries
+│   ├── aiChatService.ts            # AI conversation orchestration
+│   ├── profileExtractionService.ts # Extract structured profile data
+│   ├── functionExecutionService.ts # Execute AI function calls
+│   ├── conversationService.ts      # Conversation history management
+│   ├── auditLogService.ts          # AI action audit logging
+│   └── googleCalendarService.ts    # Google Calendar API (PR #010C)
+│
+├── schemas/
+│   └── aiFunctionSchemas.ts        # AI function call type definitions
+│
+├── types/
+│   ├── aiConversation.ts           # AI conversation types
+│   └── rag.ts                      # RAG pipeline types
+│
+├── config/
+│   ├── ai.config.ts                # AI configuration constants
+│   └── secrets.ts                  # Secret management helpers
+│
+├── utils/
+│   └── retryHelper.ts              # Retry logic for API calls
+│
+└── @types/
+    └── pinecone.d.ts               # Pinecone TypeScript definitions
+```
 
-**Planned (AI Features):**
-- `chatWithAI` - AI assistant endpoint
-- `embedMessage` - Auto-embed new messages to Pinecone
-- `backfillEmbeddings` - One-time script to embed existing messages
-- `processImageMessage` - Server-side image processing (future)
-- `sendPushNotification` - Push notification triggers (future)
+**Dependencies:**
+- `@pinecone-database/pinecone` v6.1.2 - Vector database for semantic search
+- `openai` v6.6.0 - OpenAI GPT-4 and embeddings API
+- `firebase-admin` v12.0.0 - Firestore, Auth, Storage access
+- `firebase-functions` v5.1.0 - Cloud Functions runtime
+- `googleapis` v164.1.0 - Google Calendar API integration (PR #010C)
+- `luxon` v3.7.2 - Date/time manipulation (PR #010C)
 
 ---
 
-## AI System Integration Plan
+## AI System Architecture (ACTIVE)
+
+### Current AI Implementation Status
+
+**Completed PRs:**
+- ✅ PR #006: AI Infrastructure, Embeddings, Basic Chat (Pinecone + OpenAI)
+- ✅ PR #007: Auto Client Profiles (AI extracts profile data from chats)
+- ✅ PR #008: AI Function Calling (schedule calls, send messages, set reminders)
+- ✅ PR #009: Trainer-Client Relationships (access control + contact management)
+- ✅ PR #010C: Google Calendar Integration (OAuth + one-way sync to Google Calendar)
+
+**Next Planned:**
+- 🔜 PR #010 (Full): Calendar UI (Week view, Today's Schedule widget, Cal tab)
+- 🔜 PR #011: Enhanced UI/UX for AI Features
+- 🔜 PR #012: User Preferences & Personalization
+- 🔜 PR #013: YOLO Mode (aggressive AI automation)
 
 ### Architecture Overview
 
@@ -252,26 +429,54 @@ Used for real-time presence tracking (faster than Firestore for high-frequency u
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### New Components for AI
+### AI Components (BUILT)
 
 #### iOS App Additions
 
-**New Views:**
-- `AIAssistantView.swift` - Dedicated AI chat interface
-- `AIMessageRow.swift` - AI response bubble (distinct styling)
-- `ContextualAIMenu.swift` - Long-press menu on messages (summarize, surface context, set reminder)
-- `AILoadingIndicator.swift` - Animated "AI is thinking..." indicator
+**Views (11 files):**
+- ✅ `AIAssistantView.swift` - Dedicated AI chat interface (PR #006)
+- ✅ `AIMessageRow.swift` - AI response bubble with distinct styling (PR #006)
+- ✅ `ContextualAIMenu.swift` - Long-press menu on messages (PR #008)
+- ✅ `AILoadingIndicator.swift` - Animated "AI is thinking..." indicator (PR #006)
+- ✅ `AISummaryView.swift` - Display AI-generated summaries (PR #008)
+- ✅ `AIRelatedMessagesView.swift` - Show related context messages (PR #008)
+- ✅ `AIReminderSheet.swift` - Create AI-suggested reminders (PR #008)
+- ✅ `AISelectionCard.swift` - User selection prompts for AI (PR #008)
+- ✅ `ActionConfirmationCard.swift` - Confirm AI actions (PR #008)
+- ✅ `ActionResultViews.swift` - Display AI action results (PR #008)
+- ✅ `ClientProfileDetailView.swift` - Display auto-extracted profile (PR #007)
+- ✅ `ClientProfileBannerView.swift` - Profile summary banner (PR #007)
+- ✅ `FloatingAIButton.swift` - Quick access to AI assistant (PR #006)
 
-**New ViewModels:**
-- `AIAssistantViewModel.swift` - Manages AI chat state
-- `AIContextViewModel.swift` - Handles contextual AI actions
+**ViewModels (4 files):**
+- ✅ `AIAssistantViewModel.swift` - Manages AI chat state (PR #006)
+- ✅ `ContextualAIViewModel.swift` - Handles contextual AI actions (PR #008)
+- ✅ `ClientProfileViewModel.swift` - Auto profile management (PR #007)
 
-**New Services:**
-- `AIService.swift` - Calls Firebase Cloud Functions for AI operations
+**Services (3 files):**
+- ✅ `AIService.swift` - Calls Cloud Functions for AI operations (PR #006)
+- ✅ `ProfileService.swift` - Client profile CRUD operations (PR #007)
+- ✅ `ContactService.swift` - Trainer-client relationship management (PR #009)
 
-**New Models:**
-- `AIMessage.swift` - AI conversation message model
-- `AIConversation.swift` - AI chat session model
+**Models (16 files):**
+- ✅ `AIMessage.swift` - AI conversation message model (PR #006)
+- ✅ `AIConversation.swift` - AI chat session model (PR #006)
+- ✅ `AIResponse.swift` - AI function call responses (PR #008)
+- ✅ `AIContextAction.swift` - Contextual AI action types (PR #008)
+- ✅ `AIContextResult.swift` - Results from contextual actions (PR #008)
+- ✅ `AISelectionRequest.swift` - User selection prompts (PR #008)
+- ✅ `FunctionCall.swift` - AI function call data (PR #008)
+- ✅ `CalendarEvent.swift` - AI-scheduled events (PR #008)
+- ✅ `Reminder.swift` - AI-created reminders (PR #008)
+- ✅ `ReminderSuggestion.swift` - AI reminder suggestions (PR #008)
+- ✅ `RelatedMessage.swift` - Semantically related messages (PR #008)
+- ✅ `ClientProfile.swift` - Auto-extracted client data (PR #007)
+- ✅ `ProfileItem.swift` - Individual profile fields (PR #007)
+- ✅ `ProfileCategory.swift` - Profile categorization (PR #007)
+- ✅ `ProfileItemSource.swift` - Track extraction source (PR #007)
+- ✅ `Client.swift` - Client contact model (PR #009)
+- ✅ `Prospect.swift` - Prospect contact model (PR #009)
+- ✅ `Contact.swift` - Contact protocol (PR #009)
 
 #### Cloud Functions Structure
 
@@ -349,7 +554,7 @@ ChatInteractionViewModel receives updated message
 UI updates message status to .delivered
 ```
 
-### AI Assistant Flow (Planned)
+### AI Assistant Flow (ACTIVE - PR #006-008)
 
 ```
 User asks AI: "Find clients with injuries"
@@ -360,40 +565,99 @@ AIService.chatWithAI(query)
          ↓
 Calls Firebase Cloud Function: chatWithAI(query)
          ↓
-Cloud Function:
-  1. Generate embedding for query (OpenAI)
-  2. Search Pinecone for similar messages (vector search)
-  3. Load trainer preferences from Firestore
-  4. Send context + query to GPT-4 via AI SDK
-  5. GPT-4 generates response
+Cloud Function (chatWithAI.ts):
+  1. Load conversation history from Firestore
+  2. Generate embedding for query (openaiService.ts)
+  3. Search Pinecone for similar messages (vectorSearchService.ts)
+  4. Load trainer preferences from Firestore
+  5. Call GPT-4 with context using OpenAI SDK
+  6. If GPT-4 calls function → executeFunctionCall.ts
+  7. Save conversation to Firestore /ai_conversations
          ↓
 Returns AI response to iOS app
          ↓
 AIAssistantViewModel updates state
          ↓
-AIAssistantView displays response
+AIAssistantView displays response with function call results
 ```
 
-### Auto-Embedding Flow (Planned)
+### Auto-Embedding Flow (ACTIVE - PR #006)
 
 ```
 User sends message: "My knee hurts"
          ↓
 Message written to Firestore (existing flow)
          ↓
-Firestore trigger fires: onMessageCreate
+Firestore trigger fires: generateEmbedding (onDocumentCreated)
          ↓
-Cloud Function: embedMessage(messageData)
+Cloud Function: generateEmbedding.ts
          ↓
-1. Generate embedding vector (OpenAI API)
-2. Store in Pinecone with metadata:
-   - firestore_message_id
-   - firestore_chat_id
-   - trainer_id
-   - text
-   - timestamp
+1. Call openaiService.generateEmbedding(text)
+2. OpenAI returns 1536-dimensional vector
+3. Store in Pinecone with metadata:
+   - id: messageId
+   - values: [embedding vector]
+   - metadata: {
+       firestoreMessageId, firestoreChatId,
+       trainerId, senderId, senderName,
+       text, timestamp, isGroupChat
+     }
+4. Log success or retry on failure
          ↓
-Message now searchable by semantic meaning
+Message now searchable by semantic meaning via RAG
+```
+
+### Auto Profile Extraction Flow (ACTIVE - PR #007)
+
+```
+User sends message: "My knee has been hurting since last week"
+         ↓
+Message written to Firestore
+         ↓
+Firestore trigger fires: extractProfileInfoOnMessage
+         ↓
+Cloud Function: extractProfileInfoOnMessage.ts
+         ↓
+1. Identify if chat is between trainer and client (check roles)
+2. Call profileExtractionService.extractProfileInfo()
+3. Use GPT-4 to extract structured data:
+   - Injuries: "knee pain since last week"
+   - Goals: (if mentioned)
+   - Preferences: (if mentioned)
+4. Write to /clientProfiles/{clientId} in Firestore
+5. Merge with existing profile data
+         ↓
+Trainer sees updated client profile in real-time
+```
+
+### AI Function Calling Flow (ACTIVE - PR #008)
+
+```
+User asks AI: "Schedule a call with Sara tomorrow at 3pm"
+         ↓
+AIAssistantViewModel → AIService.chatWithAI()
+         ↓
+Cloud Function: chatWithAI.ts
+         ↓
+1. GPT-4 detects function call intent
+2. Returns function call: scheduleCall(clientName, date, time)
+3. iOS shows confirmation: AISelectionCard
+4. User confirms action
+         ↓
+AIService.executeFunctionCall(functionData)
+         ↓
+Cloud Function: executeFunctionCall.ts
+         ↓
+1. Validate function parameters
+2. Execute function (functionExecutionService.ts):
+   - scheduleCall → write to /calendar/{eventId}
+   - sendMessage → write to /chats/{chatId}/messages
+   - setReminder → write to /reminders/{reminderId}
+3. Log to /aiActions for audit trail (auditLogService.ts)
+         ↓
+Return success + created resource ID
+         ↓
+iOS displays ActionResultViews with confirmation
 ```
 
 ---
@@ -416,149 +680,136 @@ Message now searchable by semantic meaning
 | **Async** | Swift async/await | Modern Swift concurrency |
 | **Networking** | URLSession | HTTP requests |
 
-### New Stack for AI Features
+### AI Stack (ACTIVE)
 
-| Layer | Technology | Purpose | Why Chosen |
-|-------|-----------|---------|------------|
-| **AI Model** | OpenAI GPT-4 | Text generation, reasoning | Best function calling, reliable agents |
-| **Agent Framework** | AI SDK by Vercel | Orchestrates AI behavior | Simpler than LangChain, great for Cloud Functions |
-| **Vector DB** | Pinecone | Semantic search | Purpose-built, managed, 100k free tier |
-| **Embeddings** | OpenAI text-embedding-3-small | Convert text to vectors | Cost-effective ($0.02/1M tokens), 1536 dimensions |
-| **Backend Runtime** | Node.js (Cloud Functions) | Run AI logic | Already using Firebase, easy integration |
+| Layer | Technology | Version | Purpose | Implementation Status |
+|-------|-----------|---------|---------|----------------------|
+| **AI Model** | OpenAI GPT-4 | gpt-4 | Text generation, reasoning, function calling | ✅ Active (PR #006-008) |
+| **Embeddings** | OpenAI text-embedding-3-small | - | Convert text to 1536-dim vectors | ✅ Active (PR #006) |
+| **Vector DB** | Pinecone | v6.1.2 | Semantic search, RAG context | ✅ Active (PR #006) |
+| **Backend Runtime** | Node.js 18 | 18.x | Cloud Functions execution | ✅ Active |
+| **TypeScript** | TypeScript | v5.9.3 | Type-safe backend code | ✅ Active |
+| **OpenAI SDK** | openai | v6.6.0 | API client for GPT-4 & embeddings | ✅ Active |
+| **Pinecone SDK** | @pinecone-database/pinecone | v6.1.2 | Vector DB client | ✅ Active |
 
----
-
-## Integration Strategy
-
-### Two Development Approaches
-
-You have **2 agents available** (can work in parallel). We've outlined two strategies:
-
-**Option A: Sequential Build**
-- One agent works on AI features linearly (PR-010 → PR-011 → PR-012 → ... → PR-016)
-- Lower risk, thorough testing between phases
-- Best for: Learning new tech, stability
-
-**Option B: Parallel Build (~40% faster)**
-- Agent 1: Backend track (Pinecone, Cloud Functions, embeddings)
-- Agent 2: Frontend track (iOS UI, ViewModels, Services)
-- Requires coordination, regular sync points
-- Best for: Speed, experienced teams
-
-**Recommended:** Start parallel (Phases 1-2), pivot to sequential if coordination becomes difficult.
+**Cost Notes:**
+- OpenAI GPT-4: ~$0.03/1K tokens (input) + $0.06/1K tokens (output)
+- OpenAI Embeddings: ~$0.02/1M tokens
+- Pinecone: Free tier (100K vectors, plenty for school project)
+- Firebase Functions: Pay-as-you-go (generous free tier)
 
 ---
 
-### Phase 1: AI Infrastructure Setup (PR-010)
+## Implementation Status
 
-**Goal:** Set up foundation for AI features
+### Completed Phases (PRs #006-009)
 
-**Tasks:**
-1. Create Pinecone account and index (free tier)
-2. Configure index: 1536 dimensions, cosine similarity
-3. Set up Cloud Functions project dependencies
-4. Implement `embeddingService.ts` with OpenAI API + Pinecone SDK
-5. Create Firestore trigger: `embedMessage` (auto-embed new messages)
-6. Create backfill script for existing messages
-7. Set up environment variables (OpenAI key, Pinecone API key)
+#### ✅ PR #006.5: User Roles & Required Name (DONE)
+**Status:** Merged to develop
+**Deliverable:** Role-based system with trainer/client distinction
+- Added `UserRole` enum to User model
+- Updated SignUpView with role selection
+- Required displayName during signup
+- Updated Firestore security rules for role validation
+- Role is immutable after creation
 
-**Firestore Changes:** None (read-only)
+#### ✅ PR #006: AI Infrastructure + Basic Chat + RAG (DONE)
+**Status:** Merged to develop
+**Deliverable:** Full AI assistant with semantic search
+- Created Pinecone index with 1536 dimensions
+- Implemented `generateEmbedding.ts` Cloud Function
+- Auto-embed all new messages via Firestore trigger
+- Built `AIService.swift`, `AIAssistantViewModel`, `AIAssistantView`
+- Implemented `chatWithAI.ts` with RAG pipeline
+- Vector search integrated (semantic queries work)
+- AI conversations saved to Firestore
 
-**iOS Changes:** None yet
+**Key Files:**
+- Backend: `generateEmbedding.ts`, `chatWithAI.ts`, `semanticSearch.ts`
+- Services: `openaiService.ts`, `pineconeService.ts`, `vectorSearchService.ts`
+- iOS: `AIService.swift`, `AIAssistantView.swift`, `AIAssistantViewModel.swift`
 
-**Deliverable:** Backend infrastructure ready for AI queries
+#### ✅ PR #007: Auto Client Profiles (DONE)
+**Status:** Merged to develop
+**Deliverable:** AI automatically builds client profiles from conversations
+- Implemented `extractProfileInfoOnMessage.ts` Cloud Function
+- Firestore trigger extracts structured data from messages
+- Created `ProfileService.swift` for CRUD operations
+- Built `ClientProfileDetailView` and `ClientProfileBannerView`
+- Profiles categorized: Injuries, Goals, Preferences, Notes
+- Tracks extraction source (messageId, timestamp)
 
----
+**Key Files:**
+- Backend: `extractProfileInfoOnMessage.ts`, `profileExtractionService.ts`
+- iOS: `ProfileService.swift`, `ClientProfileViewModel.swift`
+- Models: `ClientProfile.swift`, `ProfileItem.swift`, `ProfileCategory.swift`
 
-### Phase 2: Basic AI Chat Interface (PR-011)
+#### ✅ PR #008: AI Function Calling (DONE)
+**Status:** Merged to develop
+**Deliverable:** AI can perform actions (schedule calls, send messages, set reminders)
+- Implemented `executeFunctionCall.ts` Cloud Function
+- GPT-4 function calling integrated in `chatWithAI.ts`
+- Three functions: `scheduleCall`, `sendMessage`, `setReminder`
+- Built confirmation UI: `AISelectionCard`, `ActionConfirmationCard`
+- Audit logging to `/aiActions` collection
+- Contextual AI menu (long-press messages)
 
-**Goal:** Dedicated "AI Assistant" chat screen
+**Key Files:**
+- Backend: `executeFunctionCall.ts`, `functionExecutionService.ts`, `auditLogService.ts`
+- iOS: `ContextualAIViewModel.swift`, `ContextualAIMenu.swift`
+- Models: `CalendarEvent.swift`, `Reminder.swift`, `FunctionCall.swift`
 
-**Tasks:**
-1. Implement `chatWithAI` Cloud Function (basic Q&A, no tools yet)
-2. Create `AIService.swift` in iOS app
-3. Create `AIAssistantViewModel.swift`
-4. Create `AIAssistantView.swift` (chat UI)
-5. Add "AI Assistant" button in ChatListView
-6. Display AI responses with distinct styling
+#### ✅ PR #009: Trainer-Client Relationships (DONE)
+**Status:** Merged to develop
+**Deliverable:** Explicit access control with contact management
+- Created `/contacts/{trainerId}/clients` and `/prospects` collections
+- Implemented `ContactService.swift` for relationship management
+- Built ContactsView with client/prospect sections
+- Updated security rules for relationship-based access
+- Migration scripts for existing chats
+- Group peer discovery (clients in shared groups can DM)
 
-**Integration Points:**
-- AIService calls Cloud Function
-- No Firestore changes (AI conversations in-memory for now)
-
-**Deliverable:** Users can ask AI general questions
-
----
-
-### Phase 3: RAG Pipeline (Semantic Search) (PR-012)
-
-**Goal:** AI can search chat history semantically
-
-**Tasks:**
-1. Integrate vector search into `chatWithAI` function
-2. Load relevant messages before GPT-4 call
-3. Format context for AI prompt
-4. Handle semantic queries ("find injuries" → "hurt", "pain", "strain")
-
-**Integration Points:**
-- Cloud Function queries Pinecone
-- Returns results to GPT-4 as context
-
-**Deliverable:** AI answers questions about past conversations
-
----
-
-### Phase 4: AI Function Calling (PR-013)
-
-**Goal:** AI can perform actions (schedule, remind, send message)
-
-**Tasks:**
-1. Define tools in AI SDK (scheduleCall, sendMessage, setReminder)
-2. Implement execute functions for each tool
-3. Write to Firestore from Cloud Functions
-4. Return action confirmation to user
-
-**Integration Points:**
-- Cloud Functions write to Firestore `/calendar`, `/reminders` collections
-
-**Deliverable:** AI can perform tasks, not just answer questions
-
----
-
-### Phase 5: Contextual AI Features (PR-014)
-
-**Goal:** AI buttons inside regular chats
-
-**Tasks:**
-1. Add long-press menu to MessageRow
-2. Create separate Cloud Functions for quick actions (summarize, surface context)
-3. Display results inline or in modal
-4. Cache frequent AI responses
-
-**iOS Changes:**
-- MessageRow gets long-press gesture
-- ContextualAIMenu component
-- Quick action handlers
-
-**Deliverable:** AI features accessible without leaving chat
+**Key Files:**
+- Backend: `migrateExistingChats.ts`, `fixProspectChats.ts`
+- iOS: `ContactService.swift`, `ContactsView.swift`, `AddClientView.swift`
+- Models: `Client.swift`, `Prospect.swift`, `Contact.swift`
 
 ---
 
-### Phase 6: Advanced AI Agents (PR-015)
+### Next Planned PRs
 
-**Goal:** Proactive assistant, multi-step conversations
+#### 🔜 PR #010: Calendar & Scheduling System
+**Status:** Not started
+**Goal:** Visual calendar for trainers to manage client sessions
+- Calendar view with month/week/day modes
+- Integration with AI-scheduled events from PR #008
+- Manual event creation and editing
+- Client session tracking
 
-**Tasks:**
-1. Implement state management for multi-turn conversations
-2. Add proactive triggers (calendar conflicts, inactive clients)
-3. Store user preferences in Firestore
-4. Personalize AI voice/style
+#### 🔜 PR #011: Voice AI Interface
+**Status:** PRD and TODO created, ready for development
+**Goal:** Enable hands-free voice conversations with AI assistant
+- Voice input via OpenAI Whisper (speech-to-text)
+- Voice output via iOS text-to-speech
+- Conversation mode for back-and-forth voice exchanges
+- Maintain full feature parity with text chat (RAG, function calling)
+- Target: <5s response time for voice interactions
 
-**Integration Points:**
-- Firestore `/users/{userID}/preferences`
-- Firestore `/users/{userID}/ai_conversations`
+#### 🔜 PR #012: User Preferences & Personalization
+**Status:** Not started
+**Goal:** Let trainers customize AI behavior
+- AI tone/personality presets
+- Response length preferences
+- Feature toggles (auto-profiles, proactive suggestions)
+- Privacy settings
 
-**Deliverable:** AI acts proactively, maintains conversation context
+#### 🔜 PR #013: YOLO Mode (Aggressive Automation)
+**Status:** Not started
+**Goal:** AI autonomously performs actions with minimal confirmation
+- Auto-schedule calls when clients mention availability
+- Auto-send follow-up messages
+- Auto-create reminders from conversations
+- Requires explicit opt-in due to autonomy level
 
 ---
 
@@ -693,311 +944,245 @@ firebase functions:config:set pinecone.index="chat-messages"
 
 ---
 
-## Brownfield Analysis: User Roles & Required Name (PR #006.5)
+## Brownfield Integration Notes
 
-### Current Authentication System
+> **Note:** Detailed brownfield analysis has been moved to separate documents for better context management:
+> - **PR #009 Analysis:** `brownfield-analysis-pr-009.md` (comprehensive migration strategy)
+> - **Concise Architecture:** `architecture-concise.md` (streamlined reference, 350 lines)
 
-#### User Model Structure
-**File:** `Psst/Psst/Models/User.swift`
+### PR #006.5: User Roles (Implemented)
 
-**Current Fields:**
+**Status:** ✅ Complete - Merged to develop
+
+**Key Changes:**
+- Added `UserRole` enum to `User.swift`: `.trainer` | `.client`
+- Updated `SignUpView.swift` with role selection screen
+- Made `displayName` required during signup (no skipping)
+- Updated Firestore security rules to validate role field
+- Role is immutable after account creation
+
+**Files Modified:**
+- `Models/User.swift` - Added role field
+- `Views/Authentication/SignUpView.swift` - Role selection UI
+- `Services/AuthenticationService.swift` - Updated signUp signature
+- `Services/UserService.swift` - Updated createUser signature
+- `firestore.rules` - Role validation rules
+
+**Migration:** Existing users default to `.trainer` role for backward compatibility
+
+**For full implementation details:** See `prds/pr-6.5-prd.md`
+
+---
+
+### PR #009: Trainer-Client Relationships (Implemented)
+
+**Status:** ✅ Complete - Merged to develop
+
+**Key Changes:**
+- Created `/contacts/{trainerId}/clients` and `/prospects` collections
+- Implemented `ContactService.swift` for relationship management
+- Built `ContactsView.swift` with add client/prospect UI
+- Updated security rules for relationship-based chat access
+- Migration scripts: `migrateExistingChats.ts`, `fixProspectChats.ts`
+- Group peer discovery (clients in shared groups can DM)
+
+**Files Created:**
+- `ContactService.swift`, `ContactsView.swift`, `AddClientView.swift`
+- `Client.swift`, `Prospect.swift`, `Contact.swift`
+- `migrations/migrateExistingChats.ts`, `migrations/fixProspectChats.ts`
+
+**Files Modified:**
+- `ChatService.swift` - Relationship validation in createChat()
+- `UserService.swift` - Added getUserByEmail() method
+- `firestore.rules` - Security rules for /contacts collections
+
+**For full brownfield analysis:** See `brownfield-analysis-pr-009.md`
+
+---
+
+### PR #010C: Google Calendar Integration (Implemented)
+
+**Status:** ✅ Complete - Merged to develop (Oct 26, 2025)
+
+**Key Changes:**
+- Implemented OAuth 2.0 flow for Google Calendar API access
+- One-way sync: Psst calendar events → Google Calendar
+- Automatic sync via Firestore trigger `onCalendarEventCreate`
+- Token management with automatic refresh handling
+- Settings UI for connecting/disconnecting Google Calendar account
+- Support for calendar event types: Training, Call, Adhoc
+
+**Files Created:**
+- `GoogleCalendarSyncService.swift` - OAuth flow, token management, API calls
+- `onCalendarEventCreate.ts` - Firestore trigger for auto-sync
+- `googleCalendarService.ts` - Backend Google Calendar API integration
+- `SecretsManager.swift` - Secure credential storage
+- Calendar views: Multiple calendar UI components in Views/Calendar/
+
+**Files Modified:**
+- `CalendarService.swift` - Added Google Calendar sync integration
+- `CalendarEvent.swift` - Added `googleCalendarEventId`, `syncedAt` fields
+- `SettingsView.swift` - Added Google Calendar connection UI
+- `functions/package.json` - Added `googleapis` v164.1.0, `luxon` v3.7.2
+- `Info.plist` - Configured OAuth callback URL scheme
+
+**Data Model Updates:**
 ```swift
-struct User: Identifiable, Codable {
-    let id: String              // Firebase Auth UID
-    let email: String           // User email
-    var displayName: String     // Currently optional (auto-generated from email)
-    var photoURL: String?       // Profile photo
-    let createdAt: Date        // Account creation
-    var updatedAt: Date        // Last update
-    var fcmToken: String?      // Push notifications
-}
+/calendar/{trainerId}/events/{eventId}
+  - googleCalendarEventId: String? (null if not synced)
+  - syncedAt: Timestamp? (last successful sync)
+
+/users/{userId}/integrations/googleCalendar
+  - refreshToken: String (encrypted)
+  - connectedAt: Timestamp
+  - email: String (connected Google account)
 ```
 
-**Missing Fields:**
-- `role: String` - Trainer vs Client distinction
+**Key Features:**
+- ✅ OAuth 2.0 secure authentication flow
+- ✅ Automatic token refresh when expired
+- ✅ Event creation, update, and deletion sync
+- ✅ Visual sync status indicators in UI
+- ✅ Error handling for API failures
+- ✅ Settings toggle to disconnect calendar
 
-**Current Behavior:**
-- `displayName` auto-generates from email prefix if not provided
-- No validation to enforce displayName during signup
+**Note:** PR #010C implements backend sync and basic calendar views. Full calendar UI polish (week view refinements, Today's Schedule widget, Cal tab) will be completed in PR #010 (Full).
+
+---
+## Summary: Current System Capabilities
+
+### For Trainers
+**Messaging:**
+- Real-time 1-on-1 and group chats with clients
+- Image sharing with automatic compression
+- Read receipts and typing indicators
+- Offline message queuing
+
+**AI Assistant:**
+- Ask AI questions about clients and conversations
+- Semantic search across all message history (RAG)
+- AI automatically builds client profiles from chats
+- AI can schedule calls, send messages, set reminders
+- Long-press messages for AI summaries and context
+- All AI actions logged for audit trail
+
+**Contact Management:**
+- Add clients via email (sends invitation)
+- Track prospects (lightweight leads without full accounts)
+- Upgrade prospects to clients
+- Group peer discovery (clients in shared groups can DM)
+- Relationship-based access control
+
+**Calendar & Scheduling:**
+- Google Calendar integration with OAuth 2.0
+- One-way sync: Psst events → Google Calendar
+- AI-powered natural language scheduling
+- Event types: Training sessions, calls, adhoc appointments
+- Automatic sync with visual status indicators
+
+### For Clients
+- Message their assigned trainer(s)
+- Join group chats created by trainers
+- Message other clients in shared groups
+- View their own AI-built profile
+- Standard messaging features (images, read receipts, etc.)
+
+### Technology Highlights
+**Frontend:**
+- **152 Swift files** across Models (27), Services (18), ViewModels (11), Views (~83), Utilities (~10)
+- SwiftUI + Combine for reactive UI
+- MVVM architecture pattern with service layer
+- Thread-safe async/await concurrency
+- Google Calendar OAuth 2.0 integration
+- AI-powered features across ~15 dedicated AI views
+
+**Backend:**
+- **26 TypeScript files**: 9 Cloud Functions + 9 services + 8 support files
+- Node.js 18 runtime
+- OpenAI GPT-4 for AI reasoning and function calling
+- Pinecone vector database for semantic search (100K vectors free tier)
+- Firebase Firestore, Realtime DB, Cloud Storage
+- Google Calendar API (OAuth 2.0 + one-way sync)
+- Comprehensive security rules with role-based access
+
+**AI Integration:**
+- Auto-embedding pipeline (all messages → Pinecone)
+- RAG context retrieval for relevant conversation history
+- Function calling for autonomous actions (scheduleCall, sendMessage, setReminder)
+- Auto profile extraction from natural conversations
+- Audit logging for all AI operations
+- Contextual AI actions (long-press messages for summaries, related context)
 
 ---
 
-### Signup Flow
+## For New Developers: Where to Start
 
-#### Files Involved:
-1. **SignUpView.swift** - Main signup UI
-   - Path: `Psst/Psst/Views/Authentication/SignUpView.swift`
-   - Fields: displayName (optional), email, password, confirmPassword
-   - Validation: Email format, password length (6+), password match
-   - **Issue:** displayName field can be left empty, falls back to email prefix
+### Understand the Core
+1. **Read this document** - You're doing it! ✅
+2. **Review `Psst/agents/shared-standards.md`** - Coding standards and patterns
+3. **Check `Psst/docs/ai-briefs.md`** - High-level feature descriptions
 
-2. **AuthenticationService.swift** - Auth operations
-   - Path: `Psst/Psst/Services/AuthenticationService.swift`
-   - Method: `signUp(email:password:displayName:) async throws -> User`
-   - **Issue:** displayName parameter is optional, defaults to email prefix
+### Explore the Codebase
+**iOS App Entry Points:**
+- `Psst/Psst/PsstApp.swift` - App initialization
+- `Psst/Psst/Views/RootView.swift` - Auth routing
+- `Psst/Psst/Views/MainTabView.swift` - Main navigation
 
-3. **UserService.swift** - Firestore user operations
-   - Path: `Psst/Psst/Services/UserService.swift`
-   - Method: `createUser(id:email:displayName:photoURL:) async throws -> User`
-   - Creates `/users/{uid}` document in Firestore
+**Key Services:**
+- `AuthenticationService.swift` - User auth and session management
+- `ChatService.swift` - Chat CRUD operations
+- `MessageService.swift` - Message sending and real-time updates
+- `AIService.swift` - AI assistant integration
+- `ContactService.swift` - Trainer-client relationships
 
-#### Current Signup Sequence:
-```
-User fills form → SignUpView validates →
-AuthenticationService.signUp() → Firebase Auth creates account →
-UserService.createUser() → Firestore profile created →
-Auth state listener updates currentUser
-```
+**Cloud Functions:**
+- `functions/src/index.ts` - Function exports
+- `functions/src/chatWithAI.ts` - Main AI endpoint
+- `functions/src/generateEmbedding.ts` - Auto-embedding trigger
 
----
+### Common Tasks
+**Add a new feature:**
+1. Create PR brief in `ai-briefs.md` (or use `/brenda`)
+2. Use `/pam` to generate PRD and TODO
+3. Use `/caleb` to implement following the TODO
+4. Test manually (see `testing-strategy.md`)
+5. Create PR to `develop` branch
 
-### Integration Points for User Roles
+**Fix a bug:**
+1. Identify affected service/view
+2. Check service tests for existing coverage
+3. Add test case for bug reproduction
+4. Fix bug, verify test passes
+5. Manual testing on simulator
+6. Create PR with "fix:" prefix
 
-#### 1. **User Model** (MODIFY)
-**File:** `Psst/Psst/Models/User.swift`
-- Add `role: UserRole` enum field
-- Update `CodingKeys` to include role
-- Update `init(from decoder:)` to decode role
-- Update `init(from firebaseUser:)` - **Problem:** Firebase Auth doesn't store role
-- Update `toDictionary()` to include role in Firestore writes
-- Create `UserRole` enum: `.trainer`, `.client`
-
-#### 2. **SignUpView** (MAJOR CHANGES)
-**File:** `Psst/Psst/Views/Authentication/SignUpView.swift`
-
-**Add Role Selection:**
-- New state: `@State private var selectedRole: UserRole?`
-- New UI screen: Role selection (before or after form)
-- Options: "I'm a Trainer" / "I'm a Client"
-- Visual distinction (icons, descriptions)
-
-**Enforce Required Name:**
-- Update `isFormValid` computed property
-- Remove fallback logic
-- Validate displayName is not empty
-
-**Flow Options:**
-- **Option A:** Role selection first → then signup form
-- **Option B:** Signup form → then role selection
-- **Recommended:** Option A (cleaner UX)
-
-#### 3. **AuthenticationService** (MODIFY)
-**File:** `Psst/Psst/Services/AuthenticationService.swift`
-
-**Update signUp method:**
-```swift
-// Current
-func signUp(email: String, password: String, displayName: String? = nil) async throws -> User
-
-// New
-func signUp(email: String, password: String, displayName: String, role: UserRole) async throws -> User
-```
-
-**Changes:**
-- Make displayName required (remove optional, remove fallback)
-- Add role parameter
-- Pass role to UserService.createUser()
-
-#### 4. **UserService** (MODIFY)
-**File:** `Psst/Psst/Services/UserService.swift`
-
-**Update createUser method:**
-```swift
-// Current
-func createUser(id: String, email: String, displayName: String, photoURL: String?) async throws -> User
-
-// New
-func createUser(id: String, email: String, displayName: String, role: UserRole, photoURL: String?) async throws -> User
-```
-
-**Changes:**
-- Add role parameter
-- Include role in Firestore document creation
-
-#### 5. **Firestore Schema** (NEW FIELD)
-**Collection:** `/users/{uid}`
-
-**Add field:**
-```
-role: "trainer" | "client"
-```
-
-**Migration Strategy:**
-- Existing users: Add Cloud Function or manual script to set default role
-- New users: Role required at signup
-
-#### 6. **UI Display** (OPTIONAL ENHANCEMENTS)
-**Files to potentially update:**
-- `ProfileView.swift` - Show role badge
-- `ChatListView.swift` / `ChatRowView.swift` - Show user role
-- `ChatView.swift` header - Display role in toolbar
-
----
-
-### Affected Existing Code
-
-#### Files That MUST Be Modified:
-1. ✅ **User.swift** - Add role field
-2. ✅ **SignUpView.swift** - Add role selection, enforce required name
-3. ✅ **AuthenticationService.swift** - Update signUp signature
-4. ✅ **UserService.swift** - Update createUser signature
-
-#### Files That MAY Need Updates:
-5. ⚠️ **AuthViewModel.swift** - Update signUp call
-6. ⚠️ **ProfileView.swift** - Display user role
-7. ⚠️ **EditProfileView.swift** - Allow role change? (probably not)
-8. ⚠️ **Firestore Security Rules** - Add role-based rules (for future features)
-
-#### Files That Reference User Model:
-- Most ViewModels read `currentUser` from AuthenticationService
-- No breaking changes as long as role field has default/fallback
-
----
-
-### Testing Requirements
-
-#### Unit Tests to Create:
-- `UserModelTests.swift` - Test role encoding/decoding
-- `AuthenticationServiceTests.swift` - Update signup tests with role
-- `UserServiceTests.swift` - Update createUser tests with role
-
-#### UI Tests to Create:
-- `SignUpUITests.swift` - Test role selection flow
-- `SignUpUITests.swift` - Test required displayName validation
-
-#### Manual Testing:
-- Create trainer account → verify role in Firestore
-- Create client account → verify role in Firestore
-- Attempt signup without name → should fail
-- Attempt signup without role → should fail
-
----
-
-### Security Rules Updates
-
-**File:** `Psst/firestore.rules`
-
-**Current `/users` rule:**
-```javascript
-match /users/{userId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null && request.auth.uid == userId;
-  allow update: if request.auth != null && request.auth.uid == userId;
-  allow delete: if false;
-}
-```
-
-**Potential enhancement (for future role-based features):**
-```javascript
-match /users/{userId} {
-  allow read: if request.auth != null;
-  allow create: if request.auth != null &&
-                  request.auth.uid == userId &&
-                  request.resource.data.role in ['trainer', 'client'];
-  allow update: if request.auth != null &&
-                  request.auth.uid == userId &&
-                  // Prevent role changes after creation
-                  request.resource.data.role == resource.data.role;
-  allow delete: if false;
-}
-```
-
----
-
-### Migration Strategy for Existing Users
-
-**Problem:** Existing users in production don't have a role field.
-
-**Options:**
-
-1. **Default to trainer** (safest for MVP):
-   - Modify User model to default role to `.trainer` if missing
-   - Add migration code in AuthenticationService
-
-2. **Prompt on next login**:
-   - Show role selection modal for users without role
-   - Update profile once selected
-
-3. **One-time migration script**:
-   - Cloud Function to set all existing users to `.trainer`
-
-**Recommended:** Option 1 (default to trainer) for MVP simplicity.
-
----
-
-### Dependencies for PR #007 (Auto Client Profiles)
-
-**Why PR #007 is blocked:**
-
-Cloud Function `extractProfileInfoOnMessage` needs to:
-1. Identify which user is the trainer
-2. Identify which user is the client
-3. Create profile for client (owned by trainer)
-
-**Current broken logic:**
-```typescript
-const clientId = otherMemberId;  // Wrong! Both could be trainers
-const trainerId = senderId;      // Wrong! Both could be clients
-```
-
-**Fixed logic (after PR #006.5):**
-```typescript
-// Fetch both users from Firestore
-const user1 = await getUser(senderId);
-const user2 = await getUser(otherMemberId);
-
-// Identify trainer and client
-const trainer = user1.role === 'trainer' ? user1 : user2;
-const client = user1.role === 'client' ? user1 : user2;
-
-// Only create profile if chat is between trainer and client
-if (!trainer || !client) {
-  console.log('Skipping: Not a trainer-client conversation');
-  return;
-}
-
-// Create profile for client
-const clientId = client.uid;
-const trainerId = trainer.uid;
-```
-
----
-
-### Implementation Checklist
-
-**Phase 1: Models & Services**
-- [ ] Create `UserRole` enum
-- [ ] Add `role` field to User model
-- [ ] Update User codable conformance
-- [ ] Update User Firestore dictionary conversion
-- [ ] Update AuthenticationService.signUp() signature
-- [ ] Update UserService.createUser() signature
-
-**Phase 2: UI Changes**
-- [ ] Create role selection UI component
-- [ ] Update SignUpView with role selection
-- [ ] Enforce required displayName validation
-- [ ] Update AuthViewModel to pass role
-
-**Phase 3: Testing**
-- [ ] Unit tests for User model with role
-- [ ] Unit tests for signup with role
-- [ ] UI tests for role selection flow
-- [ ] Manual testing on simulator
-
-**Phase 4: Security & Migration**
-- [ ] Update Firestore security rules
-- [ ] Add migration logic for existing users
-- [ ] Deploy security rules
-
-**Phase 5: Optional Enhancements**
-- [ ] Display role badge in ProfileView
-- [ ] Show role in chat headers
-- [ ] Add role filtering (future feature)
+**Update AI behavior:**
+1. Modify Cloud Function in `functions/src/`
+2. Update TypeScript types if needed
+3. Test in Firebase emulator: `npm run serve`
+4. Deploy: `npm run deploy`
+5. Test in iOS app with real Firebase
 
 ---
 
 **Document Owner:** Finesse Vanes (Arnold - The Architect)
-**Last Updated:** October 24, 2025
+**Last Updated:** October 26, 2025
+**Status:** ✅ Complete brownfield analysis for AI-enhanced messaging app
 
-**Arnold says:** "I'll be back... with working user roles."
+**Arnold says:** "I'll be back... when you need more documentation. Come with me if you want to build."
+
+---
+
+**Recent Changes (Oct 26, 2025 - Comprehensive Update):**
+- ✅ Fully documented PR #010C (Google Calendar Integration with OAuth 2.0)
+- ✅ Added PR #011 (Voice AI Interface) to planned PRs with PRD/TODO status
+- ✅ Updated project structure with accurate file counts:
+  - iOS: 152 Swift files (27 Models, 18 Services, 11 ViewModels, ~83 Views, ~10 Utilities)
+  - Backend: 26 TypeScript files (9 functions, 9 services, 8 support files)
+- ✅ Expanded Views section to show AI (~15 files), Calendar (~10 files), Contacts folders
+- ✅ Added detailed breakdown of AI Models, Contact Models, Calendar Models
+- ✅ Updated Services with AI Services and Calendar Services sections
+- ✅ Added ViewModels breakdown (Core, AI, Feature ViewModels)
+- ✅ Updated Cloud Functions structure with all 26 TypeScript files categorized
+- ✅ Updated system capabilities to reflect Google Calendar sync
+- ✅ Added technology highlights with precise file counts and architecture details

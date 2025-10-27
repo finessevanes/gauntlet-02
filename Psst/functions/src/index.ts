@@ -32,3 +32,10 @@ export { extractProfileInfoOnMessage } from './extractProfileInfoOnMessage';
 // Export function execution (PR #008)
 export { executeFunctionCallFunction as executeFunctionCall } from './executeFunctionCall';
 
+// Export migration scripts (PR #009)
+export { migrateExistingChats } from './migrations/migrateExistingChats';
+export { fixProspectChats } from './migrations/fixProspectChats';
+
+// Export Google Calendar sync trigger (PR #010C)
+export { onCalendarEventCreateFunction as onCalendarEventCreate } from './onCalendarEventCreate';
+

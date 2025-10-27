@@ -87,7 +87,7 @@ export const executeFunctionCallFunction = functions
         );
       }
 
-      const validFunctions = ['scheduleCall', 'setReminder', 'sendMessage', 'searchMessages'];
+      const validFunctions = ['scheduleCall', 'setReminder', 'sendMessage', 'searchMessages', 'rescheduleEvent', 'cancelEvent'];
       if (!validFunctions.includes(functionName)) {
         throw new functions.https.HttpsError(
           'invalid-argument',
@@ -97,6 +97,13 @@ export const executeFunctionCallFunction = functions
 
       console.log(`[executeFunctionCall] Executing: ${functionName}`);
       console.log(`[executeFunctionCall] Parameters:`, JSON.stringify(parameters));
+      if (functionName === 'scheduleCall') {
+        console.log('[executeFunctionCall] scheduleCall diagnostic:');
+        console.log(`  - clientName: ${parameters.clientName || 'n/a'}`);
+        console.log(`  - dateTime (raw): ${parameters.dateTime || 'n/a'}`);
+        console.log(`  - timezone: ${parameters.timezone || 'n/a'}`);
+        console.log(`  - duration: ${parameters.duration || 'default'}`);
+      }
 
       // ========================================
       // 3. CREATE AUDIT LOG (PENDING)
@@ -156,11 +163,19 @@ export const executeFunctionCallFunction = functions
 
         console.log(`[executeFunctionCall] ❌ Function execution failed: ${executionResult.error}`);
 
+        // Log additional details for special error types
+        if (executionResult.error === 'CONFLICT_DETECTED') {
+          console.log(`[executeFunctionCall] 🟠 CONFLICT_DETECTED - Returning alternatives to frontend`);
+          console.log(`[executeFunctionCall] 🟠 Data keys:`, Object.keys(executionResult.data || {}));
+        } else if (executionResult.error === 'SELECTION_REQUIRED') {
+          console.log(`[executeFunctionCall] 🔷 SELECTION_REQUIRED - Returning options to frontend`);
+        }
+
         return {
           success: false,
           actionId,
           error: executionResult.error,
-          data: executionResult.data  // Include data field (for SELECTION_REQUIRED)
+          data: executionResult.data  // Include data field (for SELECTION_REQUIRED and CONFLICT_DETECTED)
         };
       }
 

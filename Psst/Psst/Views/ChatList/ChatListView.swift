@@ -15,6 +15,7 @@ struct ChatListView: View {
     // MARK: - State Management
 
     @StateObject private var viewModel = ChatListViewModel()
+    @StateObject private var calendarViewModel = CalendarViewModel()
     @State private var showingNewChatView = false
     @State private var showingAIAssistant = false
     @State private var showingProfile = false
@@ -85,7 +86,8 @@ struct ChatListView: View {
                                 userID: user.id,
                                 selectedImage: nil,
                                 isLoading: false,
-                                size: 32
+                                size: 32,
+                                displayName: user.displayName
                             )
                         }
                     }
@@ -155,6 +157,16 @@ struct ChatListView: View {
     /// Chat list view with all conversations
     private var chatListView: some View {
         List {
+            // Today's Schedule Widget (PR #010A)
+            if !calendarViewModel.todaysUpcomingEvents.isEmpty {
+                Section {
+                    TodaysScheduleWidget(viewModel: calendarViewModel)
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
+                }
+            }
+
+            // Chat list
             ForEach(viewModel.chats) { chat in
                 NavigationLink(value: chat) {
                     ChatRowView(chat: chat)
@@ -166,6 +178,9 @@ struct ChatListView: View {
         .refreshable {
             // Pull to refresh triggers re-observation
             viewModel.observeChats()
+        }
+        .task {
+            await calendarViewModel.loadEvents()
         }
     }
 }

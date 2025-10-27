@@ -13,10 +13,10 @@ import SwiftUI
 /// Includes user info, account settings, support options, and logout
 struct SettingsView: View {
     // MARK: - Environment
-    
+
     /// Authentication view model for logout functionality
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
     // MARK: - State
 
     /// Logout loading state
@@ -33,33 +33,47 @@ struct SettingsView: View {
 
     /// Show profile view
     @State private var showingProfile = false
-    
+
+    // PR #010C: Google Calendar connection status
+    @StateObject private var googleCalendarService = GoogleCalendarSyncService.shared
+
     // MARK: - Body
-    
+
     var body: some View {
         NavigationStack {
             List {
                 // User Info Section (custom header, not in Section)
                 userInfoSection
-                
+
                 // Account Section
                 Section(header: Text("ACCOUNT")) {
                     NavigationLink(destination: NotificationsSettingsView()) {
                         Label("Notifications", systemImage: "bell.circle")
                     }
                 }
-                
+
+                // Calendar Section (PR #010C)
+                Section(header: Text("CALENDAR")) {
+                    NavigationLink(destination: CalendarSettingsView()) {
+                        HStack {
+                            Label("Google Calendar", systemImage: "calendar")
+                            Spacer()
+                            connectionStatusBadge
+                        }
+                    }
+                }
+
                 // Support Section
                 Section(header: Text("SUPPORT")) {
                     NavigationLink(destination: HelpSupportView()) {
                         Label("Help & Support", systemImage: "questionmark.circle")
                     }
-                    
+
                     NavigationLink(destination: AboutView()) {
                         Label("About", systemImage: "info.circle")
                     }
                 }
-                
+
                 // Notification Test Button (Debug only)
                 #if DEBUG
                 Section(header: Text("DEBUG")) {
@@ -74,7 +88,7 @@ struct SettingsView: View {
                     }
                 }
                 #endif
-                
+
                 // Logout Button Section
                 Section {
                     logoutButton
@@ -95,7 +109,8 @@ struct SettingsView: View {
                                 userID: user.id,
                                 selectedImage: nil,
                                 isLoading: false,
-                                size: 32
+                                size: 32,
+                                displayName: user.displayName
                             )
                         }
                     }
@@ -116,9 +131,9 @@ struct SettingsView: View {
             }
         }
     }
-    
+
     // MARK: - User Info Section
-    
+
     /// User info header with profile photo, name, and email
     private var userInfoSection: some View {
         HStack(spacing: 16) {
@@ -128,9 +143,10 @@ struct SettingsView: View {
                 userID: authViewModel.currentUser?.id,
                 selectedImage: nil,
                 isLoading: false,
-                size: 60
+                size: 60,
+                displayName: authViewModel.currentUser?.displayName
             )
-            
+
             // User Info (name, email, and role badge)
             VStack(alignment: .leading, spacing: 4) {
                 Text(authViewModel.currentUser?.displayName ?? "User")
@@ -158,15 +174,15 @@ struct SettingsView: View {
                     .cornerRadius(12)
                 }
             }
-            
+
             Spacer()
         }
         .padding(.vertical, 8)
         .listRowBackground(Color(.secondarySystemBackground))
     }
-    
+
     // MARK: - Logout Button
-    
+
     /// Logout button with destructive styling and loading state
     private var logoutButton: some View {
         Button(action: handleLogout) {
@@ -194,18 +210,18 @@ struct SettingsView: View {
         .disabled(isLoggingOut)
         .listRowBackground(Color.clear)
     }
-    
+
     // MARK: - Methods
-    
+
     /// Handles logout button tap
     /// Shows loading state, signs out user, and handles errors
     private func handleLogout() {
         isLoggingOut = true
-        
+
         Task {
             // Call AuthViewModel's signOut method (async)
             await authViewModel.signOut()
-            
+
             // Check for errors after signout
             if let error = authViewModel.errorMessage {
                 errorMessage = error
@@ -215,7 +231,28 @@ struct SettingsView: View {
             // Navigation handled by AuthViewModel (returns to LoginView)
         }
     }
-    
+
+    // MARK: - PR #010C: Google Calendar Connection Status Badge
+
+    /// Connection status badge for Google Calendar row
+    private var connectionStatusBadge: some View {
+        HStack(spacing: 4) {
+            if googleCalendarService.isConnected {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                Text("Connected")
+                    .font(.caption)
+                    .foregroundColor(.green)
+            } else {
+                Image(systemName: "exclamationmark.circle.fill")
+                    .foregroundColor(.gray)
+                Text("Not Connected")
+                    .font(.caption)
+                    .foregroundColor(.gray)
+            }
+        }
+    }
+
 }
 
 // MARK: - Preview

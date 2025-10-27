@@ -45,7 +45,8 @@ struct ProfileView: View {
                             userID: user.id,
                             selectedImage: nil,
                             isLoading: false,
-                            size: 140
+                            size: 140,
+                            displayName: user.displayName
                         )
                         .overlay(
                             Circle()
