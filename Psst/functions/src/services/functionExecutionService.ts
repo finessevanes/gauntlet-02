@@ -21,6 +21,21 @@ import {
 import { generateEmbedding } from './openaiService';
 import { searchVectors } from './vectorSearchService';
 
+// Configuration Constants
+const CONFLICT_WINDOW_MINUTES = 30;
+const WORKING_HOURS = {
+  START: 9,
+  END: 18
+};
+const MAX_ALTERNATIVE_SEARCH_DAYS = 7;
+const DEFAULT_EVENT_DURATION_MINUTES = 60;
+const MIN_EVENT_DURATION_MINUTES = 5;
+const MAX_EVENT_DURATION_MINUTES = 480; // 8 hours
+const MAX_REMINDER_AGE_DAYS = 7;
+const MAX_REMINDER_TEXT_LENGTH = 500;
+const FUZZY_MATCH_DISTANCE_THRESHOLD = 2;
+const MAX_SEARCH_RESULTS = 50;
+
 /**
  * Result of a function execution
  */
@@ -114,8 +129,8 @@ async function detectConflicts(
   const db = admin.firestore();
 
   // Query window: ±30 minutes from requested time
-  const queryStartTime = new Date(startTime.getTime() - 30 * 60 * 1000);
-  const queryEndTime = new Date(endTime.getTime() + 30 * 60 * 1000);
+  const queryStartTime = new Date(startTime.getTime() - CONFLICT_WINDOW_MINUTES * 60 * 1000);
+  const queryEndTime = new Date(endTime.getTime() + CONFLICT_WINDOW_MINUTES * 60 * 1000);
 
   const snapshot = await db.collection('calendar')
     .where('trainerId', '==', trainerId)
@@ -152,18 +167,15 @@ async function suggestAlternatives(
   duration: number
 ): Promise<Date[]> {
   const suggestions: Date[] = [];
-  const workingStartHour = 9;
-  const workingEndHour = 18;
-  const maxDays = 7;
 
   let currentDate = new Date(preferredStartTime.getTime() + 60 * 60 * 1000); // +1 hour from preferred
   let daysChecked = 0;
 
-  while (suggestions.length < 3 && daysChecked < maxDays) {
+  while (suggestions.length < 3 && daysChecked < MAX_ALTERNATIVE_SEARCH_DAYS) {
     const currentHour = currentDate.getHours();
 
     // Check if within working hours
-    if (currentHour >= workingStartHour && currentHour < workingEndHour) {
+    if (currentHour >= WORKING_HOURS.START && currentHour < WORKING_HOURS.END) {
       const proposedEndTime = new Date(currentDate.getTime() + duration * 60 * 1000);
 
       // Check for conflicts
@@ -178,10 +190,10 @@ async function suggestAlternatives(
     currentDate = new Date(currentDate.getTime() + 60 * 60 * 1000);
 
     // If past working hours, move to next day at 9 AM
-    if (currentDate.getHours() >= workingEndHour) {
+    if (currentDate.getHours() >= WORKING_HOURS.END) {
       const nextDay = new Date(currentDate);
       nextDay.setDate(nextDay.getDate() + 1);
-      nextDay.setHours(workingStartHour, 0, 0, 0);
+      nextDay.setHours(WORKING_HOURS.START, 0, 0, 0);
       currentDate = nextDay;
       daysChecked++;
     }
@@ -209,7 +221,7 @@ export async function executeScheduleCall(
     console.log('[executeScheduleCall] Params:', JSON.stringify(params, null, 2));
     console.log('========================================\n');
 
-    const { clientName, clientId: providedClientId, dateTime, duration = 60, query, timezone } = params;
+    const { clientName, clientId: providedClientId, dateTime, duration = DEFAULT_EVENT_DURATION_MINUTES, query, timezone } = params;
     console.log('[executeScheduleCall] 📝 Raw parameters received:');
     console.log('  - clientName:', clientName);
     console.log('  - dateTime (raw):', dateTime);
@@ -266,11 +278,11 @@ export async function executeScheduleCall(
 
     // Validate duration
     console.log('[executeScheduleCall] ⏱️ Duration validation:', duration);
-    if (duration < 5 || duration > 480) {
+    if (duration < MIN_EVENT_DURATION_MINUTES || duration > MAX_EVENT_DURATION_MINUTES) {
       console.log('[executeScheduleCall] ❌ Invalid duration');
       return {
         success: false,
-        error: 'Call duration must be between 5 minutes and 8 hours.'
+        error: `Call duration must be between ${MIN_EVENT_DURATION_MINUTES} minutes and ${MAX_EVENT_DURATION_MINUTES / 60} hours.`
       };
     }
 
@@ -506,19 +518,19 @@ export async function executeSetReminder(
     const now = new Date();
 
     // Allow reminders up to 7 days in the past (grace period)
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    if (dueDate < sevenDaysAgo) {
+    const maxPastDate = new Date(now.getTime() - MAX_REMINDER_AGE_DAYS * 24 * 60 * 60 * 1000);
+    if (dueDate < maxPastDate) {
       return {
         success: false,
-        error: 'Reminder date is too far in the past. Please provide a more recent date.'
+        error: `Reminder date is too far in the past. Please provide a date within ${MAX_REMINDER_AGE_DAYS} days.`
       };
     }
 
     // Validate reminderText length
-    if (reminderText.length > 500) {
+    if (reminderText.length > MAX_REMINDER_TEXT_LENGTH) {
       return {
         success: false,
-        error: 'Reminder text is too long. Please keep it under 500 characters.'
+        error: `Reminder text is too long. Please keep it under ${MAX_REMINDER_TEXT_LENGTH} characters.`
       };
     }
 
@@ -643,7 +655,7 @@ async function findContactMatches(
     const exactMatch = nameLower === searchLower;
     const containsMatch = nameLower.includes(searchLower) || searchLower.includes(nameLower);
     const editDistance = levenshteinDistance(nameLower, searchLower);
-    const distanceMatch = editDistance <= 2;
+    const distanceMatch = editDistance <= FUZZY_MATCH_DISTANCE_THRESHOLD;
 
     const isMatch = exactMatch || containsMatch || distanceMatch;
 
@@ -654,11 +666,21 @@ async function findContactMatches(
         .where('members', 'array-contains', trainerId)
         .get();
 
-      const matchingChat = chatQuery.docs.find(doc => {
+      // Find ALL chats between trainer and this user
+      const allMatchingChats = chatQuery.docs.filter(doc => {
         const members = doc.data().members || [];
         const hasUser = members.includes(userDoc.id);
         return hasUser;
       });
+
+      // Prioritize 1-on-1 chats over group chats
+      const matchingChat = allMatchingChats.find(doc => {
+        const chatData = doc.data();
+        const isGroupChat = chatData.isGroupChat === true;
+        const memberCount = (chatData.members || []).length;
+        // Prefer non-group chats or chats with exactly 2 members
+        return !isGroupChat || memberCount === 2;
+      }) || allMatchingChats[0]; // Fall back to first chat if no 1-on-1 exists
 
       if (matchingChat) {
         matches.push({
@@ -812,7 +834,7 @@ export async function executeSearchMessages(
     const { query, chatId, limit = 10 } = params;
 
     // Validate limit
-    const searchLimit = Math.min(limit, 50);
+    const searchLimit = Math.min(limit, MAX_SEARCH_RESULTS);
 
     // Generate embedding for the query
     const embedding = await generateEmbedding(query, openaiApiKey);
@@ -923,7 +945,7 @@ export async function executeRescheduleEvent(
     }
 
     // Calculate new end time
-    const duration = newDuration || eventData.duration || 60;
+    const duration = newDuration || eventData.duration || DEFAULT_EVENT_DURATION_MINUTES;
     const newEndTime = new Date(newStartTime.getTime() + duration * 60 * 1000);
 
     // Check for conflicts (excluding this event)
