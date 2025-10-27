@@ -1,6 +1,6 @@
 # PRD: Voice AI Interface
 
-**Feature**: Voice AI Assistant for Hands-Free Operation
+**Feature**: Voice AI Interface
 
 **Version**: 1.0
 
@@ -10,691 +10,625 @@
 
 **Target Release**: Phase 4
 
-**Links**: [PR Brief](../ai-briefs.md#pr-011-voice-ai-interface), [TODO](../todos/pr-011-todo.md)
+**Links**: [PR Brief: ai-briefs.md#PR-011], [TODO: pr-011-todo.md]
 
 ---
 
 ## 1. Summary
 
-Enable trainers to interact with the AI Assistant using voice instead of typing, allowing hands-free operation while walking between training sessions, driving, or performing other activities. This feature integrates OpenAI Whisper for speech-to-text and iOS text-to-speech for AI responses, creating a seamless voice conversation experience.
+Enable trainers to interact with their AI Assistant using voice instead of typing, allowing hands-free operation while walking between sessions, driving, or when typing is inconvenient. The AI will transcribe speech to text, generate responses, and optionally speak them back using text-to-speech.
 
 ---
 
 ## 2. Problem & Goals
 
-**Problem:** Personal trainers are often on the move (walking between clients, driving, working out) and can't type lengthy questions to their AI assistant. They need hands-free access to their "second brain" to ask about client histories, schedule appointments, or set reminders while their hands are busy.
+**Problem:** Trainers are often on the go (walking between sessions, driving to clients, at the gym) and can't easily type to interact with their AI Assistant. This limits AI adoption to desk-based scenarios.
 
-**Why now?** The AI Assistant (PR #004) and RAG pipeline (PR #005) are complete, providing intelligent contextual responses. Adding voice input/output removes the last friction point for trainers who are constantly mobile.
+**Why Now:** With AI Chat (PR #006) and RAG (PR #006) complete, trainers have a powerful "second brain" but need hands-free access to unlock its full potential.
 
 **Goals:**
-- [ ] G1 — Enable trainers to have voice conversations with AI assistant with <5s response time
-- [ ] G2 — Support conversation mode with back-and-forth voice exchanges without touching the phone
-- [ ] G3 — Maintain feature parity with text chat (RAG search, function calling, client profiles)
+- [ ] G1 — Enable 100% of AI Assistant features via voice (ask questions, search history, execute actions)
+- [ ] G2 — Provide near-instant transcription (<2s from end of speech to text display)
+- [ ] G3 — Deliver natural-sounding AI voice responses using TTS
 
 ---
 
 ## 3. Non-Goals / Out of Scope
 
-Explicitly excluded to maintain focused vertical slice:
+- [ ] Voice messages in regular chats (recording voice memos to send directly to clients - not AI-related, future feature)
+- [ ] Voice cloning or custom trainer voices (Phase 5 enhancement)
+- [ ] Offline voice transcription (requires cloud API for now)
+- [ ] Wake word detection ("Hey Psst" - future enhancement)
+- [ ] Continuous conversation mode with interruptions (V2 feature)
 
-- [ ] Not doing: Offline voice transcription (requires internet for OpenAI Whisper)
-- [ ] Not doing: Voice customization/accents for TTS (using iOS default voices)
-- [ ] Not doing: Voice messages between trainers and clients (this is AI-only)
-- [ ] Not doing: Wake word detection ("Hey Psst") - manual activation only
-- [ ] Not doing: Real-time streaming transcription (batch processing only)
+> **✅ IN SCOPE:** Voice input TO the AI Assistant (which can then use all AI tools: sendMessage, scheduleCall, setReminder, searchMessages)
+>
+> **❌ OUT OF SCOPE:** Recording voice memos to send directly in regular chats (like WhatsApp voice messages) - this is a separate messaging feature unrelated to AI
 
 ---
 
 ## 4. Success Metrics
 
 **User-visible:**
-- Time to get AI response: Speak question → Hear answer in <5s (including transcription, AI processing, and TTS)
-- Number of taps to start voice conversation: 1 tap (voice button)
-- Voice conversation completion rate: >80% of voice sessions complete without switching to text
+- Time to complete voice query (speak → response): < 5s total
+- Voice mode activation: 1 tap (microphone button)
+- Successful transcription rate: >95% accuracy (dependent on OpenAI Whisper quality)
 
 **System:**
-- Speech-to-text accuracy: >90% for clear audio (measured by manual review)
-- Audio recording quality: 16kHz sample rate, mono channel
-- TTS playback latency: <500ms from response received to audio starts
+- Speech-to-text latency: < 2s after recording stops
+- Text-to-speech start: < 500ms after AI response received
+- Audio recording quality: 16kHz+ sample rate, AAC format
 
 **Quality:**
-- 0 blocking bugs (crashes, permission failures, audio device conflicts)
-- All acceptance gates pass
+- 0 blocking bugs in microphone permissions flow
+- Clean error messages for "microphone denied" scenarios
 - Crash-free rate >99% during voice operations
 
 ---
 
 ## 5. Users & Stories
 
-**As a trainer walking between clients**, I want to ask my AI assistant "What did Sarah say about her knee injury?" using voice so that I can prepare for my next session hands-free.
-
-**As a trainer driving**, I want to tell my AI "Schedule a call with Marcus tomorrow at 3pm" using voice so that I can manage my calendar safely without typing.
-
-**As a trainer mid-workout**, I want to have a back-and-forth voice conversation with my AI to review multiple client details without stopping to type.
-
-**As a trainer with limited vision**, I want to use voice as my primary interaction method with the AI so that I can access all features without reading screens.
-
-**As a trainer in a noisy gym**, I want clear visual feedback when my voice is being processed so that I know the system heard me even if I can't hear the audio response.
+- As a trainer walking between sessions, I want to ask "What did Sarah say about her diet?" using voice so I can review client context hands-free.
+- As a trainer driving to a client, I want to ask "Schedule a call with John tomorrow at 6pm" so I can manage my calendar without typing.
+- As a trainer in a loud gym, I want the AI to show transcribed text on screen so I can verify what it heard before processing.
+- As a trainer wearing AirPods, I want AI responses spoken aloud so I can multitask while getting answers.
 
 ---
 
 ## 6. Experience Specification (UX)
 
 ### Entry Points
-1. **AI Assistant View:** Tap microphone button (🎤) in input area to start voice mode
-2. **Voice Mode Toggle:** Settings option to make voice the default input method
+- AI Assistant chat screen (AIAssistantView): Microphone button in bottom toolbar (next to text input)
+- Default mode: Text input visible + mic button available
+- Tap mic → Switches to voice mode
 
-### Primary Flow
-1. User taps microphone button → Button animates to show recording state (pulsing red circle)
-2. User speaks question → Live waveform visualization shows audio levels
-3. User releases button (push-to-talk) or taps stop → Recording ends
-4. System shows "Transcribing..." with spinner → Transcription appears in chat as user message
-5. AI processes request → Shows "AI is thinking..." with typing indicator
-6. AI response appears as text bubble → Automatically starts speaking (TTS)
-7. During TTS playback: Pause/resume controls visible, text highlights as spoken
-8. After response completes: Microphone re-activates for continuous conversation mode
+### Voice Recording Flow
+1. User taps microphone button
+2. Permission check:
+   - If denied: Alert with "Open Settings" button
+   - If allowed: Recording starts immediately
+3. Visual feedback during recording:
+   - Pulsing mic icon (red)
+   - Waveform visualization showing audio levels
+   - Timer showing recording duration (max 60s)
+4. User taps mic again to stop recording (or release if push-to-talk)
+5. Loading state: "Transcribing..." with spinner
+6. Transcribed text appears in message input field
+7. User reviews text and taps "Send" (or auto-send if configured)
+
+### Voice Response Flow
+1. AI generates text response (existing flow from PR #006)
+2. If "Voice Response" toggle enabled:
+   - Text-to-speech begins automatically
+   - Speaker icon appears next to AI message
+   - User can tap speaker icon to replay
+3. User can interrupt TTS playback by speaking again or tapping mic
 
 ### Visual States
-- **Idle:** Gray microphone icon in input field
-- **Recording:** Pulsing red circle with live waveform animation
-- **Transcribing:** Spinner with "Transcribing your message..."
-- **AI Processing:** Typing indicator with "AI is thinking..."
-- **Speaking:** Speaker icon with animated sound waves, highlighted text
-- **Error:** Red microphone with shake animation + error message below
+- **Idle:** Microphone icon (gray) in toolbar
+- **Recording:** Pulsing red mic icon + waveform animation
+- **Transcribing:** Mic disabled + "Transcribing..." spinner
+- **Playing TTS:** Speaker icon (blue) + sound waves animation
+- **Error:** Mic icon with red X + error banner
 
-### Loading/Disabled/Error States
-- **Loading:** Spinner during transcription (2-3s) and AI processing (1-2s)
-- **Disabled:** Microphone grayed out when network offline or permissions denied
-- **Permission Denied:** Alert with "Microphone access required. Open Settings?" with direct link
-- **Transcription Failed:** "Couldn't understand audio. Try speaking clearer?" with retry button
-- **TTS Unavailable:** Falls back to text-only display with notice "Audio unavailable, showing text"
+### Settings
+- Voice Response toggle: ON (default) / OFF
+- Transcription Language: English (default), Spanish, French (future)
+- Auto-send after transcription: ON / OFF (default)
 
 ### Performance Targets
-- Microphone activation: <50ms tap-to-record response
-- Transcription time: <3s for 30-second audio clip
-- AI response generation: <2s (same as text chat with RAG)
-- TTS playback start: <500ms from response received
-- Total round-trip: <5s from "stop recording" to "start speaking response"
+- Microphone activation: < 50ms response time (instant feedback)
+- Speech-to-text latency: < 2s after recording stops
+- Text-to-speech start: < 500ms after AI response received
+- Audio playback: Smooth, no stuttering or buffering
 
 ---
 
 ## 7. Functional Requirements (Must/Should)
 
-**MUST:**
-- MUST integrate OpenAI Whisper API for speech-to-text transcription
-- MUST use iOS AVSpeechSynthesizer for text-to-speech output
-- MUST request microphone permission with clear explanation before first use
-- MUST display live audio waveform during recording for visual feedback
-- MUST support push-to-talk interaction (hold to record, release to send)
-- MUST handle concurrent audio (pause voice if trainer receives phone call)
-- MUST fall back to text display if TTS fails or is disabled
-- MUST work with existing AI features (RAG search, function calling, client profiles)
-- MUST save voice conversations to same `/ai_conversations` collection as text chats
-- MUST allow seamless switching between voice and text mid-conversation
+### Recording Requirements
+- MUST: Request microphone permission on first use with clear explanation
+- MUST: Handle permission denied gracefully (show alert with Settings link)
+- MUST: Capture audio in AAC format at 16kHz+ sample rate
+- MUST: Limit recording duration to 60 seconds (show warning at 50s)
+- MUST: Show real-time waveform during recording for visual feedback
+- MUST: Allow user to cancel recording (X button appears during recording)
+- SHOULD: Support background audio (continue recording if user switches apps)
 
-**SHOULD:**
-- SHOULD support continuous conversation mode (auto-activate mic after AI response)
-- SHOULD allow TTS speed adjustment (0.5x, 1x, 1.5x, 2x)
-- SHOULD support background audio (voice continues playing when app backgrounded)
-- SHOULD cache TTS audio for repeated phrases (e.g., "Let me search for that...")
-- SHOULD show transcription confidence score for low-quality audio
-- SHOULD support hands-free mode toggle in settings (auto-record when view opens)
+**Acceptance Gates:**
+- [Gate] User taps mic → Recording starts within 100ms
+- [Gate] User speaks for 10s → Waveform animates in real-time
+- [Gate] User taps mic again → Recording stops, transcription begins
+- [Gate] Permission denied → Shows "Microphone access required" alert with Settings button
 
-### Acceptance Gates
+### Transcription Requirements
+- MUST: Send audio to OpenAI Whisper API for transcription
+- MUST: Display transcribed text in message input field for review
+- MUST: Allow user to edit transcribed text before sending
+- MUST: Handle transcription errors (empty result, API timeout) with retry option
+- SHOULD: Auto-capitalize first letter and add punctuation
 
-**Voice Recording:**
-- [Gate] Tap microphone → Recording starts within 50ms with waveform visible
-- [Gate] Audio captured at 16kHz mono with AAC compression
-- [Gate] Recording stops on button release → Audio file uploaded to Cloud Function
+**Acceptance Gates:**
+- [Gate] 5-second audio clip → Transcribed text appears within 2s
+- [Gate] Unclear audio → Shows partial transcription + "Try again?" button
+- [Gate] API timeout → Shows "Transcription failed. Retry?" message
+- [Gate] User edits transcription → Edited text sent to AI, not original
 
-**Speech-to-Text:**
-- [Gate] 30-second audio → Transcribed by Whisper API in <3s
-- [Gate] Transcription accuracy >90% for clear English speech (manual test with 10 samples)
-- [Gate] Transcription appears as user message in chat history
+### Text-to-Speech Requirements
+- MUST: Use iOS native AVSpeechSynthesizer for TTS (or OpenAI TTS API as upgrade)
+- MUST: Allow user to toggle TTS on/off in settings
+- MUST: Provide playback controls (pause, replay, stop)
+- MUST: Handle background audio properly (pause music, resume after TTS)
+- SHOULD: Support multiple voices (male/female, different accents)
 
-**Text-to-Speech:**
-- [Gate] AI response received → TTS playback starts within 500ms
-- [Gate] Text highlights as spoken (word-by-word synchronization)
-- [Gate] Pause/resume controls work without audio glitches
-- [Gate] Playback continues in background when app minimized (iOS background audio mode)
+**Acceptance Gates:**
+- [Gate] AI responds → TTS begins within 500ms (if toggle enabled)
+- [Gate] User taps speaker icon on past message → TTS plays that message
+- [Gate] User switches away from app → TTS pauses, resumes when app reopens
+- [Gate] User disables TTS in settings → AI responses silent (text only)
 
-**Conversation Flow:**
-- [Gate] Voice question → AI voice response → Mic auto-activates for follow-up question
-- [Gate] Switch from voice to text input mid-conversation → Conversation history preserved
-- [Gate] Incoming phone call → Voice pauses, resumes after call ends
+### Voice Service Requirements
+- MUST: Create VoiceService.swift for audio recording, transcription, TTS
+- MUST: Integrate with OpenAI Whisper API for speech-to-text
+- MUST: Handle audio session configuration (recording, playback modes)
+- MUST: Manage audio permissions and provide clear error messages
+- SHOULD: Cache TTS audio for replay without re-generating
 
-**Error Handling:**
-- [Gate] Microphone permission denied → Shows settings link + explanation
-- [Gate] Network offline during transcription → Shows "No internet" + saves audio for retry
-- [Gate] Whisper API timeout → Shows retry button + option to type instead
-- [Gate] TTS unavailable → Falls back to text-only display with notice
+**Acceptance Gates:**
+- [Gate] VoiceService.startRecording() → Captures audio to file
+- [Gate] VoiceService.transcribe(audioURL) → Returns transcribed text or error
+- [Gate] VoiceService.speak(text) → Plays TTS audio using AVSpeechSynthesizer
+- [Gate] Recording fails → Returns .microphonePermissionDenied error with recovery action
 
 ---
 
 ## 8. Data Model
 
-No new Firestore collections required. Voice messages integrate with existing AI chat data model.
+### Swift Models
 
-### Existing Collection (Reused)
 ```swift
-/ai_conversations/{conversationId}/messages/{messageId}
-  - role: "user" | "assistant"
-  - content: string (transcribed text or AI response)
-  - timestamp: Timestamp
-  - inputMethod: "text" | "voice"  // NEW FIELD (optional)
-  - audioURL: string?  // NEW FIELD: Cloud Storage path to original audio
-```
+// VoiceRecording.swift
+struct VoiceRecording: Identifiable, Codable {
+    let id: String
+    let audioURL: URL           // Local file URL
+    let duration: TimeInterval  // Recording length in seconds
+    let timestamp: Date
+    var transcription: String?  // nil until transcribed
+    var status: RecordingStatus
 
-### Local Storage (UserDefaults)
-```swift
-// Voice preferences
-VoicePreferences {
-  ttsEnabled: Bool (default: true)
-  ttsRate: Float (0.5-2.0, default: 1.0)
-  autoConversationMode: Bool (default: false)
-  backgroundAudioEnabled: Bool (default: true)
+    enum RecordingStatus: String, Codable {
+        case recording
+        case transcribing
+        case transcribed
+        case failed
+    }
+}
+
+// VoiceSettings.swift
+struct VoiceSettings: Codable {
+    var voiceResponseEnabled: Bool = true
+    var autoSendAfterTranscription: Bool = false
+    var ttsVoice: TTSVoice = .samantha  // iOS voice identifier
+    var transcriptionLanguage: String = "en-US"
+
+    enum TTSVoice: String, Codable {
+        case samantha = "com.apple.ttsbundle.Samantha-compact"
+        case alex = "com.apple.ttsbundle.Alex-compact"
+        case fred = "com.apple.ttsbundle.Fred-compact"
+    }
+}
+
+// VoiceServiceError.swift
+enum VoiceServiceError: Error, LocalizedError {
+    case microphonePermissionDenied
+    case recordingFailed(String)
+    case transcriptionFailed(String)
+    case ttsNotAvailable
+    case audioSessionFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .microphonePermissionDenied:
+            return "Microphone access required. Enable in Settings > Psst > Microphone"
+        case .recordingFailed(let reason):
+            return "Recording failed: \(reason)"
+        case .transcriptionFailed(let reason):
+            return "Couldn't transcribe audio. \(reason). Try again?"
+        case .ttsNotAvailable:
+            return "Text-to-speech unavailable on this device"
+        case .audioSessionFailed(let reason):
+            return "Audio setup failed: \(reason)"
+        }
+    }
 }
 ```
 
-### Audio File Storage
-```
-Firebase Cloud Storage:
-/users/{userId}/voice_recordings/{messageId}.m4a
-- Audio recordings saved for 30 days (auto-delete policy)
-- Used for debugging transcription issues
-- Not required for feature operation (optional archive)
-```
+### Firestore Schema Changes
+**No Firestore changes required** - Voice is a client-side feature. Transcriptions are sent to AI Chat backend as regular text messages using existing `/ai_conversations` schema.
 
-### Validation Rules
-- Audio file size: Max 25MB (enforced client-side before upload)
-- Recording duration: Max 2 minutes per voice message
-- Supported formats: M4A (AAC), WAV (fallback)
-- TTS rate range: 0.5x to 2.0x (AVSpeechUtterance rate limits)
+### UserDefaults Storage
+```swift
+// Store voice settings locally
+UserDefaults.standard
+  - "voiceSettings" → Encoded VoiceSettings JSON
+```
 
 ---
 
 ## 9. API / Service Contracts
 
-### iOS Services
+### VoiceService.swift
 
-#### VoiceService.swift
 ```swift
-/// Manages audio recording, playback, and permissions
 class VoiceService: ObservableObject {
-    // Recording
+    @Published var isRecording = false
+    @Published var currentRecording: VoiceRecording?
+    @Published var audioLevel: Float = 0.0  // For waveform
+
+    private let audioRecorder: AVAudioRecorder?
+    private let audioPlayer: AVAudioPlayer?
+    private let speechSynthesizer: AVSpeechSynthesizer
+
+    // MARK: - Recording
+
+    /// Request microphone permission
     func requestMicrophonePermission() async -> Bool
-    func startRecording() throws
-    func stopRecording() async throws -> URL  // Returns local audio file URL
+
+    /// Start audio recording
+    func startRecording() throws -> VoiceRecording
+
+    /// Stop audio recording and return file URL
+    func stopRecording() async throws -> URL
+
+    /// Cancel current recording and delete file
     func cancelRecording()
 
-    // Playback
-    func speak(text: String, rate: Float) async throws
-    func pauseSpeech()
-    func resumeSpeech()
-    func stopSpeech()
+    /// Get current audio level (0.0 to 1.0) for waveform visualization
+    func getAudioLevel() -> Float
 
-    // Utilities
-    func getAudioLevels() -> Float  // For waveform visualization
-    func isRecording() -> Bool
-    func isSpeaking() -> Bool
-}
+    // MARK: - Transcription
 
-// Errors
-enum VoiceServiceError: Error {
-    case microphonePermissionDenied
-    case recordingFailed(String)
-    case audioSessionError(String)
-    case playbackFailed(String)
-}
-```
+    /// Transcribe audio file using OpenAI Whisper API
+    func transcribe(audioURL: URL, language: String) async throws -> String
 
-#### AIService.swift (Extended)
-```swift
-extension AIService {
-    /// Transcribe audio using OpenAI Whisper API
-    /// - Parameter audioURL: Local file URL of M4A/WAV audio
-    /// - Returns: Transcribed text
-    func transcribeAudio(audioURL: URL) async throws -> String
+    // MARK: - Text-to-Speech
 
-    /// Process voice input end-to-end
-    /// - Parameter audioURL: Local audio file
-    /// - Returns: AI response text + conversation ID
-    func processVoiceMessage(audioURL: URL) async throws -> (response: String, conversationId: String)
-}
+    /// Speak text using AVSpeechSynthesizer
+    func speak(text: String, voice: VoiceSettings.TTSVoice)
 
-enum AIServiceError {
-    case transcriptionFailed(String)
-    case whisperAPITimeout
-    case unsupportedAudioFormat
+    /// Stop current TTS playback
+    func stopSpeaking()
+
+    /// Check if TTS is currently playing
+    var isSpeaking: Bool { get }
+
+    // MARK: - Settings
+
+    /// Load voice settings from UserDefaults
+    func loadSettings() -> VoiceSettings
+
+    /// Save voice settings to UserDefaults
+    func saveSettings(_ settings: VoiceSettings)
 }
 ```
 
-### Cloud Functions (TypeScript)
+### OpenAI Whisper API Integration
 
-#### transcribeAudio (NEW)
-```typescript
-/**
- * Transcribes audio file using OpenAI Whisper API
- * POST /transcribeAudio
- */
-interface TranscribeRequest {
-  userId: string;
-  audioURL: string;  // Firebase Storage path
-}
+**Endpoint:** `POST https://api.openai.com/v1/audio/transcriptions`
 
-interface TranscribeResponse {
-  text: string;
-  confidence?: number;  // Optional confidence score
-  duration: number;  // Audio duration in seconds
-}
+**Request:**
+```
+Headers:
+  Authorization: Bearer {OPENAI_API_KEY}
+  Content-Type: multipart/form-data
 
-export const transcribeAudio = functions.https.onCall(
-  async (data: TranscribeRequest, context): Promise<TranscribeResponse>
-);
-
-// Implementation:
-// 1. Download audio from Cloud Storage
-// 2. Convert to format Whisper accepts (M4A/WAV)
-// 3. Call OpenAI Whisper API
-// 4. Return transcription text
-// 5. Store transcription in /ai_conversations for history
+Body:
+  file: {audio.m4a}  // AAC audio file
+  model: "whisper-1"
+  language: "en"  // Optional, auto-detect if omitted
+  response_format: "json"  // or "verbose_json" for timestamps
 ```
 
-#### Existing: chatWithAI
-```typescript
-// Already supports voice input via transcribed text
-// No changes needed - voice transcriptions flow through existing pipeline
+**Response:**
+```json
+{
+  "text": "What did Sarah say about her diet?"
+}
 ```
 
-### Pre/Post-Conditions
-
-**VoiceService.startRecording():**
-- **Pre:** Microphone permission granted, no other recording in progress
-- **Post:** Audio recording active, audio levels available for waveform
-- **Errors:** Throws `microphonePermissionDenied` if permission not granted
-
-**AIService.transcribeAudio():**
-- **Pre:** Valid audio file URL (M4A/WAV), file size <25MB, internet connection
-- **Post:** Returns transcribed text, saves to conversation history
-- **Errors:** Throws `whisperAPITimeout` if >10s, `transcriptionFailed` if Whisper errors
-
-**VoiceService.speak():**
-- **Pre:** TTS enabled in settings, valid text string
-- **Post:** Audio playing through device speakers/headphones
-- **Errors:** Throws `playbackFailed` if AVSpeechSynthesizer unavailable
+**Error Handling:**
+- 400: Invalid audio format → "Audio format not supported"
+- 401: Invalid API key → "Authentication failed"
+- 413: File too large (>25MB) → "Recording too long. Max 60 seconds"
+- 429: Rate limit exceeded → "Too many requests. Try again in a moment"
+- 500: Server error → "Transcription service unavailable. Retry?"
 
 ---
 
 ## 10. UI Components to Create/Modify
 
-### New Files
+### New Components
+- `Views/AI/VoiceRecordingView.swift` — Voice recording UI with waveform and controls
+- `Components/WaveformView.swift` — Real-time audio waveform visualization
+- `Components/VoiceButton.swift` — Microphone button with recording states
+- `Views/Settings/VoiceSettingsView.swift` — Voice preferences configuration
 
-**Views/AI/VoiceInputView.swift**
-- Voice recording interface with push-to-talk button
-- Live audio waveform visualization (AVAudioRecorder metering)
-- Visual states: idle, recording, transcribing, error
-- Floating microphone button with animation
+### Modified Components
+- `Views/AI/AIAssistantView.swift` — Add voice button to toolbar, integrate voice recording
+- `ViewModels/AIAssistantViewModel.swift` — Add voice state management
+- `Services/AIService.swift` — Potentially add OpenAI TTS support (future upgrade)
 
-**Views/AI/VoicePlaybackView.swift**
-- TTS playback controls (pause, resume, stop, speed)
-- Text highlighting synchronized with speech
-- Progress indicator showing playback position
-- Waveform visualization during playback
-
-**Views/AI/AudioWaveformView.swift**
-- Reusable waveform visualization component
-- Real-time audio level display (0-100 bars)
-- Animated bars scaling with volume
-
-**ViewModels/VoiceInputViewModel.swift**
-- Manages recording state (idle, recording, transcribing, error)
-- Coordinates VoiceService and AIService
-- Handles permission requests and error states
-- Publishes audio levels for waveform
-
-**ViewModels/VoicePlaybackViewModel.swift**
-- Manages TTS playback state (playing, paused, stopped)
-- Tracks playback progress for text highlighting
-- Handles speed adjustment and background audio
-
-**Services/VoiceService.swift**
-- Audio recording using AVAudioRecorder
-- TTS playback using AVSpeechSynthesizer
-- Microphone permission handling
-- Audio session management (handles interruptions)
-
-**Models/VoicePreferences.swift**
-- User settings for voice features
-- TTS rate, auto-conversation mode, background audio
-
-### Modified Files
-
-**Views/AI/AIAssistantView.swift**
-- Add microphone button to input area (replaces keyboard icon when in voice mode)
-- Integrate VoiceInputView as bottom sheet
-- Add voice/text mode toggle in top bar
-- Show "Speaking..." indicator during TTS playback
-
-**ViewModels/AIAssistantViewModel.swift**
-- Add `isVoiceMode: Bool` state
-- Handle voice input flow (record → transcribe → AI response → TTS)
-- Coordinate with VoiceInputViewModel
-
-**Services/AIService.swift**
-- Add `transcribeAudio(audioURL:)` method calling Cloud Function
-- Add `processVoiceMessage(audioURL:)` combining transcription + chat
-- Extend existing `chatWithAI()` to accept `inputMethod` parameter
-
-**Views/Settings/SettingsView.swift**
-- Add "Voice Settings" section with:
-  - TTS enabled toggle
-  - TTS speed slider (0.5x-2.0x)
-  - Auto conversation mode toggle
-  - Background audio toggle
-  - Test voice button (speaks sample text)
+### New Services
+- `Services/VoiceService.swift` — Core voice recording, transcription, TTS logic
+- `Services/AudioSessionService.swift` — AVAudioSession configuration and management
 
 ---
 
 ## 11. Integration Points
 
-**OpenAI Whisper API:**
-- Endpoint: `POST https://api.openai.com/v1/audio/transcriptions`
-- Authentication: OpenAI API key (server-side only)
-- Request: Multipart form-data with audio file (M4A/WAV)
-- Response: `{ "text": "transcribed text" }`
-- Rate limits: 50 requests/minute (check OpenAI tier)
+### iOS Frameworks
+- **AVFoundation:** AVAudioRecorder, AVAudioPlayer, AVAudioSession
+- **Speech:** AVSpeechSynthesizer, AVSpeechUtterance, AVSpeechSynthesisVoice
+- **SwiftUI:** @Published properties for reactive UI updates
+- **Combine:** Audio level monitoring via Timer.publish
 
-**iOS AVFoundation (AVAudioRecorder):**
-- Audio format: M4A (AAC), 16kHz sample rate, mono channel
-- Audio session category: `playAndRecord` (allows simultaneous play/record)
-- Audio interruptions: Handle phone calls, alarms, other app audio
+### External APIs
+- **OpenAI Whisper API:** Speech-to-text transcription
+- **OpenAI TTS API (Future):** High-quality text-to-speech (upgrade from AVSpeechSynthesizer)
 
-**iOS AVFoundation (AVSpeechSynthesizer):**
-- Voice: iOS system voice (English US default)
-- Rate: Adjustable 0.5x-2.0x via `AVSpeechUtterance.rate`
-- Background audio: Enable via `AVAudioSession.setCategory(.playback)`
+### Existing Services
+- **AIService.swift:** Voice transcriptions sent as text to existing `chatWithAI()` flow
+- **AI Conversations:** Voice interactions stored in `/ai_conversations` as text messages
 
-**Firebase Cloud Storage:**
-- Upload audio recordings to `/users/{userId}/voice_recordings/`
-- Auto-delete after 30 days via Cloud Storage lifecycle rule
-- Download URLs passed to Cloud Function for transcription
-
-**Existing AI Infrastructure:**
-- Voice transcriptions feed into existing `chatWithAI()` function
-- RAG search works identically for voice vs text input
-- Function calling (schedule, remind) triggered same way
-
-**State Management:**
-- SwiftUI `@StateObject` for ViewModels
-- Combine publishers for real-time audio levels
-- `@EnvironmentObject` for shared AIService, VoiceService
+### Permissions
+- **Microphone:** NSMicrophoneUsageDescription in Info.plist
+- **Speech Recognition (Future):** NSSpeechRecognitionUsageDescription if using iOS Speech framework
 
 ---
 
 ## 12. Testing Plan & Acceptance Gates
 
 ### Happy Path
-- [ ] **Flow:** Trainer taps mic → speaks "What did Sarah say about her knee?" → releases button → sees transcription → hears AI response
-- [ ] **Gate:** Entire flow completes in <5 seconds from button release to TTS start
-- [ ] **Pass:** Transcription accurate (matches spoken words), AI response contextually relevant (RAG search works), TTS plays clearly
+- [ ] User opens AI Assistant → Taps microphone button → Speaks "What did Sarah say about her diet?" → Stops recording
+- [ ] **Gate:** Audio transcribes to text within 2 seconds
+- [ ] User taps "Send" → AI responds with text → TTS speaks response aloud (if enabled)
+- [ ] **Gate:** TTS begins within 500ms of AI response
+- [ ] **Pass Criteria:** End-to-end voice query completed in <5s, clear audio playback
+
+**Example Flow:**
+1. Open AIAssistantView
+2. Tap microphone button (grants permission if first use)
+3. Speak: "Schedule a call with John tomorrow at 6pm"
+4. Tap mic to stop
+5. Transcription appears: "Schedule a call with John tomorrow at 6pm"
+6. Review and tap Send
+7. AI responds: "I've scheduled a call with John for tomorrow at 6:00 PM"
+8. TTS speaks the response aloud
+9. User hears confirmation through speaker/headphones
+
+---
 
 ### Edge Cases
 
-**Edge Case 1: Very Short Audio (<1 second)**
-- **Test:** Tap mic, say "Hi", release immediately
-- **Expected:** Transcription still works, shows "Hi" in chat, AI responds normally
-- **Pass:** No crashes, minimum audio duration handled (>0.5s), or shows "Audio too short, try again"
+- [ ] **Edge Case 1: Background noise / unclear audio**
+  - **Test:** Record in noisy environment (gym background noise)
+  - **Expected:** Partial transcription appears + "Audio unclear. Try again?" button
+  - **Pass:** Handles gracefully, allows retry, no crash
 
-**Edge Case 2: Very Long Audio (>2 minutes)**
-- **Test:** Record audio for 3+ minutes (long rambling question)
-- **Expected:** Recording auto-stops at 2-minute mark, shows "Max recording length reached"
-- **Pass:** Audio trimmed to 2 minutes, transcription processes truncated audio, no crash
+- [ ] **Edge Case 2: Very short recording (< 1 second)**
+  - **Test:** Tap mic → Immediately stop recording
+  - **Expected:** Shows "Recording too short. Please try again"
+  - **Pass:** No API call made, clear feedback, retry available
 
-**Edge Case 3: Background Noise (Gym Environment)**
-- **Test:** Record audio with loud background music/talking
-- **Expected:** Whisper API transcribes with lower accuracy, possibly includes noise words
-- **Pass:** System doesn't crash, shows transcription (even if imperfect), user can retry or switch to text
+- [ ] **Edge Case 3: Maximum recording length (60 seconds)**
+  - **Test:** Hold mic button for 60+ seconds
+  - **Expected:** Auto-stops at 60s, shows "Maximum length reached", proceeds to transcription
+  - **Pass:** Doesn't crash, transcribes 60s audio successfully
 
-**Edge Case 4: Rapid Conversation (Multiple Quick Exchanges)**
-- **Test:** Ask question, get response, immediately ask follow-up before TTS finishes
-- **Expected:** TTS stops mid-sentence, mic activates for new recording
-- **Pass:** No audio overlap, smooth transition, conversation history preserved
+- [ ] **Edge Case 4: User switches away during recording**
+  - **Test:** Start recording → Switch to Messages app → Return to Psst
+  - **Expected:** Recording continues in background (if supported) or pauses gracefully
+  - **Pass:** No data loss, recording completes or provides clear "Recording paused" message
 
-**Edge Case 5: Switching Between Voice and Text Mid-Conversation**
-- **Test:** Start with voice question, then type text response, then back to voice
-- **Expected:** Conversation flows naturally, both input methods save to same conversation
-- **Pass:** No conversation reset, history shows mixed voice/text messages
+---
 
 ### Error Handling
 
-**Offline Mode:**
-- **Test:** Enable airplane mode → attempt voice recording → release button
-- **Expected:** Shows "No internet connection. Voice requires internet for transcription."
-- **Pass:** Audio saved locally, option to retry when online or switch to text input
+- [ ] **Microphone Permission Denied**
+  - **Test:** User denies microphone permission on first request
+  - **Expected:** Alert appears: "Microphone access required. Enable in Settings > Psst > Microphone" with "Open Settings" button
+  - **Pass:** Clear message, actionable button, doesn't crash
 
-**Microphone Permission Denied:**
-- **Test:** First launch, deny microphone permission → tap voice button
-- **Expected:** Alert: "Psst needs microphone access for voice chat. Open Settings?" with [Cancel] [Settings] buttons
-- **Pass:** Tapping Settings opens iOS Settings app to Psst permissions, denying shows fallback text input
+- [ ] **Offline Mode (No Internet)**
+  - **Test:** Enable airplane mode → Attempt voice recording → Stop recording
+  - **Expected:** Recording completes locally → "No internet connection. Transcription pending..." → Queues for retry when online
+  - **Pass:** Recording saved, clear offline indicator, auto-retries when online
 
-**Whisper API Timeout:**
-- **Test:** Send audio during API outage or slow network (simulate 30s timeout)
-- **Expected:** Spinner shows for 10s max, then "Transcription taking too long. Try again?"
-- **Pass:** Timeout handled gracefully, retry button works, option to view/edit raw audio
+- [ ] **OpenAI Whisper API Timeout**
+  - **Test:** Simulate slow network → Record audio → API timeout during transcription
+  - **Expected:** "Transcription taking longer than expected. Retry?" with retry button
+  - **Pass:** Timeout handled gracefully, retry option provided
 
-**TTS Unavailable (iOS Bug or Resource Constraint):**
-- **Test:** Trigger AVSpeechSynthesizer failure (simulate by force-stopping audio engine)
-- **Expected:** AI response appears as text with notice: "Audio playback unavailable. Showing text instead."
-- **Pass:** User can still read response, no crash, playback icon hidden
+- [ ] **TTS Voice Not Available**
+  - **Test:** Select TTS voice that's not downloaded on device
+  - **Expected:** Falls back to default iOS voice or shows "Downloading voice..." progress
+  - **Pass:** TTS still works with fallback, no silence or crash
 
-**Audio Session Interrupted (Phone Call):**
-- **Test:** Start voice recording → receive phone call → answer call → hang up
-- **Expected:** Recording auto-stops when call arrives, shows "Recording interrupted" message
-- **Pass:** No crash, user can restart recording after call, audio session properly restored
+- [ ] **Audio Session Conflict (Music Playing)**
+  - **Test:** Play Spotify → Open Psst → Start voice recording
+  - **Expected:** Spotify pauses → Recording begins → After TTS playback, Spotify resumes (or doesn't, depending on audio session config)
+  - **Pass:** Clear audio session handling, no audio glitches
 
-**Concurrent Audio (Music Playing):**
-- **Test:** Play music in Apple Music → open Psst → start voice recording
-- **Expected:** Music pauses/ducks, recording captures voice only
-- **Pass:** Audio session category `playAndRecord` handles mixing, music resumes after recording
-
-### Multi-Device Testing
-**Not applicable** - Voice is local device feature only (no sync required)
+---
 
 ### Performance Check
 
-**Subjective:**
-- [ ] Voice recording feels instant (<50ms latency from tap to waveform)
-- [ ] TTS voice sounds natural (not robotic)
-- [ ] Waveform animations smooth (60fps)
-- [ ] No audio glitches or crackling during playback
+- [ ] Speech-to-text latency measured (target: <2s after recording stops)
+- [ ] TTS start latency measured (target: <500ms after AI response)
+- [ ] Recording feels instant (tap mic → red animation within 50ms)
+- [ ] Waveform animation smooth (no stuttering during recording)
 
-**Measured:**
-- [ ] Transcription time for 30s audio: <3 seconds
-- [ ] TTS playback start latency: <500ms from response received
-- [ ] Total round-trip (speak → hear response): <5 seconds for typical question
-- [ ] Audio file upload time: <1 second for 30s M4A file
+**If performance issues:**
+- [ ] Optimize audio level sampling (reduce frequency if needed)
+- [ ] Pre-load TTS synthesizer to reduce first-playback delay
+- [ ] Compress audio before sending to Whisper API
+
+---
+
+### Optional: Multi-Device Testing
+
+**Not applicable** - Voice is a client-side feature, no cross-device sync required.
 
 ---
 
 ## 13. Definition of Done
 
-**Service Layer:**
-- [ ] VoiceService.swift implemented with recording, playback, permissions
-- [ ] AIService.transcribeAudio() integrated with Whisper API
-- [ ] Cloud Function `transcribeAudio` deployed and tested
-- [ ] All service methods have proper error handling (try/catch, async/await)
-
-**UI Components:**
-- [ ] VoiceInputView with push-to-talk and waveform visualization
-- [ ] VoicePlaybackView with pause/resume/speed controls
-- [ ] AudioWaveformView reusable component
-- [ ] AIAssistantView modified with voice mode toggle
-- [ ] Settings page with voice preferences
-
-**State Management:**
-- [ ] VoiceInputViewModel manages recording states
-- [ ] VoicePlaybackViewModel manages TTS states
-- [ ] All states (idle, recording, transcribing, speaking, error) handled
-
-**Testing:**
-- [ ] All acceptance gates pass (happy path, edge cases, errors)
-- [ ] Manual testing completed on physical device (simulators don't support mic well)
-- [ ] Tested with AirPods, car Bluetooth, and device speaker
-- [ ] Background audio mode verified (works when app backgrounded)
-
-**Documentation:**
-- [ ] Inline comments for AVAudioRecorder setup
-- [ ] Voice settings documented in README
-- [ ] Known limitations documented (requires internet, English only)
-
-**Performance:**
-- [ ] Transcription <3s for 30s audio verified
-- [ ] TTS latency <500ms verified
-- [ ] No memory leaks in audio recording (Instruments checked)
+- [ ] VoiceService.swift implemented with recording, transcription, TTS methods
+- [ ] VoiceRecordingView.swift with waveform visualization and recording controls
+- [ ] VoiceButton component integrated into AIAssistantView toolbar
+- [ ] Microphone permission flow with clear error messages
+- [ ] OpenAI Whisper API integration with error handling
+- [ ] AVSpeechSynthesizer TTS implementation with playback controls
+- [ ] VoiceSettingsView for user preferences (toggle TTS, select voice)
+- [ ] All acceptance gates pass (recording, transcription, TTS, permissions)
+- [ ] Manual testing completed (happy path, edge cases, error handling)
+- [ ] No console errors during voice operations
+- [ ] Documentation updated (inline comments, README if needed)
 
 ---
 
 ## 14. Risks & Mitigations
 
-**Risk: Whisper API costs escalate with heavy usage**
-- Mitigation: Monitor API usage via OpenAI dashboard, implement client-side caching for repeated questions, set monthly budget alerts
+**Risk:** OpenAI Whisper API costs add up with heavy usage (transcriptions not free)
+- **Mitigation:** Monitor usage via Cloud Function logging, set budget alerts, consider caching transcriptions for replay
 
-**Risk: Poor transcription accuracy in noisy environments**
-- Mitigation: Use Whisper's `large-v3` model for better noise handling, show confidence scores to user, allow manual correction of transcription
+**Risk:** Microphone permission denied by users, blocking voice feature entirely
+- **Mitigation:** Clear permission request explanation ("Voice lets you talk to AI hands-free"), Settings shortcut in error message, fallback to text input always available
 
-**Risk: TTS voice sounds robotic or unnatural**
-- Mitigation: Use iOS premium voices if available, allow users to choose voice in settings, provide speed adjustment for clarity
+**Risk:** TTS quality with AVSpeechSynthesizer sounds robotic compared to OpenAI TTS
+- **Mitigation:** Start with AVSpeechSynthesizer (free, fast), plan upgrade to OpenAI TTS API in Phase 5 for premium users
 
-**Risk: Audio session conflicts with other apps (music, podcasts)**
-- Mitigation: Properly configure AVAudioSession categories, duck background audio during recording, restore audio after playback
+**Risk:** Audio session conflicts with other apps (Spotify, Apple Music)
+- **Mitigation:** Use AVAudioSession.Category.playAndRecord with .duckOthers option to lower other audio during recording/TTS
 
-**Risk: Battery drain from continuous audio processing**
-- Mitigation: Auto-stop recording after 2 minutes max, disable auto-conversation mode by default, optimize audio encoding (AAC vs WAV)
+**Risk:** Background recording drains battery
+- **Mitigation:** Limit recording to 60 seconds max, disable background recording if battery impact is high
 
-**Risk: Microphone permission denial blocks entire feature**
-- Mitigation: Show clear permission request explanation, provide deep link to Settings, maintain text input as fallback
+**Risk:** Poor transcription accuracy in noisy environments (gym background noise)
+- **Mitigation:** Show transcribed text before sending so user can edit, provide "Try again" button, consider noise cancellation in future
 
 ---
 
 ## 15. Rollout & Telemetry
 
-**Feature Flag:** No (always on for users who grant mic permission)
+### Feature Flag
+- No feature flag required - Voice is additive (doesn't break existing text input)
+- Users can opt-out by not using microphone button
 
-**Metrics to Track:**
-- Voice usage rate: % of AI conversations using voice vs text
-- Transcription accuracy: Manual review of 100 sample transcriptions
-- Error rate: Transcription failures, TTS failures, permission denials
-- Average round-trip time: Speak → hear response
-- User retention: Do trainers keep using voice after first try?
+### Metrics to Track
+- **Usage:** % of AI queries via voice vs text
+- **Transcription success rate:** % of recordings successfully transcribed
+- **TTS usage:** % of users with TTS enabled
+- **Permission denial rate:** % of users who deny microphone permission
+- **Error rate:** Whisper API failures, audio recording failures
+- **Latency:** Average transcription time, TTS start time
 
-**Manual Validation Steps:**
-1. Test on physical iPhone (not simulator) with microphone
-2. Test with different audio sources: AirPods, Bluetooth car, speaker
-3. Test in noisy environment (gym simulation)
-4. Test background audio mode (lock phone during TTS playback)
-5. Verify Whisper API costs align with projections (check OpenAI billing)
+### Manual Validation Steps
+1. Record 5-second audio clip → Verify transcription accuracy
+2. Send voice query → Verify AI response + TTS playback
+3. Test in noisy environment → Verify partial transcription handling
+4. Deny microphone permission → Verify clear error message + Settings link
+5. Toggle TTS on/off in settings → Verify audio playback behavior
 
 ---
 
 ## 16. Open Questions
 
-**Q1:** Should we support multiple languages or English-only for MVP?
-- **Decision needed:** Check Whisper API language support, prioritize based on user base
+- **Q1:** Should we use OpenAI TTS API or AVSpeechSynthesizer for V1?
+  - **Decision:** Start with AVSpeechSynthesizer (free, fast, no API dependency). Upgrade to OpenAI TTS in Phase 5 if needed.
 
-**Q2:** Should we save audio recordings permanently or auto-delete?
-- **Proposal:** Auto-delete after 30 days for storage cost management
+- **Q2:** Should recording be push-to-talk (hold button) or tap-to-start/tap-to-stop?
+  - **Decision:** Tap-to-start/tap-to-stop (simpler UX, easier to record longer queries). Push-to-talk can be added as option later.
 
-**Q3:** Should TTS be interruptible mid-sentence?
-- **Proposal:** Yes - allow users to tap mic to interrupt and ask follow-up
-
-**Q4:** Do we need wake word detection ("Hey Psst")?
-- **Proposal:** Defer to Phase 5 - manual tap activation is simpler for MVP
+- **Q3:** Should we support wake word detection ("Hey Psst")?
+  - **Decision:** Out of scope for V1. Requires background listening, privacy concerns, battery impact. Future Phase 5 enhancement.
 
 ---
 
 ## 17. Appendix: Out-of-Scope Backlog
 
-Items deferred for future enhancements:
-
-- [ ] **Wake word detection** - "Hey Psst" hands-free activation
-- [ ] **Voice message history playback** - Replay original audio recordings
-- [ ] **Multi-language support** - Spanish, French transcription
-- [ ] **Custom TTS voices** - Celebrity voices, trainer-recorded samples
-- [ ] **Voice notes to clients** - Send voice messages in regular chats
-- [ ] **Real-time streaming transcription** - Show words as spoken (WebSocket)
-- [ ] **Voice biometrics** - Identify trainer by voice for security
-- [ ] **Noise cancellation** - AI-powered background noise filtering
+Items deferred for future:
+- [ ] Wake word detection ("Hey Psst" to activate)
+- [ ] Continuous conversation mode (interrupt AI mid-response)
+- [ ] Voice message sending in regular chats (non-AI conversations)
+- [ ] Voice cloning to match trainer's actual voice
+- [ ] Offline transcription using iOS Speech framework
+- [ ] Voice command shortcuts ("Remind me to...", "Find clients with...")
+- [ ] Multi-language transcription (Spanish, French beyond English)
+- [ ] Noise cancellation and audio enhancement
 
 ---
 
 ## Preflight Questionnaire
 
 1. **Smallest end-to-end user outcome for this PR?**
-   - Trainer speaks question → AI answers with voice
+   - Trainer speaks to AI Assistant → Gets spoken response back (hands-free interaction)
 
 2. **Primary user and critical action?**
-   - Trainer on-the-go → Tap mic, speak, hear response
+   - Trainers (Marcus, Alex) → Tap mic, speak query, receive AI response via audio
 
 3. **Must-have vs nice-to-have?**
-   - Must: Recording, transcription, TTS playback
-   - Nice: Speed control, auto-conversation mode, background audio
+   - Must: Recording, Whisper transcription, text input pre-fill, TTS toggle
+   - Nice: Waveform animation, multiple TTS voices, auto-send, background recording
 
 4. **Real-time requirements?**
-   - No multi-device sync (local audio only)
-   - Target <5s total round-trip time
+   - Not applicable (no cross-device sync)
 
 5. **Performance constraints?**
-   - Transcription: <3s for 30s audio
-   - TTS latency: <500ms to start playback
-   - Recording activation: <50ms tap response
+   - Transcription latency: < 2s (Whisper API dependent)
+   - TTS start: < 500ms (iOS AVSpeechSynthesizer)
+   - Recording start: < 50ms (instant feedback critical)
 
 6. **Error/edge cases to handle?**
-   - Permission denial, API timeout, offline mode, concurrent audio, interruptions
+   - Microphone permission denied, offline mode, API timeout, unclear audio, audio session conflicts, TTS voice unavailable
 
 7. **Data model changes?**
-   - Add optional fields to `/ai_conversations/messages`: `inputMethod`, `audioURL`
-   - Local VoicePreferences in UserDefaults
+   - Client-side only (VoiceRecording, VoiceSettings models in Swift)
+   - No Firestore schema changes (transcriptions sent as text to existing AI chat)
 
 8. **Service APIs required?**
-   - VoiceService (recording, playback, permissions)
-   - AIService.transcribeAudio() (Whisper API)
-   - Cloud Function: transcribeAudio
+   - VoiceService.swift (recording, transcription, TTS)
+   - OpenAI Whisper API integration (speech-to-text)
+   - AVSpeechSynthesizer (text-to-speech)
 
 9. **UI entry points and states?**
-   - Entry: Microphone button in AIAssistantView
-   - States: Idle, recording, transcribing, thinking, speaking, error
+   - Entry: Microphone button in AIAssistantView toolbar
+   - States: Idle, Recording, Transcribing, Playing TTS, Error
 
 10. **Security/permissions implications?**
-    - Microphone permission required (iOS Privacy - Microphone Usage Description)
-    - Audio files temporarily stored in Cloud Storage (auto-delete 30 days)
+    - Microphone permission required (NSMicrophoneUsageDescription in Info.plist)
+    - Audio recordings stored locally, sent to OpenAI Whisper API (privacy consideration)
 
 11. **Dependencies or blocking integrations?**
-    - Depends: PR #004 (AI Chat UI - base interface)
-    - Depends: PR #003 (AI Chat Backend - chatWithAI function)
-    - New: OpenAI Whisper API integration
+    - Depends on PR #006 (AI Chat UI) - already complete
+    - OpenAI Whisper API access (existing OpenAI account from PR #001)
 
 12. **Rollout strategy and metrics?**
-    - No feature flag (always available if mic permission granted)
-    - Track: Voice usage rate, transcription accuracy, error rate, round-trip time
+    - Soft launch: Available to all users immediately (additive feature)
+    - Metrics: Voice usage %, transcription success rate, TTS toggle rate
 
 13. **What is explicitly out of scope?**
-    - Voice messages to clients (only AI assistant)
-    - Wake word detection
-    - Multi-language support (English only)
-    - Custom voices
+    - Wake word detection, voice cloning, offline transcription, continuous conversation mode, voice messages in regular chats
 
 ---
 
 ## Authoring Notes
 
-- Write Test Plan before coding (✅ Completed above)
-- Favor vertical slice that ships standalone (✅ Voice input → TTS output is complete flow)
-- Keep service layer deterministic (✅ VoiceService has clear inputs/outputs)
-- SwiftUI views are thin wrappers (✅ ViewModels handle business logic)
-- Test offline/online thoroughly (✅ Covered in error handling tests)
-- Reference `Psst/agents/shared-standards.md` throughout (✅ Performance targets aligned)
+- Voice feature is additive to existing AI Chat (PR #006) - doesn't modify existing text-based flow
+- Focus on microphone permissions UX - many users hesitant to grant permission
+- Whisper API costs money - log usage for budget tracking
+- AVSpeechSynthesizer is "good enough" for V1, can upgrade to OpenAI TTS later
+- Waveform visualization is nice-to-have but important for user confidence during recording
+- Always show transcribed text before sending - allows error correction
+- Test thoroughly in real-world conditions (gym noise, AirPods, driving scenarios)
 
----
-
-**Document Status:** ✅ Ready for Caleb to implement
-**Next Steps:** Create TODO, then `/caleb 011` to begin implementation
