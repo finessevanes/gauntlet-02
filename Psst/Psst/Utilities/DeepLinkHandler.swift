@@ -33,31 +33,29 @@ class DeepLinkHandler: ObservableObject {
     /// - Returns: Bool indicating if deep link was successfully processed
     func processNotificationData(_ userInfo: [AnyHashable: Any]) -> Bool {
         print("[DeepLinkHandler] 🔗 Processing notification data")
-        
-        guard let data = userInfo["data"] as? [String: Any] else {
-            print("[DeepLinkHandler] ❌ No data found in notification")
-            return false
-        }
-        
-        guard let chatId = data["chatId"] as? String else {
+        print("[DeepLinkHandler] 📦 UserInfo contents: \(userInfo)")
+
+        // FCM flattens data fields to top level of userInfo, not nested under "data" key
+        guard let chatId = userInfo["chatId"] as? String else {
             print("[DeepLinkHandler] ❌ No chatId found in notification data")
+            print("[DeepLinkHandler] Available keys: \(userInfo.keys)")
             return false
         }
-        
-        guard let type = data["type"] as? String, type == "new_message" else {
-            print("[DeepLinkHandler] ❌ Invalid notification type: \(data["type"] ?? "unknown")")
+
+        guard let type = userInfo["type"] as? String, type == "new_message" else {
+            print("[DeepLinkHandler] ❌ Invalid notification type: \(userInfo["type"] ?? "unknown")")
             return false
         }
-        
+
         print("[DeepLinkHandler] ✅ Valid deep link data - Chat ID: \(chatId)")
-        
+
         Task {
             await MainActor.run {
                 self.isProcessingDeepLink = true
                 self.targetChatId = chatId
             }
         }
-        
+
         return true
     }
     

@@ -50,19 +50,21 @@ export const onMessageCreate = functions.firestore
         return null;
       }
       
-      // Get sender name for notification
-      const senderName = await getSenderName(senderId);
-      
+      // Get sender info for notification
+      const senderInfo = await getSenderInfo(senderId);
+
       // Create notification payload
       const payload = {
         notification: {
-          title: `New message from ${senderName}`,
-          body: messageText
+          title: `message from ${senderInfo.name}`,
+          body: messageText,
+          ...(senderInfo.imageUrl && { imageUrl: senderInfo.imageUrl })
         },
         data: {
           chatId: chatId,
           messageId: messageId,
           senderId: senderId,
+          senderName: senderInfo.name,
           type: 'new_message'
         }
       };
@@ -133,22 +135,25 @@ async function getFCMTokens(userIds: string[]): Promise<string[]> {
 }
 
 /**
- * Get sender's display name
+ * Get sender's display name and profile picture
  */
-async function getSenderName(senderId: string): Promise<string> {
+async function getSenderInfo(senderId: string): Promise<{ name: string; imageUrl?: string }> {
   try {
     const userDoc = await admin.firestore().collection('users').doc(senderId).get();
-    
+
     if (userDoc.exists) {
       const userData = userDoc.data();
-      return userData?.displayName || userData?.email || 'Unknown User';
+      const name = userData?.displayName || userData?.email || 'Unknown User';
+      const imageUrl = userData?.photoURL || userData?.profileImageUrl || undefined;
+
+      return { name, imageUrl };
     }
-    
-    return 'Unknown User';
-    
+
+    return { name: 'Unknown User' };
+
   } catch (error) {
-    console.error('[CloudFunction] Error getting sender name:', error);
-    return 'Unknown User';
+    console.error('[CloudFunction] Error getting sender info:', error);
+    return { name: 'Unknown User' };
   }
 }
 
