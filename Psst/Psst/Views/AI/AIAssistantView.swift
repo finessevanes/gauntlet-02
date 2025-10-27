@@ -12,6 +12,7 @@ import SwiftUI
 struct AIAssistantView: View {
     @StateObject private var viewModel = AIAssistantViewModel()
     @FocusState private var isInputFocused: Bool
+    @State private var showVoiceRecording = false // PR #011 Phase 3
 
     var body: some View {
         NavigationView {
@@ -19,6 +20,20 @@ struct AIAssistantView: View {
                 mainContentView
                 overlaysView
             }
+        }
+        .sheet(isPresented: $showVoiceRecording) {
+            VoiceRecordingView(
+                voiceService: viewModel.voiceService,
+                isPresented: $showVoiceRecording,
+                onTranscriptionComplete: { transcribedText in
+                    viewModel.currentInput = transcribedText
+
+                    // Auto-send if enabled in settings
+                    if VoiceSettings.load().autoSendAfterTranscription {
+                        viewModel.sendMessage()
+                    }
+                }
+            )
         }
     }
 
@@ -372,13 +387,13 @@ struct AIAssistantView: View {
 
     private var inputView: some View {
         HStack(spacing: 12) {
-            // Voice Button (PR #011 Phase 1)
+            // Voice Button (PR #011 Phase 3)
             VoiceButton(
                 state: viewModel.isRecording ? VoiceButton.ButtonState.recording :
                        viewModel.isTranscribing ? VoiceButton.ButtonState.transcribing :
                        viewModel.voiceError != nil ? VoiceButton.ButtonState.error : VoiceButton.ButtonState.idle,
                 action: {
-                    viewModel.toggleVoiceRecording()
+                    showVoiceRecording = true
                 }
             )
 

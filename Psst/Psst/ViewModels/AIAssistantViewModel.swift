@@ -50,7 +50,7 @@ class AIAssistantViewModel: ObservableObject {
     private let aiService: AIService
     private let calendarService: CalendarService
     private let contactService: ContactService
-    private let voiceService: VoiceService = VoiceService()
+    let voiceService: VoiceService = VoiceService() // Made internal for VoiceRecordingView access (Phase 3)
 
     // Track backend conversation ID (nil until first message is sent)
     private var backendConversationId: String?
