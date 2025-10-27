@@ -77,22 +77,6 @@ struct SettingsView: View {
                         Label("About", systemImage: "info.circle")
                     }
                 }
-
-                // Notification Test Button (Debug only)
-                #if DEBUG
-                Section(header: Text("DEBUG")) {
-                    Button(action: {
-                        showNotificationTest = true
-                    }) {
-                        HStack {
-                            Image(systemName: "bell.fill")
-                            Text("Test Notifications")
-                                .fontWeight(.semibold)
-                        }
-                    }
-                }
-                #endif
-
                 // Logout Button Section
                 Section {
                     logoutButton
