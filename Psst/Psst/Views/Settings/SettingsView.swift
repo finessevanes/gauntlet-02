@@ -42,9 +42,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // User Info Section (custom header, not in Section)
-                userInfoSection
-
                 // Account Section
                 Section(header: Text("ACCOUNT")) {
                     NavigationLink(destination: NotificationsSettingsView()) {
@@ -130,55 +127,6 @@ struct SettingsView: View {
                 ProfileView()
             }
         }
-    }
-
-    // MARK: - User Info Section
-
-    /// User info header with profile photo, name, and email
-    private var userInfoSection: some View {
-        HStack(spacing: 16) {
-            // Profile Photo (60pt circular)
-            ProfilePhotoPreview(
-                imageURL: authViewModel.currentUser?.photoURL,
-                userID: authViewModel.currentUser?.id,
-                selectedImage: nil,
-                isLoading: false,
-                size: 60,
-                displayName: authViewModel.currentUser?.displayName
-            )
-
-            // User Info (name, email, and role badge)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(authViewModel.currentUser?.displayName ?? "User")
-                    .font(.headline)
-                    .fontWeight(.bold)
-
-                Text(authViewModel.currentUser?.email ?? "")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                // Role badge (PR #6.5 & PR #007)
-                if let role = authViewModel.currentUser?.role {
-                    HStack(spacing: 4) {
-                        Image(systemName: role == .trainer ? "person.fill.checkmark" : "figure.walk")
-                            .font(.caption2)
-
-                        Text(role == .trainer ? "Trainer" : "Client")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(role == .trainer ? Color.blue.opacity(0.15) : Color.green.opacity(0.15))
-                    .foregroundColor(role == .trainer ? .blue : .green)
-                    .cornerRadius(12)
-                }
-            }
-
-            Spacer()
-        }
-        .padding(.vertical, 8)
-        .listRowBackground(Color(.secondarySystemBackground))
     }
 
     // MARK: - Logout Button
