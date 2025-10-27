@@ -18,18 +18,21 @@ struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
     // MARK: - State
-    
+
     /// Logout loading state
     @State private var isLoggingOut = false
-    
+
     /// Show logout error alert
     @State private var showLogoutError = false
-    
+
     /// Error message for logout failures
     @State private var errorMessage = ""
-    
+
     /// Show notification test view
     @State private var showNotificationTest = false
+
+    /// Show profile view
+    @State private var showingProfile = false
     
     // MARK: - Body
     
@@ -80,6 +83,24 @@ struct SettingsView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                // User avatar on left - taps to open Profile view
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let user = authViewModel.currentUser {
+                        Button {
+                            showingProfile = true
+                        } label: {
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                userID: user.id,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32
+                            )
+                        }
+                    }
+                }
+            }
             .alert("Logout Error", isPresented: $showLogoutError) {
                 Button("OK", role: .cancel) {
                     showLogoutError = false
@@ -89,6 +110,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showNotificationTest) {
                 NotificationTestView()
+            }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
             }
         }
     }

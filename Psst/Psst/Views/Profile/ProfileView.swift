@@ -12,21 +12,24 @@ import SwiftUI
 /// User profile view displaying profile information with edit functionality
 struct ProfileView: View {
     // MARK: - Environment
-    
+
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
+    /// Dismiss action for when presented as sheet
+    @Environment(\.dismiss) private var dismiss
+
     // MARK: - State
-    
+
     /// Show edit profile sheet
     @State private var showEditProfile = false
-    
+
     /// Refresh trigger for profile photo (increments to force refresh)
     @State private var photoRefreshTrigger = 0
-    
+
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
                 // VStack spacing set to 0 to allow precise control of spacing (PR #006D)
                 // Spacing follows 8pt grid: 16pt (photo→name), 4pt (name→email), 16pt (email→button), 32pt (button→section)
@@ -124,6 +127,19 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Back")
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showEditProfile, onDismiss: {
                 // Refresh user data when EditProfileView dismisses
                 Task {
