@@ -25,5 +25,7 @@
 	<string>Psst needs access to your camera to take profile photos.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Psst needs access to your photo library to select profile photos.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Psst uses your microphone to let you talk to your AI Assistant hands-free. Your voice is transcribed by OpenAI and never stored permanently.</string>
 </dict>
 </plist>

@@ -12,6 +12,7 @@ import SwiftUI
 struct AIAssistantView: View {
     @StateObject private var viewModel = AIAssistantViewModel()
     @FocusState private var isInputFocused: Bool
+    @State private var showVoiceRecording = false // PR #011 Phase 3
 
     var body: some View {
         NavigationView {
@@ -19,6 +20,20 @@ struct AIAssistantView: View {
                 mainContentView
                 overlaysView
             }
+        }
+        .sheet(isPresented: $showVoiceRecording) {
+            VoiceRecordingView(
+                voiceService: viewModel.voiceService,
+                isPresented: $showVoiceRecording,
+                onTranscriptionComplete: { transcribedText in
+                    viewModel.currentInput = transcribedText
+
+                    // Auto-send if enabled in settings
+                    if VoiceSettings.load().autoSendAfterTranscription {
+                        viewModel.sendMessage()
+                    }
+                }
+            )
         }
     }
 
@@ -49,6 +64,15 @@ struct AIAssistantView: View {
                     Text(errorMessage)
                 }
             }
+            .alert("Voice Error", isPresented: .constant(viewModel.voiceError != nil)) {
+                Button("OK") {
+                    viewModel.clearVoiceError()
+                }
+            } message: {
+                if let voiceError = viewModel.voiceError {
+                    Text(voiceError)
+                }
+            }
             .modifier(StateChangeLogger(viewModel: viewModel))
     }
 
@@ -68,8 +92,15 @@ struct AIAssistantView: View {
                 } else {
                     LazyVStack(spacing: 8) {
                         ForEach(viewModel.conversation.messages) { message in
-                            AIMessageRow(message: message)
-                                .id(message.id)
+                            AIMessageRow(
+                                message: message,
+                                onSpeakerTap: { messageId, messageText in
+                                    // Phase 2: TTS toggle play/stop
+                                    viewModel.toggleSpeakMessage(messageId: messageId, messageText: messageText)
+                                },
+                                isCurrentlyPlaying: viewModel.isMessageSpeaking(message.id)
+                            )
+                            .id(message.id)
                         }
 
                         if viewModel.isLoading {
@@ -356,10 +387,20 @@ struct AIAssistantView: View {
 
     private var inputView: some View {
         HStack(spacing: 12) {
+            // Voice Button (PR #011 Phase 3)
+            VoiceButton(
+                state: viewModel.isRecording ? VoiceButton.ButtonState.recording :
+                       viewModel.isTranscribing ? VoiceButton.ButtonState.transcribing :
+                       viewModel.voiceError != nil ? VoiceButton.ButtonState.error : VoiceButton.ButtonState.idle,
+                action: {
+                    showVoiceRecording = true
+                }
+            )
+
             TextField("Ask me anything...", text: $viewModel.currentInput)
                 .textFieldStyle(.roundedBorder)
                 .focused($isInputFocused)
-                .disabled(viewModel.isLoading)
+                .disabled(viewModel.isLoading || viewModel.isRecording || viewModel.isTranscribing)
                 .onSubmit {
                     viewModel.sendMessage()
                 }

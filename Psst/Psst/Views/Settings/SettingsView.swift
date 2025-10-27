@@ -49,6 +49,13 @@ struct SettingsView: View {
                     }
                 }
 
+                // Voice Section (PR #011 Phase 3)
+                Section(header: Text("VOICE")) {
+                    NavigationLink(destination: VoiceSettingsView()) {
+                        Label("Voice & Speech", systemImage: "waveform.circle")
+                    }
+                }
+
                 // Calendar Section (PR #010C)
                 Section(header: Text("CALENDAR")) {
                     NavigationLink(destination: CalendarSettingsView()) {
