@@ -12,59 +12,84 @@ import SwiftUI
 /// User profile view displaying profile information with edit functionality
 struct ProfileView: View {
     // MARK: - Environment
-    
+
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
+    /// Dismiss action for when presented as sheet
+    @Environment(\.dismiss) private var dismiss
+
     // MARK: - State
-    
+
     /// Show edit profile sheet
     @State private var showEditProfile = false
-    
+
     /// Refresh trigger for profile photo (increments to force refresh)
     @State private var photoRefreshTrigger = 0
-    
+
     // MARK: - Body
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             ScrollView {
-                // VStack spacing set to 0 to allow precise control of spacing (PR #006D)
-                // Spacing follows 8pt grid: 16pt (photo→name), 4pt (name→email), 16pt (email→button), 32pt (button→section)
-                VStack(spacing: 0) {
+                VStack(spacing: 20) {
                     // Top spacing
                     Spacer()
                         .frame(height: 20)
-                    
-                    // Profile Photo
+
+                    // User Info Card
                     if let user = authViewModel.currentUser {
-                        ProfilePhotoPreview(
-                            imageURL: user.photoURL,
-                            userID: user.id,
-                            selectedImage: nil,
-                            isLoading: false,
-                            size: 140,
-                            displayName: user.displayName
-                        )
-                        .overlay(
-                            Circle()
-                                .stroke(Color(.quaternaryLabel), lineWidth: 1)
-                        )
-                        .id("\(user.id)-\(user.photoURL ?? "no-photo")-\(photoRefreshTrigger)")
-                        .padding(.top, 32)
-                        
-                        // Display Name
-                        Text(user.displayName)
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .foregroundColor(Color(.label))
-                            .padding(.top, 16)
-                        
-                        // Email
-                        Text(user.email)
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 4)
-                        
+                        VStack(spacing: 16) {
+                            // Profile Photo
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                userID: user.id,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 80,
+                                displayName: user.displayName
+                            )
+                            .overlay(
+                                Circle()
+                                    .stroke(Color(.quaternaryLabel), lineWidth: 1)
+                            )
+                            .id("\(user.id)-\(user.photoURL ?? "no-photo")-\(photoRefreshTrigger)")
+
+                            // User Info
+                            VStack(spacing: 4) {
+                                // Display Name
+                                Text(user.displayName)
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(Color(.label))
+
+                                // Email
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+
+                                // Role Badge
+                                HStack(spacing: 4) {
+                                    Image(systemName: user.role == .trainer ? "person.fill.checkmark" : "figure.walk")
+                                        .font(.caption2)
+
+                                    Text(user.role == .trainer ? "Trainer" : "Client")
+                                        .font(.caption2)
+                                        .fontWeight(.medium)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(user.role == .trainer ? Color.blue.opacity(0.15) : Color.green.opacity(0.15))
+                                .foregroundColor(user.role == .trainer ? .blue : .green)
+                                .cornerRadius(12)
+                                .padding(.top, 4)
+                            }
+                        }
+                        .padding(.vertical, 24)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(16)
+                        .padding(.horizontal, 20)
+
                         // Edit Profile Button
                         Button(action: {
                             showEditProfile = true
@@ -77,7 +102,6 @@ struct ProfileView: View {
                         }
                         .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, 24)
-                        .padding(.top, 16)
                         
                         // Account Info Section
                         VStack(alignment: .leading, spacing: 16) {
@@ -125,6 +149,19 @@ struct ProfileView: View {
                 }
             }
             .navigationTitle("Profile")
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Back")
+                        }
+                    }
+                }
+            }
             .sheet(isPresented: $showEditProfile, onDismiss: {
                 // Refresh user data when EditProfileView dismisses
                 Task {

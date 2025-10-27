@@ -18,6 +18,7 @@ struct ChatListView: View {
     @StateObject private var calendarViewModel = CalendarViewModel()
     @State private var showingNewChatView = false
     @State private var showingAIAssistant = false
+    @State private var showingProfile = false
 
     /// Navigation path for programmatic navigation control
     @State private var navigationPath = NavigationPath()
@@ -27,9 +28,6 @@ struct ChatListView: View {
 
     /// Auth view model for current user
     @EnvironmentObject private var authViewModel: AuthViewModel
-
-    /// Selected tab binding for navigation
-    @Binding var selectedTab: Int
     
     // MARK: - Body
     
@@ -77,11 +75,11 @@ struct ChatListView: View {
                 ChatView(chat: chat)
             }
             .toolbar {
-                // User avatar on left - taps to navigate to Profile tab
+                // User avatar on left - taps to open Profile view
                 ToolbarItem(placement: .navigationBarLeading) {
                     if let user = authViewModel.currentUser {
                         Button {
-                            selectedTab = 1 // Navigate to Profile tab
+                            showingProfile = true
                         } label: {
                             ProfilePhotoPreview(
                                 imageURL: user.photoURL,
@@ -105,6 +103,9 @@ struct ChatListView: View {
             .sheet(isPresented: $showingAIAssistant) {
                 AIAssistantView()
             }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
+            }
             .onAppear {
                 viewModel.observeChats()
             }
@@ -127,12 +128,6 @@ struct ChatListView: View {
                     } else {
                         print("[ChatListView] ❌ Chat not found in current list: \(chatId)")
                     }
-                }
-            }
-            .onChange(of: selectedTab) { oldTab, newTab in
-                // When user navigates away from Messages tab (0), pop to root
-                if oldTab == 0 && newTab != 0 {
-                    navigationPath.removeLast(navigationPath.count)
                 }
             }
         }
@@ -193,7 +188,7 @@ struct ChatListView: View {
 // MARK: - Preview
 
 #Preview {
-    ChatListView(selectedTab: .constant(0))
+    ChatListView()
         .environmentObject(AuthViewModel())
 }
 

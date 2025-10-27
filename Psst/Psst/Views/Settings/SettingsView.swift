@@ -13,10 +13,10 @@ import SwiftUI
 /// Includes user info, account settings, support options, and logout
 struct SettingsView: View {
     // MARK: - Environment
-    
+
     /// Authentication view model for logout functionality
     @EnvironmentObject var authViewModel: AuthViewModel
-    
+
     // MARK: - State
 
     /// Logout loading state
@@ -31,17 +31,17 @@ struct SettingsView: View {
     /// Show notification test view
     @State private var showNotificationTest = false
 
+    /// Show profile view
+    @State private var showingProfile = false
+
     // PR #010C: Google Calendar connection status
     @StateObject private var googleCalendarService = GoogleCalendarSyncService.shared
-    
+
     // MARK: - Body
-    
+
     var body: some View {
         NavigationStack {
             List {
-                // User Info Section (custom header, not in Section)
-                userInfoSection
-                
                 // Account Section
                 Section(header: Text("ACCOUNT")) {
                     NavigationLink(destination: NotificationsSettingsView()) {
@@ -72,12 +72,12 @@ struct SettingsView: View {
                     NavigationLink(destination: HelpSupportView()) {
                         Label("Help & Support", systemImage: "questionmark.circle")
                     }
-                    
+
                     NavigationLink(destination: AboutView()) {
                         Label("About", systemImage: "info.circle")
                     }
                 }
-                
+
                 // Notification Test Button (Debug only)
                 #if DEBUG
                 Section(header: Text("DEBUG")) {
@@ -92,7 +92,7 @@ struct SettingsView: View {
                     }
                 }
                 #endif
-                
+
                 // Logout Button Section
                 Section {
                     logoutButton
@@ -101,6 +101,25 @@ struct SettingsView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                // User avatar on left - taps to open Profile view
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let user = authViewModel.currentUser {
+                        Button {
+                            showingProfile = true
+                        } label: {
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                userID: user.id,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32,
+                                displayName: user.displayName
+                            )
+                        }
+                    }
+                }
+            }
             .alert("Logout Error", isPresented: $showLogoutError) {
                 Button("OK", role: .cancel) {
                     showLogoutError = false
@@ -111,60 +130,14 @@ struct SettingsView: View {
             .sheet(isPresented: $showNotificationTest) {
                 NotificationTestView()
             }
-        }
-    }
-    
-    // MARK: - User Info Section
-    
-    /// User info header with profile photo, name, and email
-    private var userInfoSection: some View {
-        HStack(spacing: 16) {
-            // Profile Photo (60pt circular)
-            ProfilePhotoPreview(
-                imageURL: authViewModel.currentUser?.photoURL,
-                userID: authViewModel.currentUser?.id,
-                selectedImage: nil,
-                isLoading: false,
-                size: 60,
-                displayName: authViewModel.currentUser?.displayName
-            )
-            
-            // User Info (name, email, and role badge)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(authViewModel.currentUser?.displayName ?? "User")
-                    .font(.headline)
-                    .fontWeight(.bold)
-
-                Text(authViewModel.currentUser?.email ?? "")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-
-                // Role badge (PR #6.5 & PR #007)
-                if let role = authViewModel.currentUser?.role {
-                    HStack(spacing: 4) {
-                        Image(systemName: role == .trainer ? "person.fill.checkmark" : "figure.walk")
-                            .font(.caption2)
-
-                        Text(role == .trainer ? "Trainer" : "Client")
-                            .font(.caption2)
-                            .fontWeight(.medium)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(role == .trainer ? Color.blue.opacity(0.15) : Color.green.opacity(0.15))
-                    .foregroundColor(role == .trainer ? .blue : .green)
-                    .cornerRadius(12)
-                }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
             }
-            
-            Spacer()
         }
-        .padding(.vertical, 8)
-        .listRowBackground(Color(.secondarySystemBackground))
     }
-    
+
     // MARK: - Logout Button
-    
+
     /// Logout button with destructive styling and loading state
     private var logoutButton: some View {
         Button(action: handleLogout) {
@@ -192,9 +165,9 @@ struct SettingsView: View {
         .disabled(isLoggingOut)
         .listRowBackground(Color.clear)
     }
-    
+
     // MARK: - Methods
-    
+
     /// Handles logout button tap
     /// Shows loading state, signs out user, and handles errors
     private func handleLogout() {

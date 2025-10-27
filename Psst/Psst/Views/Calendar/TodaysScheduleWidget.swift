@@ -49,7 +49,7 @@ struct TodaysScheduleWidget: View {
                     }
                 }
                 .padding()
-                .background(Color.blue.opacity(0.1))
+                .background(Color(.secondarySystemBackground))
 
                 // Event list (collapsible)
                 if isExpanded {
@@ -68,12 +68,12 @@ struct TodaysScheduleWidget: View {
                             }
                         }
                     }
-                    .background(Color.white)
+                    .background(Color(.systemBackground))
                 }
             }
-            .background(Color.white)
+            .background(Color(.systemBackground))
             .cornerRadius(12)
-            .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
+            .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
         }
     }
 }
