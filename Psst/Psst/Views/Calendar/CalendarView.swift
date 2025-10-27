@@ -17,6 +17,7 @@ struct CalendarView: View {
     )
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showingProfile = false
+    @State private var showingAIAssistant = false
 
     var body: some View {
         NavigationView {
@@ -35,25 +36,16 @@ struct CalendarView: View {
                     VerticalAgendaView(viewModel: viewModel)
                 }
 
-                // Floating action button (bottom right)
+                // AI Assistant Button - positioned bottom-right
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
-                        Button(action: {
-                            viewModel.showEventCreationSheet = true
-                        }) {
-                            Image(systemName: "plus")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.white)
-                                .frame(width: 56, height: 56)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                                .shadow(color: Color.black.opacity(0.3), radius: 4, x: 0, y: 2)
+                        FloatingAIButton {
+                            showingAIAssistant = true
                         }
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 20)
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
                     }
                 }
             }
@@ -77,9 +69,22 @@ struct CalendarView: View {
                         }
                     }
                 }
+
+                // Add Event button on right - taps to create new event
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        viewModel.showEventCreationSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 20))
+                    }
+                }
             }
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
+            }
+            .sheet(isPresented: $showingAIAssistant) {
+                AIAssistantView()
             }
             .sheet(isPresented: $viewModel.showEventCreationSheet) {
                 EventCreationSheet(

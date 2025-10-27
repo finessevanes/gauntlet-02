@@ -19,6 +19,7 @@ struct ContactsView: View {
     @State private var showSuccessToast = false
     @State private var showErrorToast = false
     @State private var showingProfile = false
+    @State private var showingAIAssistant = false
 
     // MARK: - Body
 
@@ -70,6 +71,19 @@ struct ContactsView: View {
                     .padding(.top, 60)
                     .zIndex(1)
                 }
+
+                // AI Assistant Button - positioned bottom-right
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        FloatingAIButton {
+                            showingAIAssistant = true
+                        }
+                        .padding(.trailing, 16)
+                        .padding(.bottom, 16)
+                    }
+                }
             }
             .navigationTitle("Contacts")
             .toolbar {
@@ -114,6 +128,9 @@ struct ContactsView: View {
             }
             .sheet(isPresented: $showingProfile) {
                 ProfileView()
+            }
+            .sheet(isPresented: $showingAIAssistant) {
+                AIAssistantView()
             }
             .sheet(isPresented: $showAddClientSheet) {
                 AddClientView(viewModel: viewModel)

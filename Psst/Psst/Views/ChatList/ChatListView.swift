@@ -49,26 +49,20 @@ struct ChatListView: View {
                     }
                 }
 
-                // Floating Buttons - positioned bottom-right
+                // AI Assistant Button - positioned bottom-right
                 VStack {
                     Spacer()
                     HStack {
                         Spacer()
-                        VStack(spacing: 16) {
-                            // AI Assistant Button
-                            FloatingAIButton {
-                                showingAIAssistant = true
-                            }
-
-                            // New Chat Button
-                            FloatingActionButton {
-                                showingNewChatView = true
-                            }
+                        FloatingAIButton {
+                            showingAIAssistant = true
                         }
                         .padding(.trailing, 16)
                         .padding(.bottom, 16)
                     }
                 }
+                .zIndex(1)
+                .animation(nil, value: viewModel.chats.count)
             }
             .navigationTitle("Messages")
             .navigationDestination(for: Chat.self) { chat in
@@ -90,6 +84,16 @@ struct ChatListView: View {
                                 displayName: user.displayName
                             )
                         }
+                    }
+                }
+
+                // New Chat button on right - taps to create new message
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        showingNewChatView = true
+                    } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 20))
                     }
                 }
             }
