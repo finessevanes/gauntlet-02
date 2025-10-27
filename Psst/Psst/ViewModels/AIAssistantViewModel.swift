@@ -9,6 +9,7 @@
 import Foundation
 import SwiftUI
 import FirebaseAuth
+import Combine
 
 /// Manages state and logic for AI Assistant chat interface
 @MainActor
@@ -42,6 +43,7 @@ class AIAssistantViewModel: ObservableObject {
     @Published var isRecording: Bool = false
     @Published var isTranscribing: Bool = false
     @Published var voiceError: String? = nil
+    @Published var currentlySpeakingMessageId: String? = nil // Phase 2: Track which message is playing
 
     // MARK: - Dependencies
 
@@ -49,9 +51,12 @@ class AIAssistantViewModel: ObservableObject {
     private let calendarService: CalendarService
     private let contactService: ContactService
     private let voiceService: VoiceService = VoiceService()
-    
+
     // Track backend conversation ID (nil until first message is sent)
     private var backendConversationId: String?
+
+    // Combine cancellables for subscriptions
+    private var cancellables = Set<AnyCancellable>()
     
     // MARK: - Initialization
     
@@ -68,6 +73,16 @@ class AIAssistantViewModel: ObservableObject {
         self.calendarService = calendarService
         self.contactService = contactService
         self.conversation = aiService.createConversation()
+
+        // Subscribe to voice service speaking state (Phase 2)
+        voiceService.$isSpeaking
+            .sink { [weak self] isSpeaking in
+                if !isSpeaking {
+                    // TTS finished - clear currently speaking message
+                    self?.currentlySpeakingMessageId = nil
+                }
+            }
+            .store(in: &cancellables)
     }
     
     // MARK: - Private Methods
@@ -159,6 +174,13 @@ class AIAssistantViewModel: ObservableObject {
 
                 // Update conversation timestamp
                 conversation.updatedAt = Date()
+
+                // Speak AI response if TTS is enabled (Phase 2)
+                let settings = VoiceSettings.load()
+                if settings.voiceResponseEnabled {
+                    currentlySpeakingMessageId = aiMessage.id
+                    voiceService.speak(text: response.text, voice: settings.ttsVoice)
+                }
 
                 // Check if AI wants to call a function
                 if let functionCall = response.functionCall {
@@ -930,6 +952,44 @@ class AIAssistantViewModel: ObservableObject {
     /// Clear voice error
     func clearVoiceError() {
         voiceError = nil
+    }
+
+    // MARK: - Text-to-Speech Methods (PR #011 Phase 2)
+
+    /// Toggle speaking for a specific message (play/stop)
+    /// - Parameters:
+    ///   - messageId: The message ID
+    ///   - messageText: The message text to speak
+    func toggleSpeakMessage(messageId: String, messageText: String) {
+        // If this message is currently playing, stop it
+        if currentlySpeakingMessageId == messageId && voiceService.isSpeaking {
+            print("⏹️ [ViewModel] Stopping TTS for message: \(messageId)")
+            voiceService.stopSpeaking()
+            currentlySpeakingMessageId = nil
+        } else {
+            // Otherwise, play this message
+            print("🔊 [ViewModel] Speaking message: \"\(messageText.prefix(50))...\"")
+            currentlySpeakingMessageId = messageId
+            let settings = VoiceSettings.load()
+            voiceService.speak(text: messageText, voice: settings.ttsVoice)
+        }
+    }
+
+    /// Stop current TTS playback
+    func stopSpeaking() {
+        print("⏹️ [ViewModel] Stopping TTS")
+        voiceService.stopSpeaking()
+        currentlySpeakingMessageId = nil
+    }
+
+    /// Check if TTS is currently playing
+    var isSpeaking: Bool {
+        return voiceService.isSpeaking
+    }
+
+    /// Check if a specific message is currently playing
+    func isMessageSpeaking(_ messageId: String) -> Bool {
+        return currentlySpeakingMessageId == messageId && voiceService.isSpeaking
     }
 }
 

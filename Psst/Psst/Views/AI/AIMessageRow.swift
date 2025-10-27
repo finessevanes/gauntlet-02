@@ -11,7 +11,9 @@ import SwiftUI
 /// Individual AI message bubble component
 struct AIMessageRow: View {
     let message: AIMessage
-    
+    var onSpeakerTap: ((String, String) -> Void)? = nil // Phase 2: TTS toggle (messageId, text)
+    var isCurrentlyPlaying: Bool = false // Phase 2: Is this message currently playing?
+
     var body: some View {
         HStack {
             if message.isFromUser {
@@ -30,10 +32,21 @@ struct AIMessageRow: View {
                 
                 // Timestamp and status
                 HStack(spacing: 4) {
+                    // Speaker/Stop button for AI messages (Phase 2)
+                    if !message.isFromUser, let onSpeakerTap = onSpeakerTap {
+                        Button(action: {
+                            onSpeakerTap(message.id, message.text)
+                        }) {
+                            Image(systemName: isCurrentlyPlaying ? "stop.circle.fill" : "speaker.wave.2.fill")
+                                .font(.caption)
+                                .foregroundColor(isCurrentlyPlaying ? .red : .blue)
+                        }
+                    }
+
                     Text(formatTimestamp(message.timestamp))
                         .font(.caption2)
                         .foregroundColor(.secondary)
-                    
+
                     if message.isFromUser {
                         statusIcon
                     }

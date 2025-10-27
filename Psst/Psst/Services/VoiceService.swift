@@ -15,10 +15,15 @@ class VoiceService: NSObject, ObservableObject {
     @Published var isRecording = false
     @Published var currentRecording: VoiceRecording?
     @Published var audioLevel: Float = 0.0
+    @Published var isSpeaking = false
 
     private var audioRecorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var recordingStartTime: Date?
+
+    // Text-to-Speech (Phase 2)
+    private var speechSynthesizer: AVSpeechSynthesizer
+    private var currentUtterance: AVSpeechUtterance?
 
     // OpenAI API configuration
     private let whisperAPIURL = "https://api.openai.com/v1/audio/transcriptions"
@@ -27,7 +32,9 @@ class VoiceService: NSObject, ObservableObject {
     private let minimumRecordingDuration: TimeInterval = 1.0
 
     override init() {
+        self.speechSynthesizer = AVSpeechSynthesizer()
         super.init()
+        self.speechSynthesizer.delegate = self
     }
 
     /// Get OpenAI API key from Config
@@ -294,5 +301,106 @@ class VoiceService: NSObject, ObservableObject {
         default:
             throw VoiceServiceError.transcriptionFailed("Unexpected error (code \(httpResponse.statusCode))")
         }
+    }
+
+    // MARK: - Text-to-Speech (Phase 2)
+
+    /// Speak text using AVSpeechSynthesizer
+    /// - Parameters:
+    ///   - text: Text to speak
+    ///   - voice: Optional TTS voice (defaults to user preference)
+    func speak(text: String, voice: VoiceSettings.TTSVoice? = nil) {
+        print("🔊 [VoiceService] Starting TTS for text: \"\(text.prefix(50))...\"")
+
+        // Stop any current speech
+        if speechSynthesizer.isSpeaking {
+            stopSpeaking()
+        }
+
+        // Create utterance
+        let utterance = AVSpeechUtterance(string: text)
+
+        // Load user settings
+        let settings = VoiceSettings.load()
+
+        // Configure voice
+        let voiceIdentifier = voice?.rawValue ?? settings.ttsVoice.rawValue
+        if let selectedVoice = AVSpeechSynthesisVoice(identifier: voiceIdentifier) {
+            utterance.voice = selectedVoice
+            print("✅ [VoiceService] Using TTS voice: \(voiceIdentifier)")
+        } else {
+            // Fallback to default English voice
+            utterance.voice = AVSpeechSynthesisVoice(language: "en-US")
+            print("⚠️ [VoiceService] Voice not found, using default en-US")
+        }
+
+        // Configure speech properties from user settings
+        utterance.rate = settings.ttsRate
+        utterance.pitchMultiplier = settings.ttsPitch
+        utterance.volume = settings.ttsVolume
+
+        currentUtterance = utterance
+        isSpeaking = true
+
+        // Speak
+        speechSynthesizer.speak(utterance)
+        print("🎤 [VoiceService] TTS started")
+    }
+
+    /// Stop current TTS playback
+    func stopSpeaking() {
+        guard speechSynthesizer.isSpeaking else { return }
+
+        print("⏹️ [VoiceService] Stopping TTS")
+        speechSynthesizer.stopSpeaking(at: .immediate)
+        isSpeaking = false
+        currentUtterance = nil
+    }
+
+    /// Pause current TTS playback
+    func pauseSpeaking() {
+        guard speechSynthesizer.isSpeaking else { return }
+
+        print("⏸️ [VoiceService] Pausing TTS")
+        speechSynthesizer.pauseSpeaking(at: .word)
+    }
+
+    /// Resume paused TTS playback
+    func continueSpeaking() {
+        guard speechSynthesizer.isPaused else { return }
+
+        print("▶️ [VoiceService] Resuming TTS")
+        speechSynthesizer.continueSpeaking()
+    }
+
+    // MARK: - Private Helpers
+
+    /// Update TTS state on main actor (helper for delegate callbacks)
+    nonisolated private func updateTTSState(isSpeaking: Bool, clearUtterance: Bool = false) {
+        Task { @MainActor in
+            self.isSpeaking = isSpeaking
+            if clearUtterance {
+                self.currentUtterance = nil
+            }
+        }
+    }
+}
+
+// MARK: - AVSpeechSynthesizerDelegate (Phase 2)
+
+extension VoiceService: AVSpeechSynthesizerDelegate {
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        print("🔊 [VoiceService] TTS playback started")
+        updateTTSState(isSpeaking: true)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        print("✅ [VoiceService] TTS playback finished")
+        updateTTSState(isSpeaking: false, clearUtterance: true)
+    }
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        print("🚫 [VoiceService] TTS playback cancelled")
+        updateTTSState(isSpeaking: false, clearUtterance: true)
     }
 }

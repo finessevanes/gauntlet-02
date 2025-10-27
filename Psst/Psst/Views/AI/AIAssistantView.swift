@@ -77,8 +77,15 @@ struct AIAssistantView: View {
                 } else {
                     LazyVStack(spacing: 8) {
                         ForEach(viewModel.conversation.messages) { message in
-                            AIMessageRow(message: message)
-                                .id(message.id)
+                            AIMessageRow(
+                                message: message,
+                                onSpeakerTap: { messageId, messageText in
+                                    // Phase 2: TTS toggle play/stop
+                                    viewModel.toggleSpeakMessage(messageId: messageId, messageText: messageText)
+                                },
+                                isCurrentlyPlaying: viewModel.isMessageSpeaking(message.id)
+                            )
+                            .id(message.id)
                         }
 
                         if viewModel.isLoading {
