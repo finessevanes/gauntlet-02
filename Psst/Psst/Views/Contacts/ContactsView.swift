@@ -13,10 +13,12 @@ struct ContactsView: View {
     // MARK: - Properties
 
     @StateObject private var viewModel = ContactsViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var showAddClientSheet = false
     @State private var showAddProspectSheet = false
     @State private var showSuccessToast = false
     @State private var showErrorToast = false
+    @State private var showingProfile = false
 
     // MARK: - Body
 
@@ -71,6 +73,24 @@ struct ContactsView: View {
             }
             .navigationTitle("Contacts")
             .toolbar {
+                // User avatar on left - taps to open Profile view
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let user = authViewModel.currentUser {
+                        Button {
+                            showingProfile = true
+                        } label: {
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                userID: user.id,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32,
+                                displayName: user.displayName
+                            )
+                        }
+                    }
+                }
+
                 // Only show "Add" button for trainers
                 if viewModel.currentUserRole == .trainer {
                     ToolbarItem(placement: .navigationBarTrailing) {
@@ -91,6 +111,9 @@ struct ContactsView: View {
                         }
                     }
                 }
+            }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
             }
             .sheet(isPresented: $showAddClientSheet) {
                 AddClientView(viewModel: viewModel)

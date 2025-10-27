@@ -15,6 +15,8 @@ struct CalendarView: View {
         contactService: .shared,
         userService: .shared
     )
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showingProfile = false
 
     var body: some View {
         NavigationView {
@@ -57,6 +59,28 @@ struct CalendarView: View {
             }
             .navigationTitle("Calendar")
             .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                // User avatar on left - taps to open Profile view
+                ToolbarItem(placement: .navigationBarLeading) {
+                    if let user = authViewModel.currentUser {
+                        Button {
+                            showingProfile = true
+                        } label: {
+                            ProfilePhotoPreview(
+                                imageURL: user.photoURL,
+                                userID: user.id,
+                                selectedImage: nil,
+                                isLoading: false,
+                                size: 32,
+                                displayName: user.displayName
+                            )
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showingProfile) {
+                ProfileView()
+            }
             .sheet(isPresented: $viewModel.showEventCreationSheet) {
                 EventCreationSheet(
                     viewModel: viewModel,
