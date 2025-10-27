@@ -37,11 +37,18 @@ class AIAssistantViewModel: ObservableObject {
     @Published var pendingConflictResolution: PendingConflictResolution? = nil
     @Published var pendingProspectCreation: PendingProspectCreation? = nil
 
+    // MARK: - Voice State (PR #011)
+
+    @Published var isRecording: Bool = false
+    @Published var isTranscribing: Bool = false
+    @Published var voiceError: String? = nil
+
     // MARK: - Dependencies
 
     private let aiService: AIService
     private let calendarService: CalendarService
     private let contactService: ContactService
+    private let voiceService: VoiceService = VoiceService()
     
     // Track backend conversation ID (nil until first message is sent)
     private var backendConversationId: String?
@@ -820,6 +827,109 @@ class AIAssistantViewModel: ObservableObject {
         formatter.dateStyle = .medium
         formatter.timeStyle = .short
         return formatter.string(from: date)
+    }
+
+    // MARK: - Voice Methods (PR #011 Phase 1)
+
+    /// Toggle voice recording on/off
+    func toggleVoiceRecording() {
+        print("🔘 [ViewModel] Toggle voice recording (current state: isRecording=\(isRecording))")
+
+        if isRecording {
+            stopVoiceRecording()
+        } else {
+            startVoiceRecording()
+        }
+    }
+
+    /// Start voice recording
+    private func startVoiceRecording() {
+        print("▶️ [ViewModel] Starting voice recording...")
+
+        voiceError = nil
+
+        Task {
+            do {
+                print("🔐 [ViewModel] Requesting microphone permission...")
+                let hasPermission = await voiceService.requestMicrophonePermission()
+
+                guard hasPermission else {
+                    print("❌ [ViewModel] Microphone permission denied")
+                    voiceError = "Microphone permission denied. Please enable it in Settings."
+                    return
+                }
+
+                print("✅ [ViewModel] Microphone permission granted")
+
+                _ = try await voiceService.startRecording()
+                isRecording = true
+                print("✅ [ViewModel] Recording started successfully")
+
+            } catch {
+                print("❌ [ViewModel] Failed to start recording: \(error.localizedDescription)")
+                isRecording = false
+
+                if let voiceError = error as? VoiceServiceError {
+                    self.voiceError = voiceError.errorDescription
+                } else {
+                    self.voiceError = "Failed to start recording: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Stop voice recording and transcribe
+    private func stopVoiceRecording() {
+        print("⏹️ [ViewModel] Stopping voice recording...")
+
+        isRecording = false
+        isTranscribing = true
+        voiceError = nil
+
+        Task {
+            do {
+                // Stop recording and get audio file URL
+                let audioURL = try await voiceService.stopRecording()
+
+                print("📝 [ViewModel] Transcribing audio...")
+
+                // Transcribe the audio
+                let transcription = try await voiceService.transcribe(audioURL: audioURL)
+
+                isTranscribing = false
+
+                print("✅ [ViewModel] Transcription received: \"\(transcription)\"")
+
+                // Populate the input field with transcribed text
+                currentInput = transcription
+
+                print("✅ [ViewModel] Input field updated with transcription")
+
+            } catch {
+                print("❌ [ViewModel] Voice service error: \(error.localizedDescription)")
+                isTranscribing = false
+
+                if let voiceError = error as? VoiceServiceError {
+                    self.voiceError = voiceError.errorDescription
+                } else {
+                    self.voiceError = "Voice operation failed: \(error.localizedDescription)"
+                }
+            }
+        }
+    }
+
+    /// Cancel voice recording
+    func cancelVoiceRecording() {
+        print("🚫 [ViewModel] Cancelling voice recording...")
+        voiceService.cancelRecording()
+        isRecording = false
+        isTranscribing = false
+        voiceError = nil
+    }
+
+    /// Clear voice error
+    func clearVoiceError() {
+        voiceError = nil
     }
 }
 
