@@ -16,10 +16,12 @@ class VoiceService: NSObject, ObservableObject {
     @Published var currentRecording: VoiceRecording?
     @Published var audioLevel: Float = 0.0
     @Published var isSpeaking = false
+    @Published var recordingDuration: TimeInterval = 0.0 // Phase 3: Timer
 
     private var audioRecorder: AVAudioRecorder?
     private var recordingURL: URL?
     private var recordingStartTime: Date?
+    private var recordingTimer: Timer? // Phase 3: Track duration
 
     // Text-to-Speech (Phase 2)
     private var speechSynthesizer: AVSpeechSynthesizer
@@ -28,8 +30,10 @@ class VoiceService: NSObject, ObservableObject {
     // OpenAI API configuration
     private let whisperAPIURL = "https://api.openai.com/v1/audio/transcriptions"
 
-    // Minimum recording duration (1 second)
+    // Recording duration limits (Phase 3)
     private let minimumRecordingDuration: TimeInterval = 1.0
+    private let maximumRecordingDuration: TimeInterval = 60.0
+    private let timerUpdateInterval: TimeInterval = 0.1 // 10 updates per second
 
     override init() {
         self.speechSynthesizer = AVSpeechSynthesizer()
@@ -122,6 +126,10 @@ class VoiceService: NSObject, ObservableObject {
 
             isRecording = true
             recordingStartTime = Date()
+            recordingDuration = 0.0
+
+            // Start timer to update duration and audio level (Phase 3)
+            startRecordingTimer()
 
             // Create VoiceRecording object
             let recording = VoiceRecording(
@@ -147,6 +155,9 @@ class VoiceService: NSObject, ObservableObject {
         guard let recorder = audioRecorder, recorder.isRecording else {
             throw VoiceServiceError.recordingFailed("No active recording")
         }
+
+        // Stop timer (Phase 3)
+        stopRecordingTimer()
 
         recorder.stop()
         isRecording = false
@@ -192,6 +203,9 @@ class VoiceService: NSObject, ObservableObject {
     func cancelRecording() {
         print("🚫 [VoiceService] Cancelling recording...")
 
+        // Stop timer (Phase 3)
+        stopRecordingTimer()
+
         audioRecorder?.stop()
         isRecording = false
 
@@ -203,6 +217,7 @@ class VoiceService: NSObject, ObservableObject {
         recordingURL = nil
         currentRecording = nil
         recordingStartTime = nil
+        recordingDuration = 0.0
 
         // Deactivate audio session
         try? AVAudioSession.sharedInstance().setActive(false)
@@ -220,6 +235,49 @@ class VoiceService: NSObject, ObservableObject {
         // Convert from dB (-160 to 0) to linear (0 to 1)
         let normalizedLevel = pow(10, avgPower / 20)
         return min(max(normalizedLevel, 0.0), 1.0)
+    }
+
+    // MARK: - Recording Timer (Phase 3)
+
+    /// Start timer to update duration and audio level
+    private func startRecordingTimer() {
+        recordingTimer = Timer.scheduledTimer(withTimeInterval: timerUpdateInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in
+                self?.updateRecordingTimer()
+            }
+        }
+    }
+
+    /// Stop and invalidate the recording timer
+    private func stopRecordingTimer() {
+        recordingTimer?.invalidate()
+        recordingTimer = nil
+    }
+
+    /// Update recording duration and audio level, auto-stop at max duration
+    private func updateRecordingTimer() {
+        guard isRecording, let startTime = recordingStartTime else {
+            return
+        }
+
+        // Update duration
+        recordingDuration = Date().timeIntervalSince(startTime)
+
+        // Update audio level for waveform
+        audioLevel = getAudioLevel()
+
+        // Auto-stop at maximum duration (60 seconds)
+        if recordingDuration >= maximumRecordingDuration {
+            print("⏱️ [VoiceService] Maximum recording duration reached: \(maximumRecordingDuration)s")
+            // Trigger auto-stop (will be handled by ViewModel)
+            Task {
+                do {
+                    _ = try await stopRecording()
+                } catch {
+                    print("❌ [VoiceService] Auto-stop failed: \(error.localizedDescription)")
+                }
+            }
+        }
     }
 
     // MARK: - Speech-to-Text (Whisper API)
