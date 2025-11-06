@@ -5,7 +5,6 @@
  */
 
 import OpenAI from 'openai';
-import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { retryWithBackoff, isRetryableError } from '../utils/retryHelper';
 
@@ -53,12 +52,14 @@ interface ExtractionResult {
  * @param messageText - Text of the message to analyze
  * @param messageId - Firestore message ID
  * @param chatId - Firestore chat ID
+ * @param apiKey - OpenAI API key
  * @returns Array of ProfileItem or null if nothing extracted
  */
 export async function extractProfileInfo(
   messageText: string,
   messageId: string,
-  chatId: string
+  chatId: string,
+  apiKey: string
 ): Promise<ProfileItem[] | null> {
   // Validate input
   if (!messageText || typeof messageText !== 'string') {
@@ -81,11 +82,9 @@ export async function extractProfileInfo(
   }
 
   try {
-    // Get API key from Firebase config
-    const apiKey = functions.config().openai?.api_key;
-
+    // Validate API key
     if (!apiKey) {
-      throw new Error('OpenAI API key not configured');
+      throw new Error('OpenAI API key not provided');
     }
 
     // Initialize OpenAI client

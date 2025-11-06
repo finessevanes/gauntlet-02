@@ -7,12 +7,19 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { extractProfileInfo, ProfileItem, findDuplicateItem } from './services/profileExtractionService';
+import { openaiApiKey } from './config/secrets';
 
 /**
  * Triggered when a new message is created in Firestore
  * Extracts profile information and updates client profile
  */
-export const extractProfileInfoOnMessage = functions.firestore
+export const extractProfileInfoOnMessage = functions
+  .runWith({
+    secrets: [openaiApiKey],
+    timeoutSeconds: 60,
+    memory: '256MB'
+  })
+  .firestore
   .document('chats/{chatId}/messages/{messageId}')
   .onCreate(async (snapshot, context) => {
     try {
@@ -76,7 +83,12 @@ export const extractProfileInfoOnMessage = functions.firestore
       console.log(`[ProfileExtraction] Extracting profile info for client: ${clientId}`);
 
       // Extract profile information using OpenAI
-      const extractedItems = await extractProfileInfo(messageText, messageId, chatId);
+      const extractedItems = await extractProfileInfo(
+        messageText,
+        messageId,
+        chatId,
+        openaiApiKey.value()
+      );
 
       if (!extractedItems || extractedItems.length === 0) {
         console.log('[ProfileExtraction] No profile information extracted');

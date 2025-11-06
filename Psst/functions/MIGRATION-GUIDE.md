@@ -21,15 +21,19 @@ Successfully migrated all Cloud Functions from deprecated `functions.config()` t
 - `src/services/pineconeService.ts` - Now accepts `apiKey` parameter
 - `src/services/vectorSearchService.ts` - Now accepts `pineconeApiKey` parameter
 - `src/services/functionExecutionService.ts` - Now accepts both API keys
+- `src/services/profileExtractionService.ts` - Now accepts `apiKey` parameter
+- `src/services/googleCalendarService.ts` - Now accepts `clientSecret` parameter (optional)
 
 **Cloud Functions:**
 - `src/chatWithAI.ts` - Uses secrets, passes to services
 - `src/semanticSearch.ts` - Uses secrets, passes to services
 - `src/generateEmbedding.ts` - Uses secrets (Firestore trigger)
 - `src/executeFunctionCall.ts` - Uses secrets, passes to services
+- `src/extractProfileInfoOnMessage.ts` - Uses secrets (Firestore trigger)
+- `src/onCalendarEventCreate.ts` - Uses secrets (Firestore trigger)
 
 **Configuration:**
-- `src/config/secrets.ts` - **NEW** - Centralized secret definitions
+- `src/config/secrets.ts` - **NEW** - Centralized secret definitions (OPENAI_API_KEY, PINECONE_API_KEY, GOOGLE_CLIENT_SECRET)
 - `.env.example` - **NEW** - Template for environment variables
 - `.gitignore` - Updated to exclude `.env` files
 
@@ -49,6 +53,7 @@ Successfully migrated all Cloud Functions from deprecated `functions.config()` t
    ```env
    OPENAI_API_KEY=sk-your-openai-key-here
    PINECONE_API_KEY=your-pinecone-key-here
+   # GOOGLE_CLIENT_SECRET=  # Optional - leave empty for iOS clients
    ```
 
 3. **Run locally:**
@@ -66,6 +71,10 @@ Successfully migrated all Cloud Functions from deprecated `functions.config()` t
 
    firebase functions:secrets:set PINECONE_API_KEY
    # Paste your key when prompted
+
+   # Optional - only needed if Google Calendar auth requires it
+   firebase functions:secrets:set GOOGLE_CLIENT_SECRET
+   # Leave empty or paste client secret if needed
    ```
 
 2. **Deploy:**
@@ -139,6 +148,8 @@ export const myFunction = functions
    ```bash
    firebase functions:secrets:access OPENAI_API_KEY
    firebase functions:secrets:access PINECONE_API_KEY
+   # Optional:
+   firebase functions:secrets:access GOOGLE_CLIENT_SECRET
    ```
 2. Deploy:
    ```bash
@@ -175,6 +186,17 @@ If you need to rollback to `functions.config()` temporarily:
 
 ---
 
+## Google Calendar Secret (Optional)
+
+The `GOOGLE_CLIENT_SECRET` is **OPTIONAL** and typically not needed:
+
+- **iOS OAuth clients** (default): Leave empty or unset - iOS clients don't require a secret for token refresh
+- **Web OAuth clients**: Only needed if you encounter authentication errors with Google Calendar sync
+
+If Google Calendar sync works without errors, you don't need to set this secret.
+
+---
+
 ## Summary
 
 ✅ All Cloud Functions migrated to `defineSecret()`
@@ -182,9 +204,12 @@ If you need to rollback to `functions.config()` temporarily:
 ✅ Works in both development (`.env`) and production
 ✅ No more deprecation warnings
 ✅ Future-proof until at least 2026+
+✅ Profile extraction (PR #007) migrated
+✅ Google Calendar integration (PR #010C) migrated
 
 **Next Steps:**
 1. Copy `.env.example` to `.env`
-2. Add your API keys
+2. Add your API keys (OPENAI_API_KEY, PINECONE_API_KEY required)
 3. Test locally with `npm run serve`
 4. Deploy to production with secret manager
+5. Optionally set GOOGLE_CLIENT_SECRET if needed

@@ -31,3 +31,16 @@ export const openaiApiKey = defineSecret('OPENAI_API_KEY');
  * 2. Production: firebase functions:secrets:set PINECONE_API_KEY
  */
 export const pineconeApiKey = defineSecret('PINECONE_API_KEY');
+
+/**
+ * Google OAuth Client Secret
+ * Used for Google Calendar integration (backend OAuth token refresh)
+ *
+ * NOTE: iOS clients typically don't require a secret for OAuth refresh.
+ * This is OPTIONAL - only needed if you encounter auth issues with Google Calendar.
+ *
+ * Setup:
+ * 1. Development: Add GOOGLE_CLIENT_SECRET=... to functions/.env (optional)
+ * 2. Production: firebase functions:secrets:set GOOGLE_CLIENT_SECRET (if needed)
+ */
+export const googleClientSecret = defineSecret('GOOGLE_CLIENT_SECRET');

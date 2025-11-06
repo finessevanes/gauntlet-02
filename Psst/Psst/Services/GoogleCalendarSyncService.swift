@@ -162,24 +162,34 @@ class GoogleCalendarSyncService: NSObject, ObservableObject {
             throw GoogleCalendarError.notConnected
         }
 
-        // Revoke token with Google
+        // Attempt to revoke token with Google (best effort)
+        // Note: Mobile OAuth tokens may not be revocable via this endpoint
         var request = URLRequest(url: URL(string: "https://oauth2.googleapis.com/revoke")!)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = "token=\(refreshToken)".data(using: .utf8)
 
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw GoogleCalendarError.networkError
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                // Log only if revocation fails (for debugging)
+                if let responseBody = String(data: data, encoding: .utf8) {
+                    print("[GoogleCalendarSync] Token revocation returned \(httpResponse.statusCode): \(responseBody)")
+                }
+                // Continue with disconnect anyway - mobile tokens may not be revocable
+            }
+        } catch {
+            // Log network errors but continue with disconnect
+            print("[GoogleCalendarSync] Token revocation failed: \(error.localizedDescription)")
         }
 
-        // Clear from Firestore
+        // Always clear from Firestore (even if Google revocation failed)
         try await db.collection(usersCollection).document(currentUser.uid).updateData([
             "integrations.googleCalendar": FieldValue.delete()
         ])
 
-        // Cancel any active auth session
+        // Cancel any active auth session and update local state
         await MainActor.run {
             self.authSession?.cancel()
             self.authSession = nil

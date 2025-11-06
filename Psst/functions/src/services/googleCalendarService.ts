@@ -69,19 +69,20 @@ export async function getGoogleCredentials(userId: string): Promise<GoogleCreden
 /**
  * Create Google OAuth2 client with refresh token
  * @param refreshToken - OAuth2 refresh token
+ * @param clientSecret - Optional OAuth2 client secret (empty for iOS clients)
  * @returns Configured OAuth2 client
  */
-function createOAuth2Client(refreshToken: string) {
+function createOAuth2Client(refreshToken: string, clientSecret?: string) {
   // NOTE: For backend OAuth refresh, we use the same iOS client ID
   // iOS clients typically don't need a secret, but we set an empty string for compatibility
   // If you encounter auth issues, you may need to create a separate Web OAuth client with a secret
   const clientId = '505865284795-inggmn5im1kb68ogljqp6cp0oucap8r4.apps.googleusercontent.com';
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET || ''; // Empty for iOS clients
+  const secret = clientSecret || ''; // Empty for iOS clients
   const redirectUri = 'com.googleusercontent.apps.505865284795-inggmn5im1kb68ogljqp6cp0oucap8r4:/oauth2callback';
 
   const oauth2Client = new google.auth.OAuth2(
     clientId,
-    clientSecret,
+    secret,
     redirectUri
   );
 
@@ -126,9 +127,13 @@ function convertToGoogleCalendarFormat(event: CalendarEvent) {
 /**
  * Sync a calendar event to Google Calendar
  * @param event - Calendar event to sync
+ * @param clientSecret - Optional OAuth2 client secret (empty for iOS clients)
  * @returns Google Calendar event ID
  */
-export async function syncEventToGoogleCalendar(event: CalendarEvent): Promise<string> {
+export async function syncEventToGoogleCalendar(
+  event: CalendarEvent,
+  clientSecret?: string
+): Promise<string> {
   // Get user's Google credentials
   const credentials = await getGoogleCredentials(event.trainerId);
 
@@ -137,7 +142,7 @@ export async function syncEventToGoogleCalendar(event: CalendarEvent): Promise<s
   }
 
   // Create OAuth2 client
-  const oauth2Client = createOAuth2Client(credentials.refreshToken);
+  const oauth2Client = createOAuth2Client(credentials.refreshToken, clientSecret);
 
   // Create calendar API client
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
@@ -173,10 +178,12 @@ export async function syncEventToGoogleCalendar(event: CalendarEvent): Promise<s
  * Delete an event from Google Calendar
  * @param trainerId - ID of the trainer/user
  * @param googleEventId - Google Calendar event ID
+ * @param clientSecret - Optional OAuth2 client secret (empty for iOS clients)
  */
 export async function deleteEventFromGoogleCalendar(
   trainerId: string,
-  googleEventId: string
+  googleEventId: string,
+  clientSecret?: string
 ): Promise<void> {
   // Get user's Google credentials
   const credentials = await getGoogleCredentials(trainerId);
@@ -186,7 +193,7 @@ export async function deleteEventFromGoogleCalendar(
   }
 
   // Create OAuth2 client
-  const oauth2Client = createOAuth2Client(credentials.refreshToken);
+  const oauth2Client = createOAuth2Client(credentials.refreshToken, clientSecret);
 
   // Create calendar API client
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
