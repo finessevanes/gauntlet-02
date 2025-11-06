@@ -130,7 +130,7 @@ struct ContactsView: View {
                 ProfileView()
             }
             .sheet(isPresented: $showingAIAssistant) {
-                AIAssistantView()
+                VoiceOnlyAssistantView()
             }
             .sheet(isPresented: $showAddClientSheet) {
                 AddClientView(viewModel: viewModel)

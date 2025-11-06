@@ -84,7 +84,7 @@ struct CalendarView: View {
                 ProfileView()
             }
             .sheet(isPresented: $showingAIAssistant) {
-                AIAssistantView()
+                VoiceOnlyAssistantView()
             }
             .sheet(isPresented: $viewModel.showEventCreationSheet) {
                 EventCreationSheet(

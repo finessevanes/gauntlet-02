@@ -1,19 +1,17 @@
 //
-//  AIAssistantView.swift
+//  VoiceOnlyAssistantView.swift
 //  Psst
 //
-//  Created by AI Assistant on PR #002
-//  iOS AI Infrastructure Foundation
+//  Created by Caleb (AI Agent) on PR #018
+//  Voice-First AI Coach Workflow
 //
 
 import SwiftUI
 
-/// Main AI Assistant chat interface
-struct AIAssistantView: View {
-    @StateObject private var viewModel = AIAssistantViewModel()
-    @FocusState private var isInputFocused: Bool
-    @State private var showVoiceRecording = false // PR #011 Phase 3
-    @State private var hasInteracted = false // PR #018: Show text input after first interaction
+/// Voice-only AI Assistant interface - NO text, NO chat, ONLY voice
+struct VoiceOnlyAssistantView: View {
+    @StateObject private var viewModel = VoiceOnlyAssistantViewModel()
+    @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationView {
@@ -22,27 +20,13 @@ struct AIAssistantView: View {
                 overlaysView
             }
         }
-        .sheet(isPresented: $showVoiceRecording) {
-            VoiceRecordingView(
-                voiceService: viewModel.voiceService,
-                isPresented: $showVoiceRecording,
-                onTranscriptionComplete: { transcribedText in
-                    viewModel.currentInput = transcribedText
-
-                    // PR #018: Mark as interacted (show text input after first voice interaction)
-                    hasInteracted = true
-
-                    // Auto-send if enabled in settings
-                    if VoiceSettings.load().autoSendAfterTranscription {
-                        viewModel.sendMessage()
-                    }
-                }
-            )
-        }
-        // PR #018: Auto-open voice recording on first load
-        .onAppear {
-            if viewModel.conversation.messages.isEmpty && !hasInteracted {
-                showVoiceRecording = true
+        .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
+            Button("OK") {
+                viewModel.clearError()
+            }
+        } message: {
+            if let errorMessage = viewModel.errorMessage {
+                Text(errorMessage)
             }
         }
     }
@@ -50,97 +34,167 @@ struct AIAssistantView: View {
     // MARK: - Main Content
 
     private var mainContentView: some View {
-        mainContent
-            .navigationTitle("AI Assistant")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(role: .destructive) {
-                        viewModel.clearConversation()
-                    } label: {
-                        Image(systemName: "trash")
-                    }
-                }
-            }
-            .alert("Error", isPresented: .constant(viewModel.errorMessage != nil)) {
-                Button("Retry") {
-                    viewModel.retry()
-                }
-                Button("Cancel", role: .cancel) {
-                    viewModel.clearError()
-                }
-            } message: {
-                if let errorMessage = viewModel.errorMessage {
-                    Text(errorMessage)
-                }
-            }
-            .alert("Voice Error", isPresented: .constant(viewModel.voiceError != nil)) {
-                Button("OK") {
-                    viewModel.clearVoiceError()
-                }
-            } message: {
-                if let voiceError = viewModel.voiceError {
-                    Text(voiceError)
-                }
-            }
-            .modifier(StateChangeLogger(viewModel: viewModel))
-    }
-
-    private var mainContent: some View {
         VStack(spacing: 0) {
-            messagesScrollView
+            Spacer()
 
-            // PR #018: Only show input view after first interaction or if messages exist
-            if hasInteracted || !viewModel.conversation.messages.isEmpty {
-                Divider()
-                inputView
+            // State-based content
+            stateContentView
+
+            Spacer()
+
+            // Record button (only show in idle state)
+            if viewModel.state == .idle {
+                recordButton
+                    .padding(.bottom, 60)
+            }
+        }
+        .navigationTitle("AI Assistant")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button("Done") {
+                    viewModel.reset()
+                    dismiss()
+                }
             }
         }
     }
 
-    private var messagesScrollView: some View {
-        ScrollViewReader { scrollProxy in
-            ScrollView {
-                if viewModel.conversation.messages.isEmpty && !hasInteracted {
-                    // PR #018: Show voice-first empty state
-                    emptyStateView
-                } else {
-                    LazyVStack(spacing: 8) {
-                        ForEach(viewModel.conversation.messages) { message in
-                            AIMessageRow(
-                                message: message,
-                                onSpeakerTap: { messageId, messageText in
-                                    // Phase 2: TTS toggle play/stop
-                                    viewModel.toggleSpeakMessage(messageId: messageId, messageText: messageText)
-                                },
-                                isCurrentlyPlaying: viewModel.isMessageSpeaking(message.id)
-                            )
-                            .id(message.id)
-                        }
+    // MARK: - State Content View
 
-                        // PR #018: Show ThinkingStateView instead of AILoadingIndicator
-                        if viewModel.isLoading {
-                            ThinkingStateView()
-                                .id("loading")
-                                .padding(.vertical, 20)
-                        }
-                    }
-                    .padding(.top, 8)
+    @ViewBuilder
+    private var stateContentView: some View {
+        switch viewModel.state {
+        case .idle:
+            idleStateView
+
+        case .recording:
+            recordingStateView
+
+        case .processing:
+            processingStateView
+
+        case .speaking:
+            speakingStateView
+        }
+    }
+
+    // MARK: - Idle State
+
+    private var idleStateView: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "mic.circle.fill")
+                .font(.system(size: 100))
+                .foregroundColor(.blue)
+
+            Text("Tap to speak")
+                .font(.title2)
+                .foregroundColor(.secondary)
+        }
+    }
+
+    // MARK: - Recording State
+
+    private var recordingStateView: some View {
+        VStack(spacing: 32) {
+            // Animated pulsing mic icon
+            Image(systemName: "waveform.circle.fill")
+                .font(.system(size: 100))
+                .foregroundColor(.red)
+                .symbolEffect(.pulse, options: .repeating)
+
+            // Waveform visualization
+            WaveformView(audioLevel: viewModel.voiceService.audioLevel)
+                .frame(height: 60)
+                .padding(.horizontal, 40)
+
+            // Timer
+            Text(formatDuration(viewModel.voiceService.recordingDuration))
+                .font(.system(size: 48, weight: .medium, design: .rounded))
+                .monospacedDigit()
+                .foregroundColor(.primary)
+
+            // Stop button
+            stopButton
+        }
+    }
+
+    // MARK: - Processing State
+
+    private var processingStateView: some View {
+        VStack(spacing: 32) {
+            // Animated thinking dots (NO TEXT)
+            HStack(spacing: 12) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(Color.blue)
+                        .frame(width: 16, height: 16)
+                        .scaleEffect(animationAmount(for: index))
                 }
             }
-            .onChange(of: viewModel.conversation.messages.count) { _ in
-                if let lastMessage = viewModel.conversation.messages.last {
-                    withAnimation {
-                        scrollProxy.scrollTo(lastMessage.id, anchor: .bottom)
-                    }
+
+            ProgressView()
+                .scaleEffect(2.0)
+        }
+    }
+
+    // MARK: - Speaking State
+
+    private var speakingStateView: some View {
+        VStack(spacing: 32) {
+            // Animated sound waves
+            Image(systemName: "speaker.wave.3.fill")
+                .font(.system(size: 100))
+                .foregroundColor(.blue)
+                .symbolEffect(.pulse, options: .repeating)
+
+            // Visual indicator
+            HStack(spacing: 8) {
+                ForEach(0..<5) { index in
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(Color.blue)
+                        .frame(width: 4, height: animatedBarHeight(for: index))
+                        .animation(
+                            Animation
+                                .easeInOut(duration: 0.5)
+                                .repeatForever(autoreverses: true)
+                                .delay(Double(index) * 0.1),
+                            value: viewModel.voiceService.isSpeaking
+                        )
                 }
             }
-            .onChange(of: viewModel.isLoading) { isLoading in
-                if isLoading {
-                    withAnimation {
-                        scrollProxy.scrollTo("loading", anchor: .bottom)
-                    }
-                }
+            .frame(height: 40)
+        }
+    }
+
+    // MARK: - Buttons
+
+    private var recordButton: some View {
+        Button(action: startRecording) {
+            ZStack {
+                Circle()
+                    .fill(Color.blue)
+                    .frame(width: 80, height: 80)
+                    .shadow(radius: 8)
+
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(.white)
+            }
+        }
+    }
+
+    private var stopButton: some View {
+        Button(action: stopRecording) {
+            ZStack {
+                Circle()
+                    .fill(Color.red)
+                    .frame(width: 80, height: 80)
+                    .shadow(radius: 8)
+
+                Image(systemName: "stop.fill")
+                    .font(.system(size: 32))
+                    .foregroundColor(.white)
             }
         }
     }
@@ -246,7 +300,7 @@ struct AIAssistantView: View {
         .animation(.spring(), value: viewModel.actionCoordinator.lastActionResult != nil)
     }
 
-    // MARK: - Scheduling Overlays (PR #010B)
+    // MARK: - Scheduling Overlays
 
     @ViewBuilder
     private var schedulingOverlays: some View {
@@ -352,86 +406,44 @@ struct AIAssistantView: View {
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Actions
 
-    private var emptyStateView: some View {
-        // PR #018: Simple tap to record button if user cancels the auto-opened sheet
-        VStack {
-            Spacer()
-
-            Button(action: {
-                showVoiceRecording = true
-            }) {
-                VStack(spacing: 16) {
-                    Image(systemName: "mic.circle.fill")
-                        .font(.system(size: 80))
-                        .foregroundColor(.blue)
-
-                    Text("Tap to Record")
-                        .font(.title3)
-                        .foregroundColor(.secondary)
-                }
-            }
-            .buttonStyle(.plain)
-
-            Spacer()
-
-            Button("or type") {
-                hasInteracted = true
-            }
-            .padding(.bottom, 20)
+    private func startRecording() {
+        Task {
+            await viewModel.startVoiceRecording()
         }
     }
 
-    private var inputView: some View {
-        HStack(spacing: 12) {
-            // Voice Button (PR #011 Phase 3)
-            VoiceButton(
-                state: viewModel.isRecording ? VoiceButton.ButtonState.recording :
-                       viewModel.isTranscribing ? VoiceButton.ButtonState.transcribing :
-                       viewModel.voiceError != nil ? VoiceButton.ButtonState.error : VoiceButton.ButtonState.idle,
-                action: {
-                    showVoiceRecording = true
-                }
-            )
-
-            TextField("Ask me anything...", text: $viewModel.currentInput)
-                .textFieldStyle(.roundedBorder)
-                .focused($isInputFocused)
-                .disabled(viewModel.isLoading || viewModel.isRecording || viewModel.isTranscribing)
-                .onSubmit {
-                    viewModel.sendMessage()
-                }
-
-            Button {
-                viewModel.sendMessage()
-            } label: {
-                Image(systemName: viewModel.isLoading ? "stop.circle.fill" : "arrow.up.circle.fill")
-                    .font(.system(size: 32))
-                    .foregroundColor(viewModel.currentInput.isEmpty && !viewModel.isLoading ? .gray : .blue)
-            }
-            .disabled(viewModel.currentInput.isEmpty && !viewModel.isLoading)
+    private func stopRecording() {
+        Task {
+            await viewModel.stopVoiceRecording()
         }
-        .padding()
-        .background(Color(.systemBackground))
     }
-}
 
-// MARK: - View Modifiers
+    // MARK: - Helpers
 
-/// ViewModifier to log state changes for debugging
-struct StateChangeLogger: ViewModifier {
-    @ObservedObject var viewModel: AIAssistantViewModel
+    private func formatDuration(_ duration: TimeInterval) -> String {
+        let minutes = Int(duration) / 60
+        let seconds = Int(duration) % 60
+        return String(format: "%d:%02d", minutes, seconds)
+    }
 
-    func body(content: Content) -> some View {
-        content
+    @State private var animationPhase: CGFloat = 0.0
+
+    private func animationAmount(for index: Int) -> CGFloat {
+        return 1.0 + 0.5 * sin(animationPhase + Double(index) * 0.5)
+    }
+
+    private func animatedBarHeight(for index: Int) -> CGFloat {
+        guard viewModel.voiceService.isSpeaking else { return 4 }
+        return 8 + CGFloat.random(in: 0...32)
     }
 }
 
 // MARK: - Preview
 
-struct AIAssistantView_Previews: PreviewProvider {
+struct VoiceOnlyAssistantView_Previews: PreviewProvider {
     static var previews: some View {
-        AIAssistantView()
+        VoiceOnlyAssistantView()
     }
 }

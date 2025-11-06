@@ -105,7 +105,7 @@ struct ChatListView: View {
                 })
             }
             .sheet(isPresented: $showingAIAssistant) {
-                AIAssistantView()
+                VoiceOnlyAssistantView()
             }
             .sheet(isPresented: $showingProfile) {
                 ProfileView()

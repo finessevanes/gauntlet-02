@@ -12,6 +12,7 @@ import Foundation
 struct VoiceSettings: Codable {
     var voiceResponseEnabled: Bool
     var autoSendAfterTranscription: Bool
+    var autoSpeakConfirmations: Bool // PR #018: Auto-speak action confirmations
     var ttsVoice: TTSVoice
     var ttsRate: Float // Speech rate: 0.0 (slowest) to 1.0 (fastest)
     var ttsPitch: Float // Pitch: 0.5 (low) to 2.0 (high)
@@ -41,7 +42,8 @@ struct VoiceSettings: Codable {
     static var `default`: VoiceSettings {
         return VoiceSettings(
             voiceResponseEnabled: true,
-            autoSendAfterTranscription: false,
+            autoSendAfterTranscription: true, // PR #018: Default to true for voice-first workflow
+            autoSpeakConfirmations: true, // PR #018: Auto-speak action confirmations
             ttsVoice: .samantha,
             ttsRate: 0.5, // Normal speed
             ttsPitch: 1.0, // Normal pitch

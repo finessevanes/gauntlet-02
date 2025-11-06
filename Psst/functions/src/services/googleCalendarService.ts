@@ -40,10 +40,12 @@ export async function getGoogleCredentials(userId: string): Promise<GoogleCreden
   const db = admin.firestore();
 
   try {
+    console.log(`[getGoogleCredentials] Fetching credentials for user: ${userId}`);
     const userDoc = await db.collection('users').doc(userId).get();
     const userData = userDoc.data();
 
     if (!userData) {
+      console.log(`[getGoogleCredentials] ❌ User document not found for: ${userId}`);
       return null;
     }
 
@@ -53,15 +55,23 @@ export async function getGoogleCredentials(userId: string): Promise<GoogleCreden
     const refreshToken = googleCalendar?.refreshToken as string | undefined;
     const connectedEmail = googleCalendar?.connectedEmail as string | undefined;
 
+    console.log(`[getGoogleCredentials] Has integrations: ${!!integrations}`);
+    console.log(`[getGoogleCredentials] Has googleCalendar: ${!!googleCalendar}`);
+    console.log(`[getGoogleCredentials] Has refreshToken: ${!!refreshToken}`);
+    console.log(`[getGoogleCredentials] Connected email: ${connectedEmail || 'none'}`);
+
     if (!refreshToken) {
+      console.log(`[getGoogleCredentials] ❌ No refresh token found for user: ${userId}`);
       return null;
     }
 
+    console.log(`[getGoogleCredentials] ✅ Credentials found for: ${connectedEmail}`);
     return {
       refreshToken,
       connectedEmail: connectedEmail || 'unknown@gmail.com'
     };
   } catch (error) {
+    console.error(`[getGoogleCredentials] ❌ Error fetching credentials:`, error);
     return null;
   }
 }
@@ -80,6 +90,11 @@ function createOAuth2Client(refreshToken: string, clientSecret?: string) {
   const secret = clientSecret || ''; // Empty for iOS clients
   const redirectUri = 'com.googleusercontent.apps.505865284795-inggmn5im1kb68ogljqp6cp0oucap8r4:/oauth2callback';
 
+  console.log(`[createOAuth2Client] Client ID: ${clientId}`);
+  console.log(`[createOAuth2Client] Has client secret: ${!!clientSecret}`);
+  console.log(`[createOAuth2Client] Redirect URI: ${redirectUri}`);
+  console.log(`[createOAuth2Client] Refresh token (first 20 chars): ${refreshToken.substring(0, 20)}...`);
+
   const oauth2Client = new google.auth.OAuth2(
     clientId,
     secret,
@@ -90,6 +105,7 @@ function createOAuth2Client(refreshToken: string, clientSecret?: string) {
     refresh_token: refreshToken
   });
 
+  console.log(`[createOAuth2Client] ✅ OAuth2 client created`);
   return oauth2Client;
 }
 
@@ -134,42 +150,61 @@ export async function syncEventToGoogleCalendar(
   event: CalendarEvent,
   clientSecret?: string
 ): Promise<string> {
+  console.log(`[syncEventToGoogleCalendar] Starting sync for event: ${event.id}`);
+  console.log(`[syncEventToGoogleCalendar] Trainer ID: ${event.trainerId}`);
+  console.log(`[syncEventToGoogleCalendar] Event title: ${event.title}`);
+
   // Get user's Google credentials
   const credentials = await getGoogleCredentials(event.trainerId);
 
   if (!credentials) {
+    console.log(`[syncEventToGoogleCalendar] ❌ No credentials found - Google Calendar not connected`);
     throw new Error('Google Calendar not connected');
   }
+
+  console.log(`[syncEventToGoogleCalendar] ✅ Credentials retrieved for: ${credentials.connectedEmail}`);
 
   // Create OAuth2 client
   const oauth2Client = createOAuth2Client(credentials.refreshToken, clientSecret);
 
   // Create calendar API client
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client });
+  console.log(`[syncEventToGoogleCalendar] ✅ Calendar API client created`);
 
   try {
     // Convert event to Google Calendar format
     const googleEvent = convertToGoogleCalendarFormat(event);
+    console.log(`[syncEventToGoogleCalendar] Event converted to Google format`);
+    console.log(`[syncEventToGoogleCalendar] Summary: ${googleEvent.summary}`);
+    console.log(`[syncEventToGoogleCalendar] Start: ${googleEvent.start.dateTime}`);
 
     // Check if event already exists (UPDATE case)
     if (event.googleCalendarEventId) {
+      console.log(`[syncEventToGoogleCalendar] Updating existing event: ${event.googleCalendarEventId}`);
       const response = await calendar.events.update({
         calendarId: 'primary',
         eventId: event.googleCalendarEventId,
         requestBody: googleEvent
       });
 
+      console.log(`[syncEventToGoogleCalendar] ✅ Event updated successfully: ${response.data.id}`);
       return response.data.id!;
     } else {
       // CREATE new event
+      console.log(`[syncEventToGoogleCalendar] Creating new event in Google Calendar`);
       const response = await calendar.events.insert({
         calendarId: 'primary',
         requestBody: googleEvent
       });
 
+      console.log(`[syncEventToGoogleCalendar] ✅ Event created successfully: ${response.data.id}`);
       return response.data.id!;
     }
   } catch (error: any) {
+    console.error(`[syncEventToGoogleCalendar] ❌ Error syncing to Google Calendar:`, error);
+    console.error(`[syncEventToGoogleCalendar] Error code: ${error.code}`);
+    console.error(`[syncEventToGoogleCalendar] Error message: ${error.message}`);
+    console.error(`[syncEventToGoogleCalendar] Full error:`, JSON.stringify(error, null, 2));
     throw new Error(`Failed to sync to Google Calendar: ${error.message}`);
   }
 }
