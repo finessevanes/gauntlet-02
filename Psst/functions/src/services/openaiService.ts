@@ -36,14 +36,27 @@ export async function generateEmbedding(text: string, apiKey: string): Promise<n
   try {
     // Validate API key
     if (!apiKey) {
+      console.error('[OpenAIService] ❌ CRITICAL: API key not provided');
       throw new Error('OpenAI API key not provided. Check secret configuration.');
     }
 
+    // Detailed API key validation
+    console.log('[OpenAIService] 🔑 Validating OpenAI API Key');
+    console.log(`[OpenAIService] Key length: ${apiKey.length} characters`);
+    console.log(`[OpenAIService] Key starts with: ${apiKey.substring(0, 10)}`);
+    console.log(`[OpenAIService] Key ends with: ${apiKey.substring(apiKey.length - 5)}`);
+
+    if (!apiKey.startsWith('sk-proj-') && !apiKey.startsWith('sk-')) {
+      console.error('[OpenAIService] ⚠️ WARNING: Key format looks invalid! Should start with sk-proj- or sk-');
+    }
+
     // Initialize OpenAI client
+    console.log('[OpenAIService] Initializing OpenAI client...');
     const openai = new OpenAI({
       apiKey: apiKey,
       timeout: aiConfig.openai.timeout
     });
+    console.log(`[OpenAIService] ✅ OpenAI client initialized with timeout: ${aiConfig.openai.timeout}ms`);
 
     // Generate embedding with retry logic
     const embedding = await retryWithBackoff(async () => {
@@ -68,34 +81,58 @@ export async function generateEmbedding(text: string, apiKey: string): Promise<n
         
       } catch (error: any) {
         // Handle OpenAI-specific errors
-        if (error.status === 401 || error.statusCode === 401) {
+        const status = error.status || error.statusCode;
+
+        console.error('[OpenAIService] Request failed:', {
+          status,
+          message: error.message,
+          code: error.code,
+          type: error.constructor.name
+        });
+
+        if (status === 401) {
           // Invalid API key - don't retry
-          throw new Error(`OpenAI authentication failed. Check API key. Error: ${error.message}`);
+          const authError = new Error(`❌ OpenAI authentication failed. Check your API key. Error: ${error.message}`) as any;
+          authError.code = 'OPENAI_AUTH_ERROR';
+          console.error('[OpenAIService] AUTH ERROR - This typically means the API key is invalid or expired');
+          throw authError;
         }
-        
-        if (error.status === 429 || error.statusCode === 429) {
+
+        if (status === 429) {
           // Rate limit - extract retry-after if available
           const retryAfter = error.headers?.['retry-after'];
           if (retryAfter) {
             const delayMs = parseInt(retryAfter) * 1000;
-            console.log(`[OpenAIService] Rate limited. Retry after ${retryAfter}s`);
+            console.warn(`[OpenAIService] Rate limited. Retry after ${retryAfter}s`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
           }
-          throw error; // Will be retried by retryWithBackoff
+          const rateLimitError = new Error('Rate limited by OpenAI') as any;
+          rateLimitError.code = 'RATE_LIMIT_EXCEEDED';
+          throw rateLimitError;
         }
-        
-        if (error.status === 400 || error.statusCode === 400) {
+
+        if (status === 400) {
           // Invalid request - don't retry
-          throw new Error(`Invalid request to OpenAI: ${error.message}`);
+          const invalidError = new Error(`Invalid request to OpenAI: ${error.message}`) as any;
+          invalidError.code = 'INVALID_REQUEST';
+          throw invalidError;
         }
-        
+
+        if (status === 500 || status === 502 || status === 503 || status === 504) {
+          console.warn(`[OpenAIService] OpenAI server error (${status}): ${error.message}`);
+          const openaiError = new Error(`OpenAI service error (${status})`) as any;
+          openaiError.code = 'OPENAI_ERROR';
+          throw openaiError;
+        }
+
         // Check if error is retryable
         if (isRetryableError(error)) {
-          console.log('[OpenAIService] Retryable error encountered');
+          console.log('[OpenAIService] Retryable error encountered, will retry');
           throw error; // Will be retried
         }
-        
-        // Unknown error - don't retry
+
+        // Unknown error - log and rethrow
+        console.error('[OpenAIService] Unknown error type encountered');
         throw error;
       }
     }, aiConfig.retry.maxAttempts, aiConfig.retry.initialDelay, aiConfig.retry.maxDelay);

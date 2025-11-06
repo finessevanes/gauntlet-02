@@ -35,25 +35,30 @@ class AIService: ObservableObject {
         guard Auth.auth().currentUser != nil else {
             throw AIError.notAuthenticated
         }
-        
+
         // Validate message
         guard validateMessage(message) else {
             throw AIError.invalidMessage
         }
-        
+
         // Use mock backend until useRealBackend flag is enabled
         if !useRealBackend {
             return await getMockResponse(for: message)
         }
-        
+
         // Get current user ID
         guard let userId = Auth.auth().currentUser?.uid else {
             throw AIError.notAuthenticated
         }
-        
+
+        print("[AIService] 🚀 Calling chatWithAI Cloud Function")
+        print("[AIService] User ID: \(userId)")
+        print("[AIService] Message: \(message.prefix(50))...")
+        print("[AIService] Timezone: \(TimeZone.current.identifier)")
+
         // Call Cloud Function
         let chatFunction = functions.httpsCallable("chatWithAI")
-        
+
         // Build parameters (only include conversationId if it exists)
         var parameters: [String: Any] = [
             "userId": userId,
@@ -64,9 +69,13 @@ class AIService: ObservableObject {
         if let conversationId = conversationId, !conversationId.isEmpty {
             parameters["conversationId"] = conversationId
         }
-        
+
         do {
+            print("[AIService] ⏳ Waiting for Cloud Function response...")
+            let startTime = Date()
             let result = try await chatFunction.call(parameters)
+            let duration = Date().timeIntervalSince(startTime)
+            print("[AIService] ✅ Cloud Function responded in \(String(format: "%.2f", duration))s")
             
             // Parse response
             guard let data = result.data as? [String: Any],
@@ -110,28 +119,52 @@ class AIService: ObservableObject {
             )
             
         } catch let error as NSError {
+            print("[AIService] ❌ Cloud Function error received")
+            print("[AIService] Error domain: \(error.domain)")
+            print("[AIService] Error code: \(error.code)")
+            print("[AIService] Error description: \(error.localizedDescription)")
+            print("[AIService] Error user info: \(error.userInfo)")
+
             // Map Firebase errors to AIError
             if error.domain == "com.firebase.functions" {
+                print("[AIService] Firebase Functions error detected")
+
                 switch error.code {
                 case FunctionsErrorCode.unauthenticated.rawValue:
+                    print("[AIService] → Unauthenticated error")
                     throw AIError.notAuthenticated
+
                 case FunctionsErrorCode.resourceExhausted.rawValue:
+                    print("[AIService] → Rate limit error")
                     throw AIError.rateLimitExceeded
+
                 case FunctionsErrorCode.unavailable.rawValue:
+                    print("[AIService] → Service unavailable error (likely backend failure)")
+                    // Log the details from userInfo which might contain the actual error message
+                    if let details = error.userInfo["FIRInstanceIDErrorMessageKey"] {
+                        print("[AIService] Backend error details: \(details)")
+                    }
                     throw AIError.serviceUnavailable
+
                 case FunctionsErrorCode.deadlineExceeded.rawValue:
+                    print("[AIService] → Timeout error")
                     throw AIError.timeout
+
                 default:
                     let errorMessage = error.localizedDescription
+                    print("[AIService] → Unknown Firebase error code \(error.code): \(errorMessage)")
                     throw AIError.serverError(errorMessage)
                 }
             }
-            
+
             // Network connectivity errors
-            if (error.domain == NSURLErrorDomain) {
+            if error.domain == NSURLErrorDomain {
+                print("[AIService] Network error detected")
+                print("[AIService] Network error code: \(error.code)")
                 throw AIError.networkError
             }
-            
+
+            print("[AIService] Unhandled error type")
             throw AIError.unknownError(error.localizedDescription)
         }
     }

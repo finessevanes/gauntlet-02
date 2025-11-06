@@ -174,14 +174,27 @@ export async function generateChatResponse(
   try {
     // Validate API key
     if (!apiKey) {
+      console.error('[AIChatService] ❌ CRITICAL: API key not provided');
       throw new Error('OpenAI API key not provided. Check secret configuration.');
     }
 
+    // Detailed API key validation
+    console.log('[AIChatService] 🔑 Validating OpenAI API Key for chat');
+    console.log(`[AIChatService] Key length: ${apiKey.length} characters`);
+    console.log(`[AIChatService] Key starts with: ${apiKey.substring(0, 10)}`);
+    console.log(`[AIChatService] Key ends with: ${apiKey.substring(apiKey.length - 5)}`);
+
+    if (!apiKey.startsWith('sk-proj-') && !apiKey.startsWith('sk-')) {
+      console.error('[AIChatService] ⚠️ WARNING: Key format looks invalid! Should start with sk-proj- or sk-');
+    }
+
     // Initialize OpenAI client
+    console.log('[AIChatService] Initializing OpenAI client for chat...');
     const openai = new OpenAI({
       apiKey: apiKey,
       timeout: aiConfig.openai.timeout
     });
+    console.log(`[AIChatService] ✅ OpenAI client initialized with timeout: ${aiConfig.openai.timeout}ms`);
 
     // Build conversation messages array
     const systemPrompt = getSystemPrompt(ragContext, timezone);
@@ -262,20 +275,29 @@ export async function generateChatResponse(
 
       } catch (error: any) {
         // Handle OpenAI-specific errors
-        
+        const status = error.status || error.statusCode;
+
+        console.error('[AIChatService] Chat completion request failed:', {
+          status,
+          message: error.message,
+          code: error.code,
+          type: error.constructor.name
+        });
+
         // Authentication errors - don't retry
-        if (error.status === 401 || error.statusCode === 401) {
-          const authError = new Error('OpenAI authentication failed. Check API key.');
+        if (status === 401) {
+          console.error('[AIChatService] ⚠️ AUTHENTICATION ERROR - Invalid or expired OpenAI API key!');
+          const authError = new Error('❌ OpenAI authentication failed. Check API key.');
           (authError as any).code = 'OPENAI_ERROR';
           throw authError;
         }
-        
+
         // Rate limit errors - retry with backoff
-        if (error.status === 429 || error.statusCode === 429) {
+        if (status === 429) {
           console.warn('[AIChatService] Rate limit hit, will retry...');
           const rateLimitError = new Error('Rate limit exceeded. Please wait a moment.');
           (rateLimitError as any).code = 'RATE_LIMIT_EXCEEDED';
-          
+
           // Extract retry-after header if available
           const retryAfter = error.headers?.['retry-after'];
           if (retryAfter) {
@@ -283,32 +305,46 @@ export async function generateChatResponse(
             console.log(`[AIChatService] Retry after ${retryAfter}s`);
             await new Promise(resolve => setTimeout(resolve, delayMs));
           }
-          
+
           throw rateLimitError; // Will be retried by retryWithBackoff
         }
-        
+
         // Invalid request errors - don't retry
-        if (error.status === 400 || error.statusCode === 400) {
+        if (status === 400) {
+          console.warn('[AIChatService] Invalid request to OpenAI API');
           const invalidError = new Error(`Invalid request: ${error.message}`);
           (invalidError as any).code = 'INVALID_REQUEST';
           throw invalidError;
         }
-        
+
+        // Server errors
+        if (status === 500 || status === 502 || status === 503 || status === 504) {
+          console.warn(`[AIChatService] OpenAI server error (${status}): ${error.message}`);
+          const serverError = new Error(`OpenAI server error (${status})`);
+          (serverError as any).code = 'OPENAI_ERROR';
+          throw serverError;
+        }
+
         // Timeout errors
         if (error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+          console.warn('[AIChatService] Request timeout');
           const timeoutError = new Error('Request timed out. AI is taking too long to respond.');
           (timeoutError as any).code = 'OPENAI_TIMEOUT';
           throw timeoutError;
         }
-        
+
         // Check if error is retryable (network issues, 5xx errors)
         if (isRetryableError(error)) {
           console.log('[AIChatService] Retryable error encountered, will retry...');
           throw error; // Will be retried
         }
-        
+
         // Unknown error - don't retry
-        console.error('[AIChatService] Non-retryable error:', error);
+        console.error('[AIChatService] Non-retryable error encountered:', {
+          message: error.message,
+          code: error.code,
+          type: error.constructor.name
+        });
         const unknownError = new Error(`AI service error: ${error.message}`);
         (unknownError as any).code = 'OPENAI_ERROR';
         throw unknownError;

@@ -39,10 +39,32 @@ export const chatWithAIFunction = functions
   })
   .https.onCall(
   async (data: ChatWithAIRequest, context): Promise<ChatWithAIResponse> => {
+    const startTime = Date.now();
+
     // Get secret values
+    console.log('[chatWithAI] 🔑 LOADING SECRETS FROM FIREBASE');
     const openaiKey = openaiApiKey.value();
     const pineconeKey = pineconeApiKey.value();
-    const startTime = Date.now();
+
+    // Log API key status for debugging
+    console.log('[chatWithAI] Initializing AI chat function');
+
+    // More detailed key logging
+    if (!openaiKey) {
+      console.error('[chatWithAI] ❌ CRITICAL: OpenAI API key is MISSING or EMPTY');
+      console.error('[chatWithAI] Check Firebase config: firebase functions:config:get openai');
+    } else {
+      console.log(`[chatWithAI] ✅ OpenAI key loaded: ${openaiKey.length} characters`);
+      console.log(`[chatWithAI] Key starts with: ${openaiKey.substring(0, 10)}`);
+      console.log(`[chatWithAI] Key ends with: ${openaiKey.substring(openaiKey.length - 5)}`);
+
+      // Warn if key format looks wrong
+      if (!openaiKey.startsWith('sk-')) {
+        console.error('[chatWithAI] ⚠️ WARNING: OpenAI key does not start with "sk-"! This is likely invalid!');
+      }
+    }
+
+    console.log(`[chatWithAI] Pinecone key configured: ${pineconeKey ? 'YES' : 'NO'}`);
     
     try {
       // ========================================
@@ -202,40 +224,62 @@ export const chatWithAIFunction = functions
         }
         
       } catch (error: any) {
-        console.error('[chatWithAI] AI generation failed:', error);
-        
+        console.error('[chatWithAI] ❌ AI generation failed:', {
+          errorCode: error.code,
+          errorMessage: error.message,
+          errorStatus: error.status || error.statusCode,
+          errorType: error.constructor.name,
+          fullError: JSON.stringify(error, null, 2)
+        });
+
         // Map error codes to user-friendly messages
         const errorCode = error.code || AIErrorCode.INTERNAL_ERROR;
-        
+        const errorMessage = error.message || 'Unknown error';
+
         switch (errorCode) {
           case AIErrorCode.RATE_LIMIT_EXCEEDED:
+            console.warn('[chatWithAI] Rate limit hit');
             throw new functions.https.HttpsError(
               'resource-exhausted',
               'Too many requests. Please wait 30 seconds and try again.'
             );
-          
+
           case AIErrorCode.OPENAI_TIMEOUT:
+            console.warn('[chatWithAI] OpenAI timeout');
             throw new functions.https.HttpsError(
               'deadline-exceeded',
               'AI is taking too long to respond. Please try again in a moment.'
             );
-          
+
           case AIErrorCode.INVALID_REQUEST:
+            console.warn('[chatWithAI] Invalid request to OpenAI');
             throw new functions.https.HttpsError(
               'invalid-argument',
               'Invalid request format. Please try rephrasing your message.'
             );
-          
+
           case AIErrorCode.OPENAI_ERROR:
+            console.warn('[chatWithAI] OpenAI service error:', errorMessage);
             throw new functions.https.HttpsError(
               'unavailable',
               'AI service is temporarily unavailable. Please try again later.'
             );
-          
+
           default:
+            // Check for authentication error specifically
+            if (errorMessage.includes('authentication') || errorMessage.includes('401')) {
+              console.error('[chatWithAI] ⚠️ OpenAI AUTHENTICATION ERROR - Check your API key!');
+              throw new functions.https.HttpsError(
+                'unauthenticated',
+                'OpenAI authentication failed. Please check your API key configuration.'
+              );
+            }
+
+            // Log unexpected errors with details
+            console.error('[chatWithAI] Unexpected error type. Details logged above.');
             throw new functions.https.HttpsError(
               'internal',
-              'An unexpected error occurred. Please try again.'
+              `An unexpected error occurred: ${errorMessage}`
             );
         }
       }

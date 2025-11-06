@@ -135,13 +135,22 @@ struct PsstApp: App {
 // MARK: - AppDelegate
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_ application: UIApplication, 
+    func application(_ application: UIApplication,
                     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-        
+
         // Set notification center delegate
         UNUserNotificationCenter.current().delegate = self
-        
+
         return true
+    }
+
+    // Required for Firebase method swizzling to recognize UIApplicationDelegate conformance
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        // App became active - Firebase uses this for swizzling validation
+    }
+
+    func applicationWillResignActive(_ application: UIApplication) {
+        // App will resign active - Firebase uses this for swizzling validation
     }
     
     func application(_ application: UIApplication,

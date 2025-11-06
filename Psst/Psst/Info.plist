@@ -11,10 +11,10 @@
 			<string>Google OAuth</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.505865284795-inggmn5im1kb68ogljqp6cp0oucap8r4</string>
+				<string>com.googleusercontent.apps.505865284795-o8jjo13ebn38ou1e5s2hujr6rg5t4fkm</string>
 			</array>
 			<key>CFBundleURLComment</key>
-			<string>Google Calendar OAuth callback (PR #010C)</string>
+			<string>Google Sign-In OAuth callback (matches GoogleService-Info.plist REVERSED_CLIENT_ID)</string>
 		</dict>
 	</array>
 	<key>UIBackgroundModes</key>

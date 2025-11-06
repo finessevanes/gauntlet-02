@@ -15,7 +15,7 @@
     "clear-db": "ts-node scripts/clearFirestore.ts"
   },
   "engines": {
-    "node": "18"
+    "node": "20"
   },
   "dependencies": {
     "@pinecone-database/pinecone": "^6.1.2",
