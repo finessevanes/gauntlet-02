@@ -15,7 +15,6 @@
 import * as functions from 'firebase-functions';
 import * as admin from 'firebase-admin';
 import { syncEventToGoogleCalendar } from './services/googleCalendarService';
-import { googleClientSecret } from './config/secrets';
 
 /**
  * Calendar event data from Firestore
@@ -42,7 +41,6 @@ interface CalendarEvent {
  */
 export const onCalendarEventCreateFunction = functions
   .runWith({
-    secrets: [googleClientSecret],
     timeoutSeconds: 60,
     memory: '256MB'
   })
@@ -71,24 +69,18 @@ export const onCalendarEventCreateFunction = functions
     }
 
     try {
-      // Get client secret (optional - empty for iOS clients)
-      const clientSecret = googleClientSecret.value();
-
-      // Attempt to sync to Google Calendar
-      const googleEventId = await syncEventToGoogleCalendar(
-        {
-          id: eventId,
-          trainerId: eventData.trainerId,
-          title: eventData.title,
-          startTime: eventData.startTime,
-          endTime: eventData.endTime,
-          eventType: eventData.eventType,
-          location: eventData.location,
-          notes: eventData.notes,
-          googleCalendarEventId: eventData.googleCalendarEventId
-        },
-        clientSecret
-      );
+      // Attempt to sync to Google Calendar (no client secret needed for iOS OAuth)
+      const googleEventId = await syncEventToGoogleCalendar({
+        id: eventId,
+        trainerId: eventData.trainerId,
+        title: eventData.title,
+        startTime: eventData.startTime,
+        endTime: eventData.endTime,
+        eventType: eventData.eventType,
+        location: eventData.location,
+        notes: eventData.notes,
+        googleCalendarEventId: eventData.googleCalendarEventId
+      });
 
       // Update Firestore with Google Calendar event ID
       await snapshot.ref.update({
